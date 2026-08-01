@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.3.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.4.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -13,6 +13,8 @@ add_library(tetris_core STATIC
     src/game.c
     src/rom.c
     src/highscores.c
+    src/name_entry.c
+    src/demo.c
 )
 target_include_directories(tetris_core PUBLIC src)
 if(MSVC)

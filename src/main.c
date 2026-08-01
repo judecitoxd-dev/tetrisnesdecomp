@@ -1,9 +1,13 @@
 #include "app.h"
+#include "demo.h"
 
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
+#define DEMO_IDLE_MS 12000u
+#define DEMO_MAX_MS 45000u
 
 static void make_score_path(char *path, size_t path_size) {
     char *preference_path = SDL_GetPrefPath("YlPorts", "TetrisNESPC");
@@ -15,28 +19,72 @@ static void make_score_path(char *path, size_t path_size) {
     }
 }
 
-static void maybe_submit_score(TetrisHighScores *scores, const TetrisGame *game,
-                               const char *score_path, bool *submitted) {
-    if (*submitted) return;
+static void start_selected_game(TetrisGame *game, const AppMenuState *menu,
+                                AppScreen *screen, bool *left, bool *right,
+                                bool *down, bool *result_handled) {
+    begin_game(game, menu);
+    *screen = SCREEN_GAME;
+    *result_handled = false;
+    clear_held(left, right, down);
+}
+
+static void start_demo(TetrisGame *game, TetrisDemoController *demo,
+                       AppScreen *screen, Uint32 *demo_started,
+                       bool *left, bool *right, bool *down) {
+    tetris_init_mode(game, 0x19891101u, 5, TETRIS_MODE_A, 0);
+    tetris_demo_reset(demo);
+    *screen = SCREEN_DEMO;
+    *demo_started = SDL_GetTicks();
+    clear_held(left, right, down);
+}
+
+static void begin_result_flow(TetrisHighScores *scores, const TetrisGame *game,
+                              AppResultState *result, AppScreen *screen,
+                              bool *result_handled, bool *left,
+                              bool *right, bool *down) {
+    int rank;
+    if (*result_handled) return;
     if (game->phase != TETRIS_PHASE_GAME_OVER &&
         game->phase != TETRIS_PHASE_COMPLETE) return;
-    *submitted = true;
-    if (game->score <= 0) return;
-    if (tetris_high_scores_submit(scores, game->mode, "PLAYER", game->score,
-                                  game->start_level, game->start_height)) {
+
+    *result_handled = true;
+    rank = tetris_high_scores_rank(scores, game->mode, game->score);
+    app_result_begin(result, game, rank);
+    clear_held(left, right, down);
+    if (rank >= 0) {
+        *screen = SCREEN_NAME_ENTRY;
+    } else if (game->phase == TETRIS_PHASE_COMPLETE) {
+        *screen = SCREEN_ENDING;
+    }
+}
+
+static void save_name_entry(TetrisHighScores *scores,
+                            const AppResultState *result,
+                            const char *score_path, AppScreen *screen) {
+    if (tetris_high_scores_submit(scores, result->mode, result->name.text,
+                                  result->score, result->level,
+                                  result->height)) {
         if (!tetris_high_scores_save(scores, score_path)) {
             fprintf(stderr, "Could not save local scores to %s\n", score_path);
         }
     }
+    *screen = result->completed ? SCREEN_ENDING : SCREEN_RECORDS;
 }
 
-static void start_selected_game(TetrisGame *game, const AppMenuState *menu,
-                                AppScreen *screen, bool *left, bool *right,
-                                bool *down, bool *score_submitted) {
-    begin_game(game, menu);
-    *screen = SCREEN_GAME;
-    *score_submitted = false;
-    clear_held(left, right, down);
+static bool key_to_name_character(SDL_Keycode key, char *character) {
+    if (key >= SDLK_a && key <= SDLK_z) {
+        *character = (char)('A' + (key - SDLK_a));
+        return true;
+    }
+    if (key >= SDLK_0 && key <= SDLK_9) {
+        *character = (char)('0' + (key - SDLK_0));
+        return true;
+    }
+    if (key == SDLK_MINUS) {
+        *character = '-';
+        return true;
+    }
+    return false;
 }
 
 int main(int argc, char **argv) {
@@ -46,7 +94,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.3",
+    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.4",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 960, 720,
         SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!window) {
@@ -92,7 +140,11 @@ int main(int argc, char **argv) {
 
     SDL_GameController *controller = open_first_controller();
     TetrisGame game;
+    TetrisDemoController demo;
     AppMenuState menu = {TETRIS_MODE_A, 0, 0, false};
+    AppResultState result;
+    memset(&result, 0, sizeof(result));
+    tetris_demo_reset(&demo);
     tetris_init(&game, (uint32_t)time(NULL), 0);
     AppScreen screen = SCREEN_TITLE;
     bool running = true;
@@ -100,8 +152,10 @@ int main(int argc, char **argv) {
     bool right = false;
     bool down = false;
     bool fullscreen = false;
-    bool score_submitted = false;
+    bool result_handled = false;
     PendingInput pending = {0};
+    Uint32 last_activity = SDL_GetTicks();
+    Uint32 demo_started = 0;
     uint64_t previous = SDL_GetPerformanceCounter();
     double accumulator = 0.0;
     const double step = 1.0 / 60.0988;
@@ -110,6 +164,10 @@ int main(int argc, char **argv) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) running = false;
+            if (event.type == SDL_KEYDOWN || event.type == SDL_CONTROLLERBUTTONDOWN ||
+                event.type == SDL_DROPFILE) {
+                last_activity = SDL_GetTicks();
+            }
             if (event.type == SDL_CONTROLLERDEVICEADDED && !controller) {
                 controller = SDL_GameControllerOpen(event.cdevice.which);
             }
@@ -131,8 +189,12 @@ int main(int argc, char **argv) {
 
             if (event.type == SDL_KEYDOWN && !event.key.repeat) {
                 const SDL_Keycode key = event.key.keysym.sym;
+                char name_character = 0;
                 if (key == SDLK_ESCAPE) {
                     running = false;
+                } else if (screen == SCREEN_DEMO) {
+                    screen = SCREEN_TITLE;
+                    clear_held(&left, &right, &down);
                 } else if (key == SDLK_F11) {
                     fullscreen = !fullscreen;
                     SDL_SetWindowFullscreen(window,
@@ -150,6 +212,23 @@ int main(int argc, char **argv) {
                 } else if (screen == SCREEN_RECORDS) {
                     if (key == SDLK_RETURN || key == SDLK_SPACE ||
                         key == SDLK_BACKSPACE) screen = SCREEN_TITLE;
+                } else if (screen == SCREEN_NAME_ENTRY) {
+                    if (key == SDLK_LEFT) tetris_name_entry_move(&result.name, -1);
+                    else if (key == SDLK_RIGHT) tetris_name_entry_move(&result.name, 1);
+                    else if (key == SDLK_UP) tetris_name_entry_cycle(&result.name, 1);
+                    else if (key == SDLK_DOWN) tetris_name_entry_cycle(&result.name, -1);
+                    else if (key == SDLK_BACKSPACE) tetris_name_entry_backspace(&result.name);
+                    else if (key == SDLK_RETURN || key == SDLK_SPACE) {
+                        save_name_entry(&scores, &result, score_path, &screen);
+                    } else if (key_to_name_character(key, &name_character)) {
+                        tetris_name_entry_type(&result.name, name_character);
+                    }
+                } else if (screen == SCREEN_ENDING) {
+                    if (key == SDLK_h) screen = SCREEN_RECORDS;
+                    else if (key == SDLK_RETURN || key == SDLK_SPACE ||
+                             key == SDLK_r || key == SDLK_BACKSPACE) {
+                        screen = SCREEN_TITLE;
+                    }
                 } else if (screen == SCREEN_TYPE_SELECT) {
                     if (key == SDLK_LEFT || key == SDLK_RIGHT ||
                         key == SDLK_UP || key == SDLK_DOWN) {
@@ -175,7 +254,7 @@ int main(int argc, char **argv) {
                     if (key == SDLK_RETURN || key == SDLK_SPACE) {
                         start_selected_game(&game, &menu, &screen,
                                             &left, &right, &down,
-                                            &score_submitted);
+                                            &result_handled);
                     }
                     if (key == SDLK_BACKSPACE) screen = SCREEN_TYPE_SELECT;
                 } else if (screen == SCREEN_GAME) {
@@ -190,7 +269,7 @@ int main(int argc, char **argv) {
                         case SDLK_p: pending.pause = true; break;
                         case SDLK_r:
                             pending.restart = true;
-                            score_submitted = false;
+                            result_handled = false;
                             break;
                         case SDLK_TAB: pending.toggle_next = true; break;
                         case SDLK_h: screen = SCREEN_RECORDS; break;
@@ -211,13 +290,39 @@ int main(int argc, char **argv) {
 
             if (event.type == SDL_CONTROLLERBUTTONDOWN) {
                 const Uint8 button = event.cbutton.button;
-                if (screen == SCREEN_TITLE) {
+                if (screen == SCREEN_DEMO) {
+                    screen = SCREEN_TITLE;
+                    clear_held(&left, &right, &down);
+                } else if (screen == SCREEN_TITLE) {
                     if (button == SDL_CONTROLLER_BUTTON_START ||
                         button == SDL_CONTROLLER_BUTTON_A) {
                         screen = SCREEN_TYPE_SELECT;
                     }
                     if (button == SDL_CONTROLLER_BUTTON_Y) screen = SCREEN_RECORDS;
                 } else if (screen == SCREEN_RECORDS) {
+                    if (button == SDL_CONTROLLER_BUTTON_A ||
+                        button == SDL_CONTROLLER_BUTTON_B ||
+                        button == SDL_CONTROLLER_BUTTON_START ||
+                        button == SDL_CONTROLLER_BUTTON_BACK) {
+                        screen = SCREEN_TITLE;
+                    }
+                } else if (screen == SCREEN_NAME_ENTRY) {
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_LEFT)
+                        tetris_name_entry_move(&result.name, -1);
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
+                        tetris_name_entry_move(&result.name, 1);
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_UP)
+                        tetris_name_entry_cycle(&result.name, 1);
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_DOWN)
+                        tetris_name_entry_cycle(&result.name, -1);
+                    if (button == SDL_CONTROLLER_BUTTON_X)
+                        tetris_name_entry_backspace(&result.name);
+                    if (button == SDL_CONTROLLER_BUTTON_A ||
+                        button == SDL_CONTROLLER_BUTTON_START) {
+                        save_name_entry(&scores, &result, score_path, &screen);
+                    }
+                } else if (screen == SCREEN_ENDING) {
+                    if (button == SDL_CONTROLLER_BUTTON_Y) screen = SCREEN_RECORDS;
                     if (button == SDL_CONTROLLER_BUTTON_A ||
                         button == SDL_CONTROLLER_BUTTON_B ||
                         button == SDL_CONTROLLER_BUTTON_START ||
@@ -263,7 +368,7 @@ int main(int argc, char **argv) {
                         button == SDL_CONTROLLER_BUTTON_A) {
                         start_selected_game(&game, &menu, &screen,
                                             &left, &right, &down,
-                                            &score_submitted);
+                                            &result_handled);
                     }
                     if (button == SDL_CONTROLLER_BUTTON_B ||
                         button == SDL_CONTROLLER_BUTTON_BACK) {
@@ -281,7 +386,7 @@ int main(int argc, char **argv) {
                         if (game.phase == TETRIS_PHASE_GAME_OVER ||
                             game.phase == TETRIS_PHASE_COMPLETE) {
                             pending.restart = true;
-                            score_submitted = false;
+                            result_handled = false;
                         } else {
                             pending.pause = true;
                         }
@@ -298,6 +403,12 @@ int main(int argc, char **argv) {
                 if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) right = false;
                 if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) down = false;
             }
+        }
+
+        if (screen == SCREEN_TITLE &&
+            (Uint32)(SDL_GetTicks() - last_activity) >= DEMO_IDLE_MS) {
+            start_demo(&game, &demo, &screen, &demo_started,
+                       &left, &right, &down);
         }
 
         {
@@ -326,15 +437,25 @@ int main(int argc, char **argv) {
                     }
                     tetris_tick(&game, &input);
                     tetris_audio_play_events(&audio, tetris_consume_events(&game));
-                    maybe_submit_score(&scores, &game, score_path, &score_submitted);
+                    begin_result_flow(&scores, &game, &result, &screen,
+                                      &result_handled, &left, &right, &down);
                     consumed_pending = true;
+                } else if (screen == SCREEN_DEMO) {
+                    TetrisInput demo_input = tetris_demo_next_input(&demo, &game);
+                    tetris_tick(&game, &demo_input);
+                    tetris_audio_play_events(&audio, tetris_consume_events(&game));
+                    if (game.phase == TETRIS_PHASE_GAME_OVER ||
+                        (Uint32)(SDL_GetTicks() - demo_started) >= DEMO_MAX_MS) {
+                        screen = SCREEN_TITLE;
+                        last_activity = SDL_GetTicks();
+                    }
                 }
                 accumulator -= step;
             }
             if (consumed_pending) memset(&pending, 0, sizeof(pending));
         }
 
-        render(renderer, font, screen, &game, &menu,
+        render(renderer, font, screen, &game, &menu, &result,
                !rom.exact_supported_dump, &audio, &rom, &scores);
         SDL_Delay(1);
     }

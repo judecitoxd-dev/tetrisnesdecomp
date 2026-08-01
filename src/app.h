@@ -4,6 +4,7 @@
 #include "audio.h"
 #include "game.h"
 #include "highscores.h"
+#include "name_entry.h"
 #include "rom.h"
 
 #include <SDL.h>
@@ -20,7 +21,10 @@ typedef enum AppScreen {
     SCREEN_TYPE_SELECT,
     SCREEN_LEVEL_SELECT,
     SCREEN_RECORDS,
-    SCREEN_GAME
+    SCREEN_NAME_ENTRY,
+    SCREEN_ENDING,
+    SCREEN_GAME,
+    SCREEN_DEMO
 } AppScreen;
 
 typedef struct AppMenuState {
@@ -29,6 +33,16 @@ typedef struct AppMenuState {
     int height;
     bool selecting_height;
 } AppMenuState;
+
+typedef struct AppResultState {
+    TetrisNameEntry name;
+    TetrisMode mode;
+    int score;
+    int level;
+    int height;
+    int rank;
+    bool completed;
+} AppResultState;
 
 typedef struct PendingInput {
     bool rotate_cw;
@@ -41,8 +55,9 @@ typedef struct PendingInput {
 
 void render(SDL_Renderer *renderer, SDL_Texture *font, AppScreen screen,
             const TetrisGame *game, const AppMenuState *menu,
-            bool non_exact_rom, const TetrisAudio *audio,
-            const NesRom *rom, const TetrisHighScores *scores);
+            const AppResultState *result, bool non_exact_rom,
+            const TetrisAudio *audio, const NesRom *rom,
+            const TetrisHighScores *scores);
 bool load_rom_and_font(SDL_Renderer *renderer, const char *path,
                        NesRom *rom, SDL_Texture **font);
 SDL_GameController *open_first_controller(void);
@@ -50,5 +65,6 @@ void clear_held(bool *left, bool *right, bool *down);
 void begin_game(TetrisGame *game, const AppMenuState *menu);
 void change_menu_value(AppMenuState *menu, int delta);
 void toggle_menu_mode(AppMenuState *menu);
+void app_result_begin(AppResultState *result, const TetrisGame *game, int rank);
 
 #endif

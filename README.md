@@ -1,22 +1,21 @@
 # Tetris NES — port nativo para PC
 
-Versión **0.3** de una reimplementación portable de **Tetris (USA) para NES**, escrita en C99 con SDL2.
+Versión **0.4** de una reimplementación portable de **Tetris (USA) para NES**, escrita en C99 con SDL2.
 El ejecutable no incorpora una CPU NES ni distribuye la ROM, gráficos, música o datos propietarios.
 Cada usuario proporciona su copia legal de `Tetris (USA).nes`; el programa valida el archivo y lee
 los tiles CHR y las paletas de nivel directamente de esa copia durante la ejecución.
 
-## Novedades de v0.3
+## Novedades de v0.4
 
-- **Modo B jugable** con selección de nivel 0–19 y altura 0–5.
-- Campo inicial de modo B generado con el LFSR y la tabla de bloques identificados en el programa
-  6502; cada fila conserva al menos un hueco.
-- Objetivo de 25 líneas restantes, nivel fijo, pantalla de éxito y bonus por nivel/altura.
-- Tres récords locales separados para modo A y modo B.
-- Guardado automático de récords en la carpeta de preferencias de SDL.
-- Diez paletas de nivel leídas del PRG de la ROM legal y convertidas mediante una paleta RGB de NES.
-- Tres pistas chiptune originales compuestas para el port; no copian notas ni secuencias del cartucho.
-- Pantalla de selección de tipo, configuración de modo B y pantalla de récords.
-- Corrección de carga de récords empatados y pruebas de persistencia ampliadas.
+- Introducción editable de seis caracteres para los récords, con teclado y mando.
+- Clasificación previa del resultado para abrir la pantalla de nombre solo cuando corresponde.
+- Demostración automática después de 12 segundos de inactividad en el título.
+- El modo demostración ejecuta el juego real con un controlador determinista que evalúa líneas,
+  huecos, altura acumulada y desnivel del tablero.
+- Final básico animado para B-Type con estrellas, cohete y resumen de nivel, altura y puntuación.
+- Pruebas nuevas para edición de nombres, clasificación de récords y supervivencia del controlador
+  de demostración.
+- Validación C99 estricta y análisis estático de todos los módulos sin diagnósticos.
 
 ## Estado actual
 
@@ -29,7 +28,7 @@ los tiles CHR y las paletas de nivel directamente de esa copia durante la ejecuc
 - Compilación y pruebas automáticas para Windows y Linux.
 
 Todavía no es una decompilación reproducible bit a bit. Faltan el menú y presentación exactos del
-cartucho, nombres editables para récords, finales y cohetes, demostración automática, paletas de
+cartucho, finales y cohetes fieles, demostración basada en las entradas originales, paletas de
 sprites completas y el controlador musical/APU original. Consulta [`docs/PORT_STATUS.md`](docs/PORT_STATUS.md)
 y [`docs/ROM_MAP.md`](docs/ROM_MAP.md).
 
@@ -93,8 +92,9 @@ cmake --build build --parallel
 | N | Cambiar música 1 / 2 / 3 / apagada |
 | H | Ver récords |
 | F11 | Pantalla completa |
-| R | Reiniciar después de perder o completar modo B |
+| R | Reiniciar después de perder; salir del final B-Type |
 | Retroceso | Volver al menú anterior o al título |
+| Letras y números | Editar el nombre de un récord |
 | Esc | Salir |
 
 ### Mando
@@ -112,7 +112,8 @@ cmake --build build --parallel
 
 Se guardan tres entradas para cada modo. El port usa la ruta de preferencias que SDL asigna a
 `YlPorts/TetrisNESPC`; si no puede obtenerla, utiliza `tetris_scores.txt` junto al ejecutable.
-En v0.3 el nombre automático es `PLAYER`.
+Al conseguir un puesto aparece una pantalla para escribir seis letras, números o guiones. También
+puedes usar las flechas para cambiar cada carácter con teclado o mando.
 
 ## Pruebas
 

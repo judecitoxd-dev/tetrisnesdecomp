@@ -31,13 +31,25 @@ void tetris_high_scores_init(TetrisHighScores *scores) {
     }
 }
 
+int tetris_high_scores_rank(const TetrisHighScores *scores, TetrisMode mode,
+                            int score) {
+    const int index = mode_index(mode);
+    if (!scores || score <= 0) return -1;
+    if (score > 999999) score = 999999;
+    for (int rank = 0; rank < TETRIS_HIGH_SCORE_COUNT; ++rank) {
+        if (score > scores->entries[index][rank].score) return rank;
+    }
+    return -1;
+}
+
 bool tetris_high_scores_submit(TetrisHighScores *scores, TetrisMode mode,
                                const char *name, int score,
                                int level, int height) {
     TetrisHighScoreEntry entry;
     const int index = mode_index(mode);
-    int insert_at = TETRIS_HIGH_SCORE_COUNT;
+    int insert_at;
 
+    if (!scores) return false;
     if (score < 0) score = 0;
     if (score > 999999) score = 999999;
     if (level < 0) level = 0;
@@ -45,13 +57,8 @@ bool tetris_high_scores_submit(TetrisHighScores *scores, TetrisMode mode,
     if (height < 0) height = 0;
     if (height > 5) height = 5;
 
-    for (int rank = 0; rank < TETRIS_HIGH_SCORE_COUNT; ++rank) {
-        if (score > scores->entries[index][rank].score) {
-            insert_at = rank;
-            break;
-        }
-    }
-    if (insert_at == TETRIS_HIGH_SCORE_COUNT) return false;
+    insert_at = tetris_high_scores_rank(scores, mode, score);
+    if (insert_at < 0) return false;
 
     copy_name(entry.name, name);
     entry.score = score;

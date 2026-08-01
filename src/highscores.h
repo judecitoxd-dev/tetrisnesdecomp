@@ -23,6 +23,8 @@ typedef struct TetrisHighScores {
 void tetris_high_scores_init(TetrisHighScores *scores);
 bool tetris_high_scores_load(TetrisHighScores *scores, const char *path);
 bool tetris_high_scores_save(const TetrisHighScores *scores, const char *path);
+int tetris_high_scores_rank(const TetrisHighScores *scores, TetrisMode mode,
+                            int score);
 bool tetris_high_scores_submit(TetrisHighScores *scores, TetrisMode mode,
                                const char *name, int score,
                                int level, int height);

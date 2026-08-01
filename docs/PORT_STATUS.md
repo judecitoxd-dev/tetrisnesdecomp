@@ -1,28 +1,29 @@
 # Estado de decompilación y port
 
-## Resumen de v0.3
+## Resumen de v0.4
 
 La ROM comprobada es NES 2.0, mapper MMC1, con 32 KiB de PRG y 16 KiB de CHR. El port carga la copia
 legal del usuario, valida la cabecera, calcula CRC32, localiza PRG/CHR y decodifica recursos durante
 la ejecución. La lógica jugable está separada de SDL2 para poder probarla sin abrir una ventana.
 
-La tercera fase añade el modo B, récords persistentes, paletas leídas del PRG y música chiptune
-original del port. El modo B reproduce el objetivo de 25 líneas, nivel fijo, alturas 0–5, campo
-inicial pseudoaleatorio, bonus final y estado de victoria.
+La cuarta fase completa varias funciones visibles de una versión de escritorio: nombres editables
+para récords, demostración automática que juega el núcleo real y una celebración animada al superar
+B-Type. El controlador de demo no usa una grabación: busca una colocación para cada pieza y penaliza
+huecos, altura y desniveles.
 
 ## Progreso estimado
 
 | Área | Estado aproximado |
 |---|---:|
-| Port nativo jugable básico | 94% |
-| Controles, tablero y puntuación | 96% |
-| Modo A | 88% |
-| Modo B | 76% |
+| Port nativo jugable básico | 97% |
+| Controles, tablero y puntuación | 98% |
+| Modo A | 91% |
+| Modo B | 84% |
 | Carga legal de recursos desde ROM | 84% |
 | Fidelidad de reglas y timings principales | 78% |
 | Efectos y música nativos no propietarios | 82% |
 | Audio original del cartucho | 0% |
-| Pantallas y animaciones originales | 54% |
+| Pantallas y animaciones equivalentes | 68% |
 | Decompilación etiquetada del PRG 6502 | 24% |
 | Correspondencia reproducible con la ROM | 0% |
 
@@ -44,7 +45,9 @@ traducido automáticamente.
 - Generación determinista de basura de modo B con al menos un hueco por fila.
 - Estadísticas por pieza y siguiente pieza conmutable.
 - Teclado y mando con cola de pulsaciones cortas.
-- Tres récords persistentes por modo, incluyendo empates.
+- Tres récords persistentes por modo, incluyendo empates e introducción editable de nombre.
+- Demostración automática con juego real y controlador de colocación determinista.
+- Final animado básico para completar B-Type.
 - Paletas de nivel obtenidas de la ROM legal.
 - Efectos sintetizados y tres composiciones chiptune nuevas.
 - Pruebas de aparición, gravedad, niveles, borrado, puntuación, entrada, RNG, modo B y récords.
@@ -55,29 +58,29 @@ traducido automáticamente.
 - La generación de modo B sigue las tablas y flujo identificados, pero todavía no se ha comparado
   fotograma por fotograma contra cada combinación de nivel, altura y semilla del cartucho.
 - La caída instantánea, niveles B 10–19 directos y las pistas chiptune son mejoras de PC.
-- Los récords usan el nombre automático `PLAYER`; falta una pantalla para introducir iniciales.
 - Los colores de bloque usan los índices de las paletas de nivel, pero el sombreado y los sprites no
   reproducen todavía toda la composición PPU original.
-- No están implementados los finales, cohetes, demostraciones ni las escenas de puntuación máxima.
+- El final y la demostración son equivalentes nativos, no traducciones exactas de las rutinas,
+  entradas grabadas, sprites o tiempos del cartucho.
 - La música del cartucho y su controlador APU no están traducidos.
 - El RNG no comparte el contador exacto de fotogramas de una consola desde el encendido, por lo que
   una partida nueva no genera la misma secuencia sin controlar la semilla.
 - No existe todavía un proceso de recompilación que produzca un PRG idéntico al original.
 
-## Validación de v0.3
+## Validación de v0.4
 
 - Núcleo compilado como C99 con advertencias estrictas.
 - Pruebas unitarias: 100% aprobadas.
-- Aplicación completa enlazada con SDL2 en Linux.
-- Arranque comprobado con vídeo y audio virtuales y con la ROM CRC32 `D16EA396`.
-- Análisis estático de Clang sin diagnósticos.
+- Interfaz SDL2 validada sintácticamente como C99 con advertencias convertidas en errores.
+- Análisis estático de Clang de ocho módulos sin diagnósticos.
+- Prueba de demostración ejecutada durante miles de fotogramas y al menos veinte piezas.
 - Herramienta de ROM confirmó vectores y cinco tablas pequeñas.
 
 ## Próxima fase
 
-1. Añadir introducción de iniciales y una tabla de récords más cercana al cartucho.
-2. Comparar el modo B por fotograma y documentar el uso exacto del contador RNG.
-3. Traducir las rutinas completas de menú, estadísticas y finales.
-4. Identificar las estructuras del controlador musical y del APU sin distribuir datos extraídos.
-5. Añadir reproducción determinista de entradas y hashes de estado por fotograma.
-6. Construir un desensamblado enlazable con símbolos y bancos MMC1 separados.
+1. Comparar el modo B y los tiempos de menú fotograma por fotograma contra un emulador de referencia.
+2. Traducir las pantallas y rutinas de final del PRG en lugar de usar equivalentes nativos.
+3. Identificar las estructuras del controlador musical y del APU sin distribuir datos extraídos.
+4. Añadir reproducción determinista de entradas y hashes de estado por fotograma.
+5. Construir un desensamblado enlazable con símbolos y bancos MMC1 separados.
+6. Crear pruebas de correspondencia entre funciones C y rutinas 6502 identificadas.

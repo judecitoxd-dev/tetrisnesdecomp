@@ -1,5 +1,7 @@
+#include "demo.h"
 #include "game.h"
 #include "highscores.h"
+#include "name_entry.h"
 #include "rom.h"
 
 #include <assert.h>
@@ -203,7 +205,6 @@ static void test_type_b_restart_preserves_settings(void) {
     assert(game.phase == TETRIS_PHASE_ACTIVE);
 }
 
-
 static void test_rom_level_palette_lookup(void) {
     uint8_t prg[0x184c + 40] = {0};
     uint8_t colors[4] = {0};
@@ -229,11 +230,13 @@ static void test_high_scores_sort_and_round_trip(void) {
     TetrisHighScores loaded;
     remove(path);
     tetris_high_scores_init(&scores);
+    assert(tetris_high_scores_rank(&scores, TETRIS_MODE_A, 100) == 0);
     assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A, "AAA", 100, 1, 0));
     assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A, "BBB", 500, 5, 0));
     assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A, "CCC", 300, 3, 0));
     assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A, "DDD", 300, 4, 0));
     assert(tetris_high_scores_top(&scores, TETRIS_MODE_A)->score == 500);
+    assert(tetris_high_scores_rank(&scores, TETRIS_MODE_A, 250) == -1);
     assert(strcmp(tetris_high_scores_top(&scores, TETRIS_MODE_A)->name, "BBB---") == 0);
     assert(tetris_high_scores_submit(&scores, TETRIS_MODE_B, "WIN", 14400, 9, 5));
     assert(tetris_high_scores_save(&scores, path));
@@ -246,6 +249,43 @@ static void test_high_scores_sort_and_round_trip(void) {
     assert(loaded.entries[1][0].score == 14400);
     assert(loaded.entries[1][0].height == 5);
     remove(path);
+}
+
+static void test_name_entry_editing(void) {
+    TetrisNameEntry entry;
+    tetris_name_entry_init(&entry, "abc");
+    assert(strcmp(entry.text, "ABC---") == 0);
+    tetris_name_entry_type(&entry, 'Z');
+    assert(entry.text[0] == 'Z' && entry.cursor == 1);
+    tetris_name_entry_cycle(&entry, 1);
+    assert(entry.text[1] == 'C');
+    tetris_name_entry_move(&entry, -2);
+    assert(entry.cursor == 5);
+    tetris_name_entry_type(&entry, '7');
+    assert(strcmp(entry.text, "ZCC--7") == 0);
+    tetris_name_entry_backspace(&entry);
+    assert(entry.text[5] == '-' && entry.cursor == 4);
+}
+
+static void test_demo_controller_places_pieces(void) {
+    TetrisGame game;
+    TetrisDemoController demo;
+    int peak_piece_count = 0;
+    tetris_init_mode(&game, 0x19891101u, 5, TETRIS_MODE_A, 0);
+    tetris_demo_reset(&demo);
+    for (int frame = 0; frame < 5000 &&
+         game.phase != TETRIS_PHASE_GAME_OVER; ++frame) {
+        TetrisInput input = tetris_demo_next_input(&demo, &game);
+        tetris_tick(&game, &input);
+        {
+            int total = 0;
+            for (int piece = 0; piece < TETRIS_PIECE_COUNT; ++piece) {
+                total += game.piece_count[piece];
+            }
+            if (total > peak_piece_count) peak_piece_count = total;
+        }
+    }
+    assert(peak_piece_count >= 20);
 }
 
 int main(void) {
@@ -263,6 +303,8 @@ int main(void) {
     test_type_b_restart_preserves_settings();
     test_rom_level_palette_lookup();
     test_high_scores_sort_and_round_trip();
-    puts("All gameplay and persistence tests passed.");
+    test_name_entry_editing();
+    test_demo_controller_places_pieces();
+    puts("All gameplay, demo, name-entry and persistence tests passed.");
     return 0;
 }

@@ -1,0 +1,147 @@
+#include "demo.h"
+
+#include <limits.h>
+#include <string.h>
+
+static bool placement_collides(const uint8_t *board, TetrisPiece piece,
+                               int rotation, int px, int py) {
+    int block;
+    for (block = 0; block < 4; ++block) {
+        const int x = px + tetris_piece_block_x(piece, rotation, block);
+        const int y = py + tetris_piece_block_y(piece, rotation, block);
+        if (x < 0 || x >= TETRIS_BOARD_W || y >= TETRIS_BOARD_H) return true;
+        if (y >= 0 && board[y * TETRIS_BOARD_W + x] != 0) return true;
+    }
+    return false;
+}
+
+static int unique_rotation_count(TetrisPiece piece) {
+    if (piece == PIECE_O) return 1;
+    if (piece == PIECE_I || piece == PIECE_S || piece == PIECE_Z) return 2;
+    return 4;
+}
+
+static int evaluate_placement(const TetrisGame *game, int rotation, int px) {
+    uint8_t board[TETRIS_BOARD_H][TETRIS_BOARD_W];
+    int py = -4;
+    int block;
+    int lines = 0;
+    int aggregate_height = 0;
+    int holes = 0;
+    int bumpiness = 0;
+    int maximum_height = 0;
+    int previous_height = -1;
+
+    memcpy(board, game->board, sizeof(board));
+    if (placement_collides(&board[0][0], game->active, rotation, px, py)) return INT_MIN;
+    while (!placement_collides(&board[0][0], game->active, rotation, px, py + 1)) ++py;
+
+    for (block = 0; block < 4; ++block) {
+        const int x = px + tetris_piece_block_x(game->active, rotation, block);
+        const int y = py + tetris_piece_block_y(game->active, rotation, block);
+        if (y < 0 || x < 0 || x >= TETRIS_BOARD_W || y >= TETRIS_BOARD_H) {
+            return INT_MIN;
+        }
+        board[y][x] = (uint8_t)game->active + 1u;
+    }
+
+    for (int y = TETRIS_BOARD_H - 1; y >= 0; --y) {
+        bool full = true;
+        for (int x = 0; x < TETRIS_BOARD_W; ++x) {
+            if (board[y][x] == 0) {
+                full = false;
+                break;
+            }
+        }
+        if (full) {
+            ++lines;
+            for (int pull = y; pull > 0; --pull) {
+                memcpy(board[pull], board[pull - 1], TETRIS_BOARD_W);
+            }
+            memset(board[0], 0, TETRIS_BOARD_W);
+            ++y;
+        }
+    }
+
+    for (int x = 0; x < TETRIS_BOARD_W; ++x) {
+        int first = TETRIS_BOARD_H;
+        bool seen_block = false;
+        for (int y = 0; y < TETRIS_BOARD_H; ++y) {
+            if (board[y][x] != 0) {
+                if (!seen_block) first = y;
+                seen_block = true;
+            } else if (seen_block) {
+                ++holes;
+            }
+        }
+        {
+            const int height = TETRIS_BOARD_H - first;
+            aggregate_height += height;
+            if (height > maximum_height) maximum_height = height;
+            if (previous_height >= 0) {
+                int difference = height - previous_height;
+                if (difference < 0) difference = -difference;
+                bumpiness += difference;
+            }
+            previous_height = height;
+        }
+    }
+
+    return lines * 1200 - holes * 180 - aggregate_height * 8 -
+           bumpiness * 5 - maximum_height * 12;
+}
+
+static void plan_piece(TetrisDemoController *demo, const TetrisGame *game) {
+    int best_score = INT_MIN;
+    int best_rotation = game->rotation;
+    int best_x = game->x;
+    const int rotations = unique_rotation_count(game->active);
+
+    for (int rotation_index = 0; rotation_index < rotations; ++rotation_index) {
+        const int rotation = rotation_index;
+        for (int x = -2; x < TETRIS_BOARD_W + 2; ++x) {
+            const int score = evaluate_placement(game, rotation, x);
+            if (score > best_score ||
+                (score == best_score && x < best_x)) {
+                best_score = score;
+                best_rotation = rotation;
+                best_x = x;
+            }
+        }
+    }
+    demo->target_rotation = best_rotation;
+    demo->target_x = best_x;
+    demo->observed_spawn_count = game->spawn_count;
+    demo->has_plan = best_score != INT_MIN;
+}
+
+void tetris_demo_reset(TetrisDemoController *demo) {
+    if (!demo) return;
+    memset(demo, 0, sizeof(*demo));
+    demo->observed_spawn_count = 0xffu;
+}
+
+TetrisInput tetris_demo_next_input(TetrisDemoController *demo,
+                                   const TetrisGame *game) {
+    TetrisInput input;
+    memset(&input, 0, sizeof(input));
+    if (!demo || !game || game->paused ||
+        game->phase != TETRIS_PHASE_ACTIVE) return input;
+
+    if (!demo->has_plan || demo->observed_spawn_count != game->spawn_count) {
+        plan_piece(demo, game);
+    }
+    if (!demo->has_plan) return input;
+
+    if ((game->rotation & 3) != (demo->target_rotation & 3)) {
+        input.rotate_cw_pressed = true;
+    } else if (game->x < demo->target_x) {
+        input.right = true;
+    } else if (game->x > demo->target_x) {
+        input.left = true;
+    } else {
+        input.hard_drop_pressed = true;
+        demo->has_plan = false;
+    }
+    return input;
+}

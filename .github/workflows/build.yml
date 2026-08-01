@@ -12,9 +12,9 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact: tetris-pc-v0.3-windows-x64
+            artifact: tetris-pc-v0.4-windows-x64
           - os: ubuntu-latest
-            artifact: tetris-pc-v0.3-linux-x64
+            artifact: tetris-pc-v0.4-linux-x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
