@@ -8,6 +8,7 @@
 #define TETRIS_BOARD_H 20
 #define TETRIS_PIECE_COUNT 7
 #define TETRIS_MAX_CLEAR_ROWS 4
+#define TETRIS_TYPE_B_GOAL 25
 
 typedef enum TetrisPiece {
     PIECE_T = 0,
@@ -19,12 +20,18 @@ typedef enum TetrisPiece {
     PIECE_I
 } TetrisPiece;
 
+typedef enum TetrisMode {
+    TETRIS_MODE_A = 0,
+    TETRIS_MODE_B = 1
+} TetrisMode;
+
 typedef enum TetrisPhase {
     TETRIS_PHASE_ACTIVE = 0,
     TETRIS_PHASE_LINE_CLEAR,
     TETRIS_PHASE_ENTRY_DELAY,
     TETRIS_PHASE_GAME_OVER_CURTAIN,
-    TETRIS_PHASE_GAME_OVER
+    TETRIS_PHASE_GAME_OVER,
+    TETRIS_PHASE_COMPLETE
 } TetrisPhase;
 
 typedef enum TetrisEvent {
@@ -35,7 +42,8 @@ typedef enum TetrisEvent {
     TETRIS_EVENT_LINE      = 1u << 3,
     TETRIS_EVENT_TETRIS    = 1u << 4,
     TETRIS_EVENT_LEVEL_UP  = 1u << 5,
-    TETRIS_EVENT_GAME_OVER = 1u << 6
+    TETRIS_EVENT_GAME_OVER = 1u << 6,
+    TETRIS_EVENT_COMPLETE  = 1u << 7
 } TetrisEvent;
 
 typedef struct TetrisInput {
@@ -58,8 +66,11 @@ typedef struct TetrisGame {
     int x;
     int y;
 
+    TetrisMode mode;
+    int start_height;
     int score;
     int lines;
+    int total_lines;
     int level;
     int start_level;
     int transition_lines;
@@ -88,9 +99,12 @@ typedef struct TetrisGame {
     bool show_next;
     bool paused;
     bool game_over;
+    bool completed;
 } TetrisGame;
 
 void tetris_init(TetrisGame *game, uint32_t seed, int start_level);
+void tetris_init_mode(TetrisGame *game, uint32_t seed, int start_level,
+                      TetrisMode mode, int start_height);
 void tetris_tick(TetrisGame *game, const TetrisInput *input);
 bool tetris_try_move(TetrisGame *game, int dx, int dy);
 bool tetris_try_rotate(TetrisGame *game, int direction);
@@ -101,6 +115,8 @@ int tetris_spawn_rotation(TetrisPiece piece);
 int tetris_gravity_frames(int level);
 int tetris_level_transition_lines(int start_level);
 int tetris_entry_delay_frames(int lock_bottom_row);
+int tetris_type_b_garbage_rows(int start_height);
+int tetris_type_b_completion_bonus(int start_level, int start_height);
 bool tetris_cell_hidden(const TetrisGame *game, int x, int y);
 uint32_t tetris_consume_events(TetrisGame *game);
 

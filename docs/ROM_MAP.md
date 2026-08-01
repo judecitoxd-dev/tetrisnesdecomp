@@ -1,51 +1,51 @@
-# Mapa técnico de la ROM comprobada
+# Mapa inicial de la ROM comprobada
 
-Este documento registra las partes pequeñas del PRG que ya se identificaron y se
-tradujeron a la reimplementación C. Los offsets se verifican con la ROM del usuario
-y no requieren incluir datos extraídos en el repositorio.
+Este documento usa offsets relativos al comienzo del PRG, después de la cabecera iNES/NES 2.0.
+Solo describe ubicaciones; el repositorio no incluye los bytes originales.
 
-## Cabecera y vectores
+## Identificación
 
-| Elemento | Valor |
-|---|---:|
-| Formato | NES 2.0 |
+| Campo | Valor |
+|---|---|
+| CRC32 del archivo | `D16EA396` |
+| SHA-1 | `3026d28b63d94c921fe58364f8b0659d10b5a0ac` |
 | Mapper | MMC1 / 1 |
 | PRG | 32 KiB |
 | CHR | 16 KiB |
+
+## Vectores
+
+| Vector | Dirección CPU |
+|---|---:|
 | NMI | `$8005` |
 | RESET | `$FF00` |
-| IRQ | `$804A` |
+| IRQ/BRK | `$804A` |
 
-## Tablas localizadas
+## Tablas pequeñas identificadas
 
-| Tabla | Offset PRG | Dirección CPU | Uso en el port |
-|---|---:|---:|---|
-| Gravedad NTSC | `0x098E` | `$898E` | `GRAVITY_FRAMES` |
-| Columnas de borrado | `0x17FE` | `$97FE` | Animación centro hacia afuera |
-| Orientaciones iniciales | `0x194E` | `$994E` | Rotación de aparición por pieza |
-| Puntuación BCD | `0x1CA5` | `$9CA5` | 40, 100, 300 y 1200 |
-| Paletas por nivel | `0x184C` | `$984C` | Identificada; todavía no conectada al render RGB |
+| Contenido | Offset PRG | Dirección CPU mostrada por la herramienta | Tamaño |
+|---|---:|---:|---:|
+| Gravedad NTSC | `0x098E` | `$898E` | 30 bytes |
+| Columnas de borrado | `0x17FE` | `$97FE` | 10 bytes |
+| Paletas por nivel | `0x184C` | `$984C` | 40 bytes |
+| Orientaciones de aparición | `0x194E` | `$994E` | 8 bytes |
+| Valores BCD de puntuación | `0x1CA5` | `$9CA5` | 10 bytes |
 
-## Lógica ya traducida
+`src/rom.c` lee la tabla de paletas por nivel directamente desde la ROM legal. El resto sirve para
+contrastar constantes traducidas al núcleo, y puede inspeccionarse con `tools/rom_tables.py`.
 
-- Las 19 orientaciones de tetrominós usan el mismo pivote y desplazamientos del
-  programa 6502.
-- El selector de piezas usa el LFSR de dos bytes, contador de apariciones y una
-  segunda elección cuando aparece el índice inválido o se repite la pieza.
-- La gravedad utiliza los 30 bytes NTSC del cartucho.
-- La subida de nivel reproduce la comparación BCD del original, incluyendo las
-  transiciones especiales de niveles iniciales 10–19.
-- El borrado oculta pares de columnas `4/5`, `3/6`, `2/7`, `1/8`, `0/9`, un paso
-  cada cuatro fotogramas.
+## Modo B
 
-## Pendiente
+La rutina de inicialización identificada genera doce filas candidatas en la zona inferior. Para
+cada celda selecciona entre vacío y tres tipos de bloque mediante una tabla de ocho entradas, y
+fuerza al menos una celda vacía por fila. Una segunda tabla determina cuánto del campo se limpia
+para las alturas 0–5.
 
-Todavía falta etiquetar rutinas completas de menús, audio, finales y renderizado,
-convertir las paletas NES a RGB desde las tablas del PRG y crear pruebas de estado
-por fotograma contra un emulador de referencia.
+El port mantiene esas propiedades y usa el mismo LFSR interno de dos bytes, pero todavía falta
+registrar y comparar el estado completo del RNG por fotograma contra un emulador de referencia.
 
-Ejecuta lo siguiente para verificar los offsets con tu copia legal:
+## Limitaciones del direccionamiento
 
-```bash
-python tools/rom_tables.py "Tetris (USA).nes"
-```
+Las direcciones CPU dependen del banco MMC1 activo. La columna de dirección es útil para localizar
+las tablas en la revisión comprobada, pero no sustituye un mapa completo de bancos. Una fase futura
+separará cada banco y etiquetará las referencias cruzadas.

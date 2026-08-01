@@ -91,3 +91,13 @@ void nes_rom_free(NesRom *rom) {
     free(rom->bytes);
     memset(rom, 0, sizeof(*rom));
 }
+
+
+bool nes_rom_level_palette(const NesRom *rom, int level, uint8_t colors[4]) {
+    const size_t palette_offset = 0x184cu;
+    if (!rom || !rom->prg || !colors || rom->prg_size < palette_offset + 40u) return false;
+    if (level < 0) level = 0;
+    level %= 10;
+    memcpy(colors, rom->prg + palette_offset + (size_t)level * 4u, 4u);
+    return true;
+}
