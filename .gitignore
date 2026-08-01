@@ -1,0 +1,9 @@
+build/
+out/
+*.zip
+*.7z
+*.exe
+*.dll
+*.so
+*.dylib
+.DS_Store
