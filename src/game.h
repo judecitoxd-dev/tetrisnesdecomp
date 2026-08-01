@@ -7,6 +7,7 @@
 #define TETRIS_BOARD_W 10
 #define TETRIS_BOARD_H 20
 #define TETRIS_PIECE_COUNT 7
+#define TETRIS_MAX_CLEAR_ROWS 4
 
 typedef enum TetrisPiece {
     PIECE_T = 0,
@@ -18,6 +19,25 @@ typedef enum TetrisPiece {
     PIECE_I
 } TetrisPiece;
 
+typedef enum TetrisPhase {
+    TETRIS_PHASE_ACTIVE = 0,
+    TETRIS_PHASE_LINE_CLEAR,
+    TETRIS_PHASE_ENTRY_DELAY,
+    TETRIS_PHASE_GAME_OVER_CURTAIN,
+    TETRIS_PHASE_GAME_OVER
+} TetrisPhase;
+
+typedef enum TetrisEvent {
+    TETRIS_EVENT_NONE      = 0,
+    TETRIS_EVENT_MOVE      = 1u << 0,
+    TETRIS_EVENT_ROTATE    = 1u << 1,
+    TETRIS_EVENT_LOCK      = 1u << 2,
+    TETRIS_EVENT_LINE      = 1u << 3,
+    TETRIS_EVENT_TETRIS    = 1u << 4,
+    TETRIS_EVENT_LEVEL_UP  = 1u << 5,
+    TETRIS_EVENT_GAME_OVER = 1u << 6
+} TetrisEvent;
+
 typedef struct TetrisInput {
     bool left;
     bool right;
@@ -27,6 +47,7 @@ typedef struct TetrisInput {
     bool hard_drop_pressed;
     bool pause_pressed;
     bool restart_pressed;
+    bool toggle_next_pressed;
 } TetrisInput;
 
 typedef struct TetrisGame {
@@ -36,16 +57,35 @@ typedef struct TetrisGame {
     int rotation;
     int x;
     int y;
+
     int score;
     int lines;
     int level;
     int start_level;
+    int transition_lines;
+    int piece_count[TETRIS_PIECE_COUNT];
+
     int frame;
     int fall_counter;
     int das_counter;
     int das_direction;
+    int soft_drop_counter;
+    int soft_drop_points;
+
+    uint16_t rng_seed;
+    uint8_t spawn_count;
     int previous_piece;
-    uint32_t rng_state;
+
+    TetrisPhase phase;
+    int phase_timer;
+    int clear_rows[TETRIS_MAX_CLEAR_ROWS];
+    int clear_count;
+    int clear_step;
+    int lock_bottom_row;
+    int curtain_rows;
+
+    uint32_t events;
+    bool show_next;
     bool paused;
     bool game_over;
 } TetrisGame;
@@ -57,6 +97,11 @@ bool tetris_try_rotate(TetrisGame *game, int direction);
 void tetris_hard_drop(TetrisGame *game);
 int tetris_piece_block_x(TetrisPiece piece, int rotation, int block);
 int tetris_piece_block_y(TetrisPiece piece, int rotation, int block);
+int tetris_spawn_rotation(TetrisPiece piece);
 int tetris_gravity_frames(int level);
+int tetris_level_transition_lines(int start_level);
+int tetris_entry_delay_frames(int lock_bottom_row);
+bool tetris_cell_hidden(const TetrisGame *game, int x, int y);
+uint32_t tetris_consume_events(TetrisGame *game);
 
 #endif
