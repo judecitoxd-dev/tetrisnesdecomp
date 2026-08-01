@@ -1,205 +1,18 @@
-#include "game.h"
-#include "rom.h"
+#include "app.h"
 
-#include <SDL.h>
-
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#define LOGICAL_W 640
-#define LOGICAL_H 480
-#define CELL 20
-#define BOARD_X 220
-#define BOARD_Y 40
-
-static const SDL_Color PIECE_COLORS[7] = {
-    {178, 95, 255, 255}, {70, 100, 255, 255}, {255, 75, 75, 255},
-    {245, 215, 60, 255}, {80, 220, 110, 255}, {255, 150, 55, 255},
-    {70, 220, 235, 255}
-};
-
-static SDL_Texture *create_chr_texture(SDL_Renderer *renderer, const NesRom *rom) {
-    const int tile_count = rom->chr_size >= 4096 ? 256 : (int)(rom->chr_size / 16);
-    const int width = 16 * 8;
-    const int height = 16 * 8;
-    uint32_t *pixels = (uint32_t *)calloc((size_t)width * height, sizeof(uint32_t));
-    if (!pixels) return NULL;
-    for (int tile = 0; tile < tile_count; ++tile) {
-        const uint8_t *src = rom->chr + tile * 16;
-        const int tx = (tile % 16) * 8;
-        const int ty = (tile / 16) * 8;
-        for (int y = 0; y < 8; ++y) {
-            for (int x = 0; x < 8; ++x) {
-                const int bit = 7 - x;
-                const int value = ((src[y] >> bit) & 1) | (((src[y + 8] >> bit) & 1) << 1);
-                uint8_t shade = 0;
-                if (value == 1) shade = 145;
-                if (value == 2) shade = 205;
-                if (value == 3) shade = 255;
-                pixels[(ty + y) * width + tx + x] = value ? (0xff000000u | (shade << 16) | (shade << 8) | shade) : 0;
-            }
-        }
-    }
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
-                                             SDL_TEXTUREACCESS_STATIC, width, height);
-    if (texture) {
-        SDL_UpdateTexture(texture, NULL, pixels, width * (int)sizeof(uint32_t));
-        SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
-        SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest);
-    }
-    free(pixels);
-    return texture;
-}
-
-static int font_tile(char c) {
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'A' && c <= 'Z') return 10 + c - 'A';
-    if (c == '-') return 36;
-    return -1;
-}
-
-static void draw_text(SDL_Renderer *renderer, SDL_Texture *font, int x, int y, int scale, const char *text) {
-    for (const char *p = text; *p; ++p) {
-        if (*p == ' ') {
-            x += 8 * scale;
-            continue;
-        }
-        const int tile = font_tile(*p);
-        if (tile >= 0) {
-            SDL_Rect src = {(tile % 16) * 8, (tile / 16) * 8, 8, 8};
-            SDL_Rect dst = {x, y, 8 * scale, 8 * scale};
-            SDL_RenderCopy(renderer, font, &src, &dst);
-        }
-        x += 8 * scale;
-    }
-}
-
-static void draw_centered(SDL_Renderer *renderer, SDL_Texture *font, int y, int scale, const char *text) {
-    const int width = (int)strlen(text) * 8 * scale;
-    draw_text(renderer, font, (LOGICAL_W - width) / 2, y, scale, text);
-}
-
-static void draw_block(SDL_Renderer *renderer, int x, int y, int size, int piece) {
-    SDL_Color c = PIECE_COLORS[piece % 7];
-    SDL_Rect r = {x, y, size, size};
-    SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, 255);
-    SDL_RenderFillRect(renderer, &r);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 130);
-    SDL_RenderDrawLine(renderer, x + 1, y + 1, x + size - 2, y + 1);
-    SDL_RenderDrawLine(renderer, x + 1, y + 1, x + 1, y + size - 2);
-    SDL_SetRenderDrawColor(renderer, 25, 25, 35, 255);
-    SDL_RenderDrawLine(renderer, x + size - 1, y, x + size - 1, y + size - 1);
-    SDL_RenderDrawLine(renderer, x, y + size - 1, x + size - 1, y + size - 1);
-}
-
-static void draw_piece(SDL_Renderer *renderer, TetrisPiece piece, int rotation,
-                       int px, int py, int origin_x, int origin_y, int cell) {
-    for (int i = 0; i < 4; ++i) {
-        const int x = px + tetris_piece_block_x(piece, rotation, i);
-        const int y = py + tetris_piece_block_y(piece, rotation, i);
-        if (y >= 0) draw_block(renderer, origin_x + x * cell, origin_y + y * cell, cell, piece);
-    }
-}
-
-static void render_game(SDL_Renderer *renderer, SDL_Texture *font, const TetrisGame *game,
-                        bool show_title, bool non_exact_rom) {
-    SDL_SetRenderDrawColor(renderer, 10, 10, 20, 255);
-    SDL_RenderClear(renderer);
-
-    if (show_title) {
-        draw_centered(renderer, font, 92, 4, "TETRIS");
-        draw_centered(renderer, font, 150, 2, "NES PC PORT");
-        draw_centered(renderer, font, 250, 2, "PRESS ENTER");
-        draw_centered(renderer, font, 300, 1, "ROM ASSETS LOADED AT RUNTIME");
-        if (non_exact_rom) draw_centered(renderer, font, 330, 1, "ROM CRC DIFFERS FROM TESTED DUMP");
-        SDL_RenderPresent(renderer);
-        return;
-    }
-
-    SDL_Rect board_bg = {BOARD_X - 4, BOARD_Y - 4, TETRIS_BOARD_W * CELL + 8,
-                         TETRIS_BOARD_H * CELL + 8};
-    SDL_SetRenderDrawColor(renderer, 185, 185, 205, 255);
-    SDL_RenderFillRect(renderer, &board_bg);
-    SDL_Rect board_inner = {BOARD_X, BOARD_Y, TETRIS_BOARD_W * CELL, TETRIS_BOARD_H * CELL};
-    SDL_SetRenderDrawColor(renderer, 5, 5, 12, 255);
-    SDL_RenderFillRect(renderer, &board_inner);
-
-    for (int y = 0; y < TETRIS_BOARD_H; ++y) {
-        for (int x = 0; x < TETRIS_BOARD_W; ++x) {
-            if (game->board[y][x]) draw_block(renderer, BOARD_X + x * CELL, BOARD_Y + y * CELL,
-                                               CELL, game->board[y][x] - 1);
-        }
-    }
-    if (!game->game_over) draw_piece(renderer, game->active, game->rotation, game->x, game->y,
-                                      BOARD_X, BOARD_Y, CELL);
-
-    char value[32];
-    draw_text(renderer, font, 40, 70, 2, "SCORE");
-    snprintf(value, sizeof(value), "%06d", game->score > 999999 ? 999999 : game->score);
-    draw_text(renderer, font, 40, 100, 2, value);
-    draw_text(renderer, font, 40, 165, 2, "LINES");
-    snprintf(value, sizeof(value), "%03d", game->lines > 999 ? 999 : game->lines);
-    draw_text(renderer, font, 40, 195, 2, value);
-    draw_text(renderer, font, 40, 260, 2, "LEVEL");
-    snprintf(value, sizeof(value), "%02d", game->level);
-    draw_text(renderer, font, 40, 290, 2, value);
-
-    draw_text(renderer, font, 460, 80, 2, "NEXT");
-    draw_piece(renderer, game->next, 0, 0, 0, 485, 125, 18);
-    draw_text(renderer, font, 455, 260, 1, "ARROWS MOVE");
-    draw_text(renderer, font, 455, 280, 1, "Z X ROTATE");
-    draw_text(renderer, font, 455, 300, 1, "SPACE DROP");
-    draw_text(renderer, font, 455, 320, 1, "P PAUSE");
-
-    if (game->paused || game->game_over) {
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 185);
-        SDL_Rect overlay = {BOARD_X, BOARD_Y + 145, TETRIS_BOARD_W * CELL, 100};
-        SDL_RenderFillRect(renderer, &overlay);
-        if (game->paused) draw_centered(renderer, font, BOARD_Y + 177, 2, "PAUSED");
-        if (game->game_over) {
-            draw_centered(renderer, font, BOARD_Y + 165, 2, "GAME OVER");
-            draw_centered(renderer, font, BOARD_Y + 205, 1, "PRESS R");
-        }
-    }
-    SDL_RenderPresent(renderer);
-}
-
-static bool load_rom_and_font(SDL_Renderer *renderer, const char *path, NesRom *rom,
-                              SDL_Texture **font) {
-    char error[256];
-    NesRom loaded;
-    if (!nes_rom_load(path, &loaded, error, sizeof(error))) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Tetris NES PC Port", error, NULL);
-        return false;
-    }
-    SDL_Texture *new_font = create_chr_texture(renderer, &loaded);
-    if (!new_font) {
-        nes_rom_free(&loaded);
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Tetris NES PC Port",
-                                 "Could not create the CHR texture.", NULL);
-        return false;
-    }
-    if (*font) SDL_DestroyTexture(*font);
-    nes_rom_free(rom);
-    *rom = loaded;
-    *font = new_font;
-    fprintf(stdout, "Loaded ROM: %s\nCRC32: %08X%s\n", path, rom->crc32,
-            rom->exact_supported_dump ? " (tested dump)" : " (compatible, unverified dump)");
-    return true;
-}
-
 int main(int argc, char **argv) {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) != 0) {
         fprintf(stderr, "SDL init failed: %s\n", SDL_GetError());
         return 1;
     }
-    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port", SDL_WINDOWPOS_CENTERED,
-                                          SDL_WINDOWPOS_CENTERED, 960, 720,
+    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.2",
+                                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                          960, 720,
                                           SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!window) {
         fprintf(stderr, "Window creation failed: %s\n", SDL_GetError());
@@ -228,49 +41,133 @@ int main(int argc, char **argv) {
         return 2;
     }
 
+    TetrisAudio audio;
+    if (!tetris_audio_init(&audio)) {
+        fprintf(stderr, "Audio disabled: %s\n", SDL_GetError());
+        memset(&audio, 0, sizeof(audio));
+    }
+
+    SDL_GameController *controller = open_first_controller();
     TetrisGame game;
     tetris_init(&game, (uint32_t)time(NULL), 0);
+    AppScreen screen = SCREEN_TITLE;
+    int selected_level = 0;
     bool running = true;
-    bool title = true;
     bool left = false, right = false, down = false;
+    bool fullscreen = false;
+    PendingInput pending = {0};
     uint64_t previous = SDL_GetPerformanceCounter();
     double accumulator = 0.0;
     const double step = 1.0 / 60.0988;
 
     while (running) {
-        TetrisInput input = {0};
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) running = false;
+            if (event.type == SDL_CONTROLLERDEVICEADDED && !controller) {
+                controller = SDL_GameControllerOpen(event.cdevice.which);
+            }
+            if (event.type == SDL_CONTROLLERDEVICEREMOVED && controller) {
+                SDL_Joystick *joy = SDL_GameControllerGetJoystick(controller);
+                if (SDL_JoystickInstanceID(joy) == event.cdevice.which) {
+                    SDL_GameControllerClose(controller);
+                    controller = open_first_controller();
+                    clear_held(&left, &right, &down);
+                }
+            }
             if (event.type == SDL_DROPFILE) {
-                if (load_rom_and_font(renderer, event.drop.file, &rom, &font)) title = true;
+                if (load_rom_and_font(renderer, event.drop.file, &rom, &font)) screen = SCREEN_TITLE;
                 SDL_free(event.drop.file);
             }
+
             if (event.type == SDL_KEYDOWN && !event.key.repeat) {
-                switch (event.key.keysym.sym) {
-                    case SDLK_ESCAPE: running = false; break;
-                    case SDLK_RETURN:
-                        if (title) {
-                            title = false;
-                            tetris_init(&game, (uint32_t)time(NULL), 0);
-                        }
-                        break;
-                    case SDLK_LEFT: left = true; break;
-                    case SDLK_RIGHT: right = true; break;
-                    case SDLK_DOWN: down = true; break;
-                    case SDLK_UP:
-                    case SDLK_x: input.rotate_cw_pressed = true; break;
-                    case SDLK_z: input.rotate_ccw_pressed = true; break;
-                    case SDLK_SPACE: input.hard_drop_pressed = true; break;
-                    case SDLK_p: input.pause_pressed = true; break;
-                    case SDLK_r: input.restart_pressed = true; break;
-                    default: break;
+                const SDL_Keycode key = event.key.keysym.sym;
+                if (key == SDLK_ESCAPE) running = false;
+                else if (key == SDLK_F11) {
+                    fullscreen = !fullscreen;
+                    SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+                } else if (key == SDLK_m) {
+                    tetris_audio_toggle(&audio);
+                } else if (screen == SCREEN_TITLE) {
+                    if (key == SDLK_RETURN || key == SDLK_SPACE) screen = SCREEN_LEVEL_SELECT;
+                } else if (screen == SCREEN_LEVEL_SELECT) {
+                    if (key == SDLK_LEFT) change_level(&selected_level, -1);
+                    if (key == SDLK_RIGHT) change_level(&selected_level, 1);
+                    if (key == SDLK_UP) change_level(&selected_level, 5);
+                    if (key == SDLK_DOWN) change_level(&selected_level, -5);
+                    if (key == SDLK_RETURN || key == SDLK_SPACE) {
+                        begin_game(&game, selected_level);
+                        screen = SCREEN_GAME;
+                        clear_held(&left, &right, &down);
+                    }
+                    if (key == SDLK_BACKSPACE) screen = SCREEN_TITLE;
+                } else {
+                    switch (key) {
+                        case SDLK_LEFT: left = true; break;
+                        case SDLK_RIGHT: right = true; break;
+                        case SDLK_DOWN: down = true; break;
+                        case SDLK_UP:
+                        case SDLK_x: pending.rotate_cw = true; break;
+                        case SDLK_z: pending.rotate_ccw = true; break;
+                        case SDLK_SPACE: pending.hard_drop = true; break;
+                        case SDLK_p: pending.pause = true; break;
+                        case SDLK_r: pending.restart = true; break;
+                        case SDLK_TAB: pending.toggle_next = true; break;
+                        case SDLK_BACKSPACE:
+                            screen = SCREEN_TITLE;
+                            clear_held(&left, &right, &down);
+                            break;
+                        default: break;
+                    }
                 }
             }
             if (event.type == SDL_KEYUP) {
                 if (event.key.keysym.sym == SDLK_LEFT) left = false;
                 if (event.key.keysym.sym == SDLK_RIGHT) right = false;
                 if (event.key.keysym.sym == SDLK_DOWN) down = false;
+            }
+
+            if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+                const Uint8 button = event.cbutton.button;
+                if (screen == SCREEN_TITLE) {
+                    if (button == SDL_CONTROLLER_BUTTON_START || button == SDL_CONTROLLER_BUTTON_A)
+                        screen = SCREEN_LEVEL_SELECT;
+                } else if (screen == SCREEN_LEVEL_SELECT) {
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) change_level(&selected_level, -1);
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) change_level(&selected_level, 1);
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_UP) change_level(&selected_level, 5);
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) change_level(&selected_level, -5);
+                    if (button == SDL_CONTROLLER_BUTTON_START || button == SDL_CONTROLLER_BUTTON_A) {
+                        begin_game(&game, selected_level);
+                        screen = SCREEN_GAME;
+                        clear_held(&left, &right, &down);
+                    }
+                    if (button == SDL_CONTROLLER_BUTTON_B || button == SDL_CONTROLLER_BUTTON_BACK)
+                        screen = SCREEN_TITLE;
+                } else {
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) left = true;
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) right = true;
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) down = true;
+                    if (button == SDL_CONTROLLER_BUTTON_A) pending.rotate_cw = true;
+                    if (button == SDL_CONTROLLER_BUTTON_B) pending.rotate_ccw = true;
+                    if (button == SDL_CONTROLLER_BUTTON_X) pending.hard_drop = true;
+                    if (button == SDL_CONTROLLER_BUTTON_Y) pending.toggle_next = true;
+                    if (button == SDL_CONTROLLER_BUTTON_START || button == SDL_CONTROLLER_BUTTON_A) {
+                        if (game.game_over || game.phase == TETRIS_PHASE_GAME_OVER)
+                            pending.restart = true;
+                        else if (button == SDL_CONTROLLER_BUTTON_START)
+                            pending.pause = true;
+                    }
+                    if (button == SDL_CONTROLLER_BUTTON_BACK) {
+                        screen = SCREEN_TITLE;
+                        clear_held(&left, &right, &down);
+                    }
+                }
+            }
+            if (event.type == SDL_CONTROLLERBUTTONUP) {
+                if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) left = false;
+                if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) right = false;
+                if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) down = false;
             }
         }
 
@@ -279,30 +176,36 @@ int main(int argc, char **argv) {
         previous = now;
         if (accumulator > 0.25) accumulator = 0.25;
 
-        bool one_shot_consumed = false;
+        bool consumed_pending = false;
         while (accumulator >= step) {
-            if (!title) {
-                TetrisInput tick_input = input;
-                tick_input.left = left;
-                tick_input.right = right;
-                tick_input.down = down;
-                if (one_shot_consumed) {
-                    tick_input.rotate_cw_pressed = false;
-                    tick_input.rotate_ccw_pressed = false;
-                    tick_input.hard_drop_pressed = false;
-                    tick_input.pause_pressed = false;
-                    tick_input.restart_pressed = false;
+            if (screen == SCREEN_GAME) {
+                TetrisInput input = {0};
+                input.left = left;
+                input.right = right;
+                input.down = down;
+                if (!consumed_pending) {
+                    input.rotate_cw_pressed = pending.rotate_cw;
+                    input.rotate_ccw_pressed = pending.rotate_ccw;
+                    input.hard_drop_pressed = pending.hard_drop;
+                    input.pause_pressed = pending.pause;
+                    input.restart_pressed = pending.restart;
+                    input.toggle_next_pressed = pending.toggle_next;
                 }
-                tetris_tick(&game, &tick_input);
-                one_shot_consumed = true;
+                tetris_tick(&game, &input);
+                tetris_audio_play_events(&audio, tetris_consume_events(&game));
+                consumed_pending = true;
             }
             accumulator -= step;
         }
+        if (consumed_pending) memset(&pending, 0, sizeof(pending));
 
-        render_game(renderer, font, &game, title, !rom.exact_supported_dump);
+        render(renderer, font, screen, &game, selected_level,
+               !rom.exact_supported_dump, &audio);
         SDL_Delay(1);
     }
 
+    if (controller) SDL_GameControllerClose(controller);
+    tetris_audio_shutdown(&audio);
     SDL_DestroyTexture(font);
     nes_rom_free(&rom);
     SDL_DestroyRenderer(renderer);

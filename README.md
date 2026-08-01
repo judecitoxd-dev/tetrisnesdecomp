@@ -1,23 +1,41 @@
 # Tetris NES — port nativo para PC
 
-Primera base jugable y portable de **Tetris (USA) para NES**, escrita en C99 con SDL2.
-El repositorio **no contiene la ROM ni recursos gráficos de Nintendo**. Al iniciar, el programa
-lee una copia legal de `Tetris (USA).nes` y decodifica su CHR de 2 bits por píxel para dibujar la
-tipografía original.
+Versión **0.2** de una reimplementación portable de **Tetris (USA) para NES**, escrita en C99 con SDL2.
+El ejecutable no incorpora una CPU NES ni distribuye la ROM, gráficos, música o datos propietarios.
+Cada usuario proporciona su copia legal de `Tetris (USA).nes`; el programa valida el archivo y
+decodifica su CHR en tiempo de ejecución para dibujar la tipografía.
+
+## Novedades de v0.2
+
+- Coordenadas, pivotes y orientaciones iniciales de las 19 configuraciones de piezas traducidas del
+  programa 6502.
+- Tabla NTSC de gravedad del cartucho y progresión especial de niveles iniciales 10–19.
+- Randomizador LFSR de dos bytes con contador de apariciones y una repetición, siguiendo la rutina
+  original.
+- Animación de borrado centro hacia afuera: cinco pasos, uno cada cuatro fotogramas.
+- Retardo de entrada según la altura donde se bloquea la pieza y cortina de fin de partida.
+- Pantalla de título y selector de nivel 0–19.
+- Soporte de teclado y mando SDL, conexión y desconexión en caliente.
+- Efectos sintetizados para movimiento, rotación, bloqueo, líneas, Tetris, nivel y derrota.
+- Cola de pulsaciones: las entradas rápidas ya no se pierden entre actualizaciones fijas.
+- Estadísticas por pieza, ocultar la siguiente pieza, pantalla completa y audio conmutable.
+- Herramienta `rom_tables.py` para verificar offsets y vectores con una ROM legal.
+
+La caída instantánea y la selección directa de niveles 10–19 son mejoras opcionales de PC; no
+formaban parte del modo A original.
 
 ## Estado actual
 
-- Juego nativo; no ejecuta una CPU NES ni incorpora un emulador.
-- Tablero 10×20, siete tetrominós, siguiente pieza, puntuación, líneas y niveles.
-- Gravedad aproximada a la tabla NTSC del juego de NES.
-- Rotación sin wall-kicks y randomizador de una repetición, al estilo NES.
-- DAS horizontal, caída suave, pausa, reinicio y caída instantánea opcional de PC.
-- Ventana redimensionable con escalado entero y actualización a 60.0988 Hz.
-- Carga de la ROM por argumento, desde la carpeta del ejecutable o arrastrándola a la ventana.
-- Compilación automática para Windows y Linux mediante GitHub Actions.
+- Juego nativo, redimensionable y jugable a 60.0988 actualizaciones por segundo.
+- Tablero 10×20, siete tetrominós, puntuación, líneas, niveles y estadísticas.
+- DAS, caída suave, pausa, siguiente pieza y reinicio.
+- Reglas principales y pequeñas tablas contrastadas con la ROM comprobada.
+- Compilación y pruebas automáticas para Windows y Linux.
 
-La lógica ya es jugable, pero esto todavía **no es una decompilación exacta bit a bit**. Consulta
-[`docs/PORT_STATUS.md`](docs/PORT_STATUS.md) para ver qué falta para igualar por completo el binario.
+Todavía no es una decompilación reproducible bit a bit. Faltan los menús completos del cartucho,
+modo B, récords, finales, cohetes, paletas exactas por nivel y el motor musical/APU original. El
+estado detallado está en [`docs/PORT_STATUS.md`](docs/PORT_STATUS.md), y los offsets identificados
+en [`docs/ROM_MAP.md`](docs/ROM_MAP.md).
 
 ## ROM comprobada
 
@@ -28,16 +46,17 @@ La lógica ya es jugable, pero esto todavía **no es una decompilación exacta b
 | Mapper | MMC1 / mapper 1 |
 | PRG ROM | 32 KiB |
 | CHR ROM | 16 KiB |
-| CRC32 del archivo probado | `D16EA396` |
-| SHA-1 del archivo probado | `3026d28b63d94c921fe58364f8b0659d10b5a0ac` |
+| CRC32 | `D16EA396` |
+| SHA-1 | `3026d28b63d94c921fe58364f8b0659d10b5a0ac` |
+| NMI / RESET / IRQ | `$8005` / `$FF00` / `$804A` |
 
-Otras revisiones compatibles pueden abrir, pero el port muestra una advertencia porque no han sido
-comparadas todavía.
+El cargador puede abrir otras revisiones estructuralmente compatibles, pero muestra una advertencia
+porque sus offsets y comportamiento todavía no han sido contrastados.
 
 ## Compilar en Windows
 
-Necesitas CMake, Git y Visual Studio 2022 con el componente «Desktop development with C++».
-SDL2 se descarga durante la configuración.
+Necesitas CMake, Git y Visual Studio 2022 con **Desktop development with C++**. SDL2 se descarga
+durante la configuración.
 
 ```powershell
 cmake -S . -B build -A x64
@@ -50,40 +69,63 @@ Copia tu ROM junto a `build\Release\tetris_pc.exe` con el nombre `Tetris (USA).n
 .\build\Release\tetris_pc.exe "C:\ruta\Tetris (USA).nes"
 ```
 
-También puedes arrastrar la ROM sobre la ventana del juego.
+También puedes arrastrar la ROM sobre la ventana.
 
 ## Compilar en Linux
 
+Instala SDL2 y CMake; por ejemplo, en Debian/Ubuntu:
+
 ```bash
+sudo apt install cmake build-essential libsdl2-dev
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ./build/tetris_pc "/ruta/Tetris (USA).nes"
 ```
 
-## Controles
+## Controles de teclado
 
 | Tecla | Acción |
 |---|---|
-| Flechas izquierda/derecha | Mover |
-| Flecha abajo | Caída suave |
-| Z / X / flecha arriba | Rotar |
-| Espacio | Caída instantánea |
+| Flechas izquierda/derecha | Mover o cambiar nivel |
+| Flecha abajo | Caída suave o bajar nivel |
+| Flecha arriba | Subir nivel / rotar en partida |
+| Z / X | Rotar antihorario / horario |
+| Espacio | Caída instantánea de PC |
+| Enter | Confirmar pantalla |
 | P | Pausa |
+| Tab | Mostrar u ocultar siguiente pieza |
+| M | Activar o desactivar audio |
+| F11 | Pantalla completa |
 | R | Reiniciar tras perder |
+| Retroceso | Volver al título |
 | Esc | Salir |
+
+## Mando
+
+| Botón | Acción |
+|---|---|
+| Cruceta | Mover, caída suave y selector de nivel |
+| A / B | Rotar |
+| X | Caída instantánea |
+| Y | Mostrar u ocultar siguiente pieza |
+| Start | Confirmar, pausar o reiniciar tras perder |
+| Back | Volver al título |
 
 ## Pruebas
 
+Las pruebas no necesitan SDL2:
+
 ```bash
-cmake -S . -B build -DTETRIS_BUILD_APP=OFF -DTETRIS_FETCH_SDL2=OFF
-cmake --build build --target tetris_game_tests
-ctest --test-dir build --output-on-failure
+cmake -S . -B build-core -DTETRIS_BUILD_APP=OFF -DTETRIS_FETCH_SDL2=OFF
+cmake --build build-core --parallel
+ctest --test-dir build-core --output-on-failure
 ```
 
-Para inspeccionar una ROM sin abrir el juego:
+Inspección básica de la ROM:
 
 ```bash
 python tools/rom_info.py "Tetris (USA).nes"
+python tools/rom_tables.py "Tetris (USA).nes"
 ```
 
 ## Aviso legal

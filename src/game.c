@@ -1,81 +1,91 @@
 #include "game.h"
 
+#include <limits.h>
 #include <string.h>
 
 /*
- * Four block coordinates for every tetromino and rotation.
- * The layout intentionally uses the compact, no-wall-kick behavior associated
- * with the NES game rather than modern SRS rotation.
+ * Coordinates translated directly from the orientation table used by the NES
+ * release. The game x/y position is the original piece pivot, not a bounding
+ * box corner. Two-state pieces repeat their two orientations.
  */
 static const int8_t PIECES[TETRIS_PIECE_COUNT][4][4][2] = {
-    /* T */ {
-        {{1,0},{0,1},{1,1},{2,1}},
-        {{1,0},{1,1},{2,1},{1,2}},
-        {{0,1},{1,1},{2,1},{1,2}},
-        {{1,0},{0,1},{1,1},{1,2}}
+    /* T: up, right, down (spawn), left */ {
+        {{-1, 0}, { 0, 0}, { 1, 0}, { 0,-1}},
+        {{ 0,-1}, { 0, 0}, { 1, 0}, { 0, 1}},
+        {{-1, 0}, { 0, 0}, { 1, 0}, { 0, 1}},
+        {{ 0,-1}, {-1, 0}, { 0, 0}, { 0, 1}}
     },
-    /* J */ {
-        {{0,0},{0,1},{1,1},{2,1}},
-        {{1,0},{2,0},{1,1},{1,2}},
-        {{0,1},{1,1},{2,1},{2,2}},
-        {{1,0},{1,1},{0,2},{1,2}}
+    /* J: left, up, right, down (spawn) */ {
+        {{ 0,-1}, { 0, 0}, {-1, 1}, { 0, 1}},
+        {{-1,-1}, {-1, 0}, { 0, 0}, { 1, 0}},
+        {{ 0,-1}, { 1,-1}, { 0, 0}, { 0, 1}},
+        {{-1, 0}, { 0, 0}, { 1, 0}, { 1, 1}}
     },
-    /* Z */ {
-        {{0,0},{1,0},{1,1},{2,1}},
-        {{2,0},{1,1},{2,1},{1,2}},
-        {{0,1},{1,1},{1,2},{2,2}},
-        {{1,0},{0,1},{1,1},{0,2}}
+    /* Z: horizontal (spawn), vertical */ {
+        {{-1, 0}, { 0, 0}, { 0, 1}, { 1, 1}},
+        {{ 1,-1}, { 0, 0}, { 1, 0}, { 0, 1}},
+        {{-1, 0}, { 0, 0}, { 0, 1}, { 1, 1}},
+        {{ 1,-1}, { 0, 0}, { 1, 0}, { 0, 1}}
     },
-    /* O */ {
-        {{1,0},{2,0},{1,1},{2,1}},
-        {{1,0},{2,0},{1,1},{2,1}},
-        {{1,0},{2,0},{1,1},{2,1}},
-        {{1,0},{2,0},{1,1},{2,1}}
+    /* O: fixed (spawn) */ {
+        {{-1, 0}, { 0, 0}, {-1, 1}, { 0, 1}},
+        {{-1, 0}, { 0, 0}, {-1, 1}, { 0, 1}},
+        {{-1, 0}, { 0, 0}, {-1, 1}, { 0, 1}},
+        {{-1, 0}, { 0, 0}, {-1, 1}, { 0, 1}}
     },
-    /* S */ {
-        {{1,0},{2,0},{0,1},{1,1}},
-        {{1,0},{1,1},{2,1},{2,2}},
-        {{1,1},{2,1},{0,2},{1,2}},
-        {{0,0},{0,1},{1,1},{1,2}}
+    /* S: horizontal (spawn), vertical */ {
+        {{ 0, 0}, { 1, 0}, {-1, 1}, { 0, 1}},
+        {{ 0,-1}, { 0, 0}, { 1, 0}, { 1, 1}},
+        {{ 0, 0}, { 1, 0}, {-1, 1}, { 0, 1}},
+        {{ 0,-1}, { 0, 0}, { 1, 0}, { 1, 1}}
     },
-    /* L */ {
-        {{2,0},{0,1},{1,1},{2,1}},
-        {{1,0},{1,1},{1,2},{2,2}},
-        {{0,1},{1,1},{2,1},{0,2}},
-        {{0,0},{1,0},{1,1},{1,2}}
+    /* L: right, down (spawn), left, up */ {
+        {{ 0,-1}, { 0, 0}, { 0, 1}, { 1, 1}},
+        {{-1, 0}, { 0, 0}, { 1, 0}, {-1, 1}},
+        {{-1,-1}, { 0,-1}, { 0, 0}, { 0, 1}},
+        {{ 1,-1}, {-1, 0}, { 0, 0}, { 1, 0}}
     },
-    /* I */ {
-        {{0,1},{1,1},{2,1},{3,1}},
-        {{2,0},{2,1},{2,2},{2,3}},
-        {{0,2},{1,2},{2,2},{3,2}},
-        {{1,0},{1,1},{1,2},{1,3}}
+    /* I: vertical, horizontal (spawn) */ {
+        {{ 0,-2}, { 0,-1}, { 0, 0}, { 0, 1}},
+        {{-2, 0}, {-1, 0}, { 0, 0}, { 1, 0}},
+        {{ 0,-2}, { 0,-1}, { 0, 0}, { 0, 1}},
+        {{-2, 0}, {-1, 0}, { 0, 0}, { 1, 0}}
     }
 };
 
+static const int SPAWN_ROTATION[TETRIS_PIECE_COUNT] = {2, 3, 0, 0, 0, 1, 1};
+
+/* NTSC frames-per-drop table from the original program. */
 static const int GRAVITY_FRAMES[30] = {
     48,43,38,33,28,23,18,13,8,6,
     5,5,5,4,4,4,3,3,3,2,
     2,2,2,2,2,2,2,2,2,1
 };
 
-static uint32_t next_random(TetrisGame *game) {
-    uint32_t x = game->rng_state;
-    if (x == 0) x = 0x6d2b79f5u;
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
-    game->rng_state = x;
-    return x;
+static void set_event(TetrisGame *game, TetrisEvent event) {
+    game->events |= (uint32_t)event;
 }
 
-/* Approximation of the NES one-reroll randomizer. */
+/* Two-byte LFSR used by the original program. */
+static void advance_rng(TetrisGame *game) {
+    uint8_t lo = (uint8_t)(game->rng_seed & 0xffu);
+    uint8_t hi = (uint8_t)(game->rng_seed >> 8);
+    unsigned carry = (((lo & 0x02u) ^ (hi & 0x02u)) != 0u) ? 1u : 0u;
+    const unsigned next_carry = lo & 1u;
+    lo = (uint8_t)((lo >> 1) | (carry << 7));
+    hi = (uint8_t)((hi >> 1) | (next_carry << 7));
+    game->rng_seed = (uint16_t)(((uint16_t)hi << 8) | lo);
+    if (game->rng_seed == 0) game->rng_seed = 0x8988u;
+}
+
+/* NES one-reroll selection translated from the disassembly. */
 static TetrisPiece choose_piece(TetrisGame *game) {
-    int first = (int)(next_random(game) % 8u);
-    int chosen;
-    if (first == 7 || first == game->previous_piece) {
-        chosen = (int)(next_random(game) % 7u);
-    } else {
-        chosen = first;
+    game->spawn_count = (uint8_t)(game->spawn_count + 1u);
+    int chosen = ((int)(game->rng_seed & 0xffu) + game->spawn_count) & 7;
+    if (chosen == 7 || chosen == game->previous_piece) {
+        advance_rng(game);
+        chosen = (((int)(game->rng_seed & 7u)) + game->previous_piece) % 7;
+        if (chosen < 0) chosen += 7;
     }
     game->previous_piece = chosen;
     return (TetrisPiece)chosen;
@@ -89,10 +99,33 @@ int tetris_piece_block_y(TetrisPiece piece, int rotation, int block) {
     return PIECES[piece][rotation & 3][block & 3][1];
 }
 
+int tetris_spawn_rotation(TetrisPiece piece) {
+    return SPAWN_ROTATION[piece];
+}
+
 int tetris_gravity_frames(int level) {
     if (level < 0) level = 0;
     if (level > 29) level = 29;
     return GRAVITY_FRAMES[level];
+}
+
+int tetris_level_transition_lines(int start_level) {
+    if (start_level < 0) start_level = 0;
+    if (start_level > 19) start_level = 19;
+    {
+        const int normal = (start_level + 1) * 10;
+        int delayed = start_level * 10 - 50;
+        if (delayed < 100) delayed = 100;
+        return normal < delayed ? normal : delayed;
+    }
+}
+
+int tetris_entry_delay_frames(int lock_bottom_row) {
+    if (lock_bottom_row >= 18) return 10;
+    if (lock_bottom_row >= 14) return 12;
+    if (lock_bottom_row >= 10) return 14;
+    if (lock_bottom_row >= 6) return 16;
+    return 18;
 }
 
 static bool collides(const TetrisGame *game, TetrisPiece piece, int rotation, int px, int py) {
@@ -105,17 +138,30 @@ static bool collides(const TetrisGame *game, TetrisPiece piece, int rotation, in
     return false;
 }
 
+static void begin_game_over(TetrisGame *game) {
+    game->phase = TETRIS_PHASE_GAME_OVER_CURTAIN;
+    game->phase_timer = 0;
+    game->curtain_rows = 0;
+    game->game_over = false;
+    game->soft_drop_points = 0;
+}
+
 static void spawn_piece(TetrisGame *game) {
     game->active = game->next;
     game->next = choose_piece(game);
-    game->rotation = 0;
-    game->x = 3;
-    game->y = -1;
+    game->rotation = tetris_spawn_rotation(game->active);
+    game->x = 5;
+    game->y = 0;
     game->fall_counter = 0;
     game->das_counter = 0;
     game->das_direction = 0;
+    game->soft_drop_counter = 0;
+    game->soft_drop_points = 0;
+    game->phase = TETRIS_PHASE_ACTIVE;
+    game->phase_timer = 0;
+    game->piece_count[game->active] += 1;
     if (collides(game, game->active, game->rotation, game->x, game->y)) {
-        game->game_over = true;
+        begin_game_over(game);
     }
 }
 
@@ -123,35 +169,42 @@ void tetris_init(TetrisGame *game, uint32_t seed, int start_level) {
     memset(game, 0, sizeof(*game));
     if (start_level < 0) start_level = 0;
     if (start_level > 19) start_level = 19;
-    game->rng_state = seed ? seed : 0x19891101u;
+    game->rng_seed = (uint16_t)((seed ^ (seed >> 16)) & 0xffffu);
+    if (game->rng_seed == 0) game->rng_seed = 0x8988u;
     game->previous_piece = -1;
     game->start_level = start_level;
     game->level = start_level;
+    game->transition_lines = tetris_level_transition_lines(start_level);
+    game->show_next = true;
     game->next = choose_piece(game);
     spawn_piece(game);
 }
 
 bool tetris_try_move(TetrisGame *game, int dx, int dy) {
+    if (game->phase != TETRIS_PHASE_ACTIVE || game->paused) return false;
     if (!collides(game, game->active, game->rotation, game->x + dx, game->y + dy)) {
         game->x += dx;
         game->y += dy;
+        if (dx != 0) set_event(game, TETRIS_EVENT_MOVE);
         return true;
     }
     return false;
 }
 
 bool tetris_try_rotate(TetrisGame *game, int direction) {
+    if (game->phase != TETRIS_PHASE_ACTIVE || game->paused) return false;
     const int new_rotation = (game->rotation + (direction > 0 ? 1 : 3)) & 3;
     if (!collides(game, game->active, new_rotation, game->x, game->y)) {
         game->rotation = new_rotation;
+        set_event(game, TETRIS_EVENT_ROTATE);
         return true;
     }
     return false;
 }
 
-static int clear_lines(TetrisGame *game) {
-    int cleared = 0;
-    for (int y = TETRIS_BOARD_H - 1; y >= 0; --y) {
+static int find_completed_rows(TetrisGame *game) {
+    int count = 0;
+    for (int y = TETRIS_BOARD_H - 1; y >= 0 && count < TETRIS_MAX_CLEAR_ROWS; --y) {
         bool full = true;
         for (int x = 0; x < TETRIS_BOARD_W; ++x) {
             if (game->board[y][x] == 0) {
@@ -159,51 +212,121 @@ static int clear_lines(TetrisGame *game) {
                 break;
             }
         }
-        if (!full) continue;
-        ++cleared;
-        for (int pull = y; pull > 0; --pull) {
-            memcpy(game->board[pull], game->board[pull - 1], TETRIS_BOARD_W);
-        }
-        memset(game->board[0], 0, TETRIS_BOARD_W);
-        ++y;
+        if (full) game->clear_rows[count++] = y;
     }
-    return cleared;
+    for (int i = count; i < TETRIS_MAX_CLEAR_ROWS; ++i) game->clear_rows[i] = -1;
+    return count;
+}
+
+static void collapse_completed_rows(TetrisGame *game) {
+    int dst = TETRIS_BOARD_H - 1;
+    for (int src = TETRIS_BOARD_H - 1; src >= 0; --src) {
+        bool cleared = false;
+        for (int i = 0; i < game->clear_count; ++i) {
+            if (game->clear_rows[i] == src) {
+                cleared = true;
+                break;
+            }
+        }
+        if (!cleared) {
+            if (dst != src) memcpy(game->board[dst], game->board[src], TETRIS_BOARD_W);
+            --dst;
+        }
+    }
+    while (dst >= 0) {
+        memset(game->board[dst], 0, TETRIS_BOARD_W);
+        --dst;
+    }
+}
+
+static int bcd_decades_value(int lines) {
+    const int hundreds = (lines / 100) % 10;
+    const int tens = (lines / 10) % 10;
+    return (hundreds << 4) | tens;
+}
+
+static void add_lines_and_level(TetrisGame *game, int count) {
+    for (int i = 0; i < count; ++i) {
+        if (game->lines < 999) ++game->lines;
+        if ((game->lines % 10) == 0 && game->level < bcd_decades_value(game->lines)) {
+            if (game->level < 255) ++game->level;
+            set_event(game, TETRIS_EVENT_LEVEL_UP);
+        }
+    }
+}
+
+static void add_score(TetrisGame *game, int points) {
+    if (points <= 0 || game->score >= 999999) return;
+    if (points > 999999 - game->score) game->score = 999999;
+    else game->score += points;
+}
+
+static void begin_entry_delay(TetrisGame *game) {
+    game->phase = TETRIS_PHASE_ENTRY_DELAY;
+    game->phase_timer = tetris_entry_delay_frames(game->lock_bottom_row);
+    game->clear_count = 0;
+    game->clear_step = 0;
+}
+
+static void finish_line_clear(TetrisGame *game) {
+    static const int SCORE_TABLE[5] = {0, 40, 100, 300, 1200};
+    collapse_completed_rows(game);
+    add_lines_and_level(game, game->clear_count);
+    add_score(game, SCORE_TABLE[game->clear_count] * (game->level + 1));
+    if (game->clear_count == 4) set_event(game, TETRIS_EVENT_TETRIS);
+    else set_event(game, TETRIS_EVENT_LINE);
+    begin_entry_delay(game);
 }
 
 static void lock_piece(TetrisGame *game) {
     bool above_top = false;
+    int bottom = INT_MIN;
     for (int i = 0; i < 4; ++i) {
         const int x = game->x + tetris_piece_block_x(game->active, game->rotation, i);
         const int y = game->y + tetris_piece_block_y(game->active, game->rotation, i);
+        if (y > bottom) bottom = y;
         if (y < 0) {
             above_top = true;
         } else if (x >= 0 && x < TETRIS_BOARD_W && y < TETRIS_BOARD_H) {
-            game->board[y][x] = (uint8_t)game->active + 1;
+            game->board[y][x] = (uint8_t)game->active + 1u;
         }
     }
+    game->lock_bottom_row = bottom;
+    set_event(game, TETRIS_EVENT_LOCK);
+
+    if (game->soft_drop_points >= 2) add_score(game, game->soft_drop_points - 1);
+    game->soft_drop_points = 0;
+
     if (above_top) {
-        game->game_over = true;
+        begin_game_over(game);
         return;
     }
 
-    const int count = clear_lines(game);
-    static const int SCORE_TABLE[5] = {0, 40, 100, 300, 1200};
-    game->score += SCORE_TABLE[count] * (game->level + 1);
-    game->lines += count;
-    game->level = game->start_level + game->lines / 10;
-    if (game->level > 99) game->level = 99;
-    spawn_piece(game);
+    game->clear_count = find_completed_rows(game);
+    if (game->clear_count > 0) {
+        game->phase = TETRIS_PHASE_LINE_CLEAR;
+        game->phase_timer = 0;
+        game->clear_step = 0;
+    } else {
+        begin_entry_delay(game);
+    }
 }
 
 void tetris_hard_drop(TetrisGame *game) {
-    int distance = 0;
-    while (tetris_try_move(game, 0, 1)) ++distance;
-    game->score += distance * 2;
+    if (game->phase != TETRIS_PHASE_ACTIVE || game->paused) return;
+    while (!collides(game, game->active, game->rotation, game->x, game->y + 1)) {
+        ++game->y;
+    }
     lock_piece(game);
 }
 
 static void update_horizontal(TetrisGame *game, const TetrisInput *input) {
     int direction = 0;
+    if (input->down) {
+        game->das_direction = 0;
+        game->das_counter = 0;
+        return;
+    }
     if (input->left != input->right) direction = input->left ? -1 : 1;
     if (direction == 0) {
         game->das_direction = 0;
@@ -218,21 +341,13 @@ static void update_horizontal(TetrisGame *game, const TetrisInput *input) {
     }
 
     ++game->das_counter;
-    if (game->das_counter == 16 || (game->das_counter > 16 && ((game->das_counter - 16) % 6) == 0)) {
-        (void)tetris_try_move(game, direction, 0);
+    if (game->das_counter >= 16) {
+        game->das_counter = 10;
+        if (!tetris_try_move(game, direction, 0)) game->das_counter = 16;
     }
 }
 
-void tetris_tick(TetrisGame *game, const TetrisInput *input) {
-    if (input->restart_pressed && game->game_over) {
-        const uint32_t seed = game->rng_state ^ (uint32_t)game->frame ^ 0xa511e9b3u;
-        tetris_init(game, seed, game->start_level);
-        return;
-    }
-    if (input->pause_pressed && !game->game_over) game->paused = !game->paused;
-    if (game->paused || game->game_over) return;
-
-    ++game->frame;
+static void tick_active(TetrisGame *game, const TetrisInput *input) {
     update_horizontal(game, input);
     if (input->rotate_cw_pressed) (void)tetris_try_rotate(game, 1);
     if (input->rotate_ccw_pressed) (void)tetris_try_rotate(game, -1);
@@ -241,21 +356,104 @@ void tetris_tick(TetrisGame *game, const TetrisInput *input) {
         return;
     }
 
-    if (input->down) {
-        if ((game->frame & 1) == 0) {
-            if (tetris_try_move(game, 0, 1)) {
-                game->score += 1;
+    if (input->down && !input->left && !input->right) {
+        ++game->soft_drop_counter;
+        if (game->soft_drop_counter >= 2) {
+            game->soft_drop_counter = 0;
+            game->fall_counter = 0;
+            if (!collides(game, game->active, game->rotation, game->x, game->y + 1)) {
+                ++game->y;
+                ++game->soft_drop_points;
             } else {
                 lock_piece(game);
             }
         }
-        game->fall_counter = 0;
         return;
     }
 
+    game->soft_drop_counter = 0;
+    game->soft_drop_points = 0;
     ++game->fall_counter;
     if (game->fall_counter >= tetris_gravity_frames(game->level)) {
         game->fall_counter = 0;
-        if (!tetris_try_move(game, 0, 1)) lock_piece(game);
+        if (!collides(game, game->active, game->rotation, game->x, game->y + 1)) {
+            ++game->y;
+        } else {
+            lock_piece(game);
+        }
     }
+}
+
+static void tick_line_clear(TetrisGame *game) {
+    ++game->phase_timer;
+    game->clear_step = game->phase_timer / 4;
+    if (game->clear_step > 4) game->clear_step = 4;
+    if (game->phase_timer >= 20) finish_line_clear(game);
+}
+
+static void tick_entry_delay(TetrisGame *game) {
+    if (game->phase_timer > 0) --game->phase_timer;
+    if (game->phase_timer <= 0) spawn_piece(game);
+}
+
+static void tick_game_over_curtain(TetrisGame *game) {
+    ++game->phase_timer;
+    if ((game->phase_timer & 3) == 0 && game->curtain_rows < TETRIS_BOARD_H) {
+        ++game->curtain_rows;
+    }
+    if (game->curtain_rows >= TETRIS_BOARD_H) {
+        game->phase = TETRIS_PHASE_GAME_OVER;
+        game->game_over = true;
+        set_event(game, TETRIS_EVENT_GAME_OVER);
+    }
+}
+
+void tetris_tick(TetrisGame *game, const TetrisInput *input) {
+    if (input->restart_pressed && game->phase == TETRIS_PHASE_GAME_OVER) {
+        const uint32_t seed = (uint32_t)game->rng_seed ^ (uint32_t)game->frame ^ 0xa511e9b3u;
+        tetris_init(game, seed, game->start_level);
+        return;
+    }
+    if (input->toggle_next_pressed && game->phase != TETRIS_PHASE_GAME_OVER) {
+        game->show_next = !game->show_next;
+    }
+    if (input->pause_pressed && game->phase != TETRIS_PHASE_GAME_OVER &&
+        game->phase != TETRIS_PHASE_GAME_OVER_CURTAIN) {
+        game->paused = !game->paused;
+    }
+
+    /* The original RNG advances from NMI even while play is paused. */
+    advance_rng(game);
+    if (game->paused || game->phase == TETRIS_PHASE_GAME_OVER) return;
+
+    ++game->frame;
+    switch (game->phase) {
+        case TETRIS_PHASE_ACTIVE: tick_active(game, input); break;
+        case TETRIS_PHASE_LINE_CLEAR: tick_line_clear(game); break;
+        case TETRIS_PHASE_ENTRY_DELAY: tick_entry_delay(game); break;
+        case TETRIS_PHASE_GAME_OVER_CURTAIN: tick_game_over_curtain(game); break;
+        case TETRIS_PHASE_GAME_OVER: break;
+    }
+}
+
+bool tetris_cell_hidden(const TetrisGame *game, int x, int y) {
+    if (game->phase != TETRIS_PHASE_LINE_CLEAR) return false;
+    bool row_is_clearing = false;
+    for (int i = 0; i < game->clear_count; ++i) {
+        if (game->clear_rows[i] == y) {
+            row_is_clearing = true;
+            break;
+        }
+    }
+    if (!row_is_clearing) return false;
+    for (int step = 0; step <= game->clear_step && step < 5; ++step) {
+        if (x == 4 - step || x == 5 + step) return true;
+    }
+    return false;
+}
+
+uint32_t tetris_consume_events(TetrisGame *game) {
+    const uint32_t events = game->events;
+    game->events = 0;
+    return events;
 }
