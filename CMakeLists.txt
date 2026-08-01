@@ -42,7 +42,7 @@ if(TETRIS_BUILD_APP)
         FetchContent_MakeAvailable(SDL2)
     endif()
 
-    add_executable(tetris_pc src/main.c src/audio.c)
+    add_executable(tetris_pc src/main.c src/app.c src/audio.c)
     target_link_libraries(tetris_pc PRIVATE tetris_core)
     if(TARGET SDL2::SDL2)
         target_link_libraries(tetris_pc PRIVATE SDL2::SDL2)
