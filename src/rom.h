@@ -21,5 +21,6 @@ typedef struct NesRom {
 bool nes_rom_load(const char *path, NesRom *rom, char *error, size_t error_size);
 void nes_rom_free(NesRom *rom);
 uint32_t nes_crc32(const uint8_t *data, size_t size);
+bool nes_rom_level_palette(const NesRom *rom, int level, uint8_t colors[4]);
 
 #endif
