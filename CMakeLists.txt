@@ -1,13 +1,20 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.4.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.5.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 option(TETRIS_FETCH_SDL2 "Download SDL2 automatically when it is not installed" ON)
+option(TETRIS_ENABLE_OGG_AUDIO "Enable optional OGG audio packs through SDL2_mixer" ON)
+option(TETRIS_FETCH_SDL2_MIXER "Download SDL2_mixer automatically when it is not installed" ON)
 option(TETRIS_BUILD_APP "Build the SDL2 desktop application" ON)
 option(TETRIS_BUILD_TESTS "Build gameplay unit tests" ON)
+option(TETRIS_STATIC_MSVC_RUNTIME "Use the static MSVC runtime for portable Windows builds" ON)
+
+if(MSVC AND TETRIS_STATIC_MSVC_RUNTIME)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 add_library(tetris_core STATIC
     src/game.c
@@ -15,12 +22,22 @@ add_library(tetris_core STATIC
     src/highscores.c
     src/name_entry.c
     src/demo.c
+    src/settings.c
+    src/replay.c
 )
 target_include_directories(tetris_core PUBLIC src)
 if(MSVC)
     target_compile_options(tetris_core PRIVATE /W4)
 else()
     target_compile_options(tetris_core PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+add_executable(tetris_replay_verify tools/replay_verify.c)
+target_link_libraries(tetris_replay_verify PRIVATE tetris_core)
+if(MSVC)
+    target_compile_options(tetris_replay_verify PRIVATE /W4)
+else()
+    target_compile_options(tetris_replay_verify PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 if(TETRIS_BUILD_APP)
@@ -45,7 +62,12 @@ if(TETRIS_BUILD_APP)
         FetchContent_MakeAvailable(SDL2)
     endif()
 
-    add_executable(tetris_pc src/main.c src/app.c src/audio.c)
+    add_executable(tetris_pc
+        src/main.c
+        src/app.c
+        src/audio.c
+        src/rom_picker.c
+    )
     target_link_libraries(tetris_pc PRIVATE tetris_core)
     if(TARGET SDL2::SDL2)
         target_link_libraries(tetris_pc PRIVATE SDL2::SDL2)
@@ -58,18 +80,103 @@ if(TETRIS_BUILD_APP)
         target_link_libraries(tetris_pc PRIVATE SDL2::SDL2main)
     endif()
 
+    if(TETRIS_ENABLE_OGG_AUDIO)
+        find_package(SDL2_mixer CONFIG QUIET)
+        if(NOT TARGET SDL2_mixer::SDL2_mixer AND
+           NOT TARGET SDL2_mixer::SDL2_mixer-static)
+            find_package(PkgConfig QUIET)
+            if(PkgConfig_FOUND)
+                pkg_check_modules(SDL2_MIXER QUIET IMPORTED_TARGET SDL2_mixer)
+            endif()
+        endif()
+
+        if(NOT TARGET SDL2_mixer::SDL2_mixer AND
+           NOT TARGET SDL2_mixer::SDL2_mixer-static AND
+           NOT TARGET PkgConfig::SDL2_MIXER AND
+           TETRIS_FETCH_SDL2_MIXER)
+            include(FetchContent)
+            set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_INSTALL OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_SAMPLES OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_VENDORED ON CACHE BOOL "" FORCE)
+            set(SDL2MIXER_DEPS_SHARED OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_CMD OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_FLAC OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_GME OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_MOD OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_MP3 OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_MIDI OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_OPUS OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_WAVPACK OFF CACHE BOOL "" FORCE)
+            set(SDL2MIXER_VORBIS STB CACHE STRING "" FORCE)
+            set(SDL2MIXER_WAVE ON CACHE BOOL "" FORCE)
+            FetchContent_Declare(SDL2_mixer
+                GIT_REPOSITORY https://github.com/libsdl-org/SDL_mixer.git
+                GIT_TAG release-2.8.1
+                GIT_SHALLOW TRUE
+            )
+            FetchContent_MakeAvailable(SDL2_mixer)
+        endif()
+
+        if(TARGET SDL2_mixer::SDL2_mixer-static)
+            target_link_libraries(tetris_pc PRIVATE SDL2_mixer::SDL2_mixer-static)
+            target_compile_definitions(tetris_pc PRIVATE TETRIS_HAVE_SDL_MIXER=1)
+        elseif(TARGET SDL2_mixer::SDL2_mixer)
+            target_link_libraries(tetris_pc PRIVATE SDL2_mixer::SDL2_mixer)
+            target_compile_definitions(tetris_pc PRIVATE TETRIS_HAVE_SDL_MIXER=1)
+        elseif(TARGET PkgConfig::SDL2_MIXER)
+            target_link_libraries(tetris_pc PRIVATE PkgConfig::SDL2_MIXER)
+            target_compile_definitions(tetris_pc PRIVATE TETRIS_HAVE_SDL_MIXER=1)
+        else()
+            message(WARNING "SDL2_mixer was not found; OGG audio-pack support is disabled.")
+        endif()
+    endif()
     if(WIN32)
+        target_link_libraries(tetris_pc PRIVATE comdlg32)
         set_target_properties(tetris_pc PROPERTIES WIN32_EXECUTABLE OFF)
     endif()
-
-    include(GNUInstallDirs)
-    install(TARGETS tetris_pc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(FILES README.md DESTINATION .)
+    if(MSVC)
+        target_compile_options(tetris_pc PRIVATE /W4)
+    else()
+        target_compile_options(tetris_pc PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
 endif()
 
 if(TETRIS_BUILD_TESTS)
     enable_testing()
     add_executable(tetris_game_tests tests/game_tests.c)
     target_link_libraries(tetris_game_tests PRIVATE tetris_core)
+    if(MSVC)
+        target_compile_options(tetris_game_tests PRIVATE /W4)
+    else()
+        target_compile_options(tetris_game_tests PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
     add_test(NAME gameplay COMMAND tetris_game_tests)
 endif()
+
+include(GNUInstallDirs)
+if(TETRIS_BUILD_APP)
+    install(TARGETS tetris_pc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
+install(TARGETS tetris_replay_verify RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS tools/audio_pack.py DESTINATION tools)
+install(FILES README.md DESTINATION .)
+install(FILES
+    docs/PORT_STATUS.md
+    docs/ROM_MAP.md
+    docs/REPLAY_FORMAT.md
+    docs/AUDIO_PACK.md
+    docs/DECOMP_TOOLS.md
+    DESTINATION docs
+)
+
+set(CPACK_PACKAGE_NAME "tetris-nes-pc-port")
+set(CPACK_PACKAGE_VENDOR "YlPorts")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_FILE_NAME "tetris-nes-pc-port-v${PROJECT_VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP")
+else()
+    set(CPACK_GENERATOR "TGZ")
+endif()
+include(CPack)

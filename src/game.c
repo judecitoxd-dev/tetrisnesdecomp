@@ -232,6 +232,7 @@ void tetris_init_mode(TetrisGame *game, uint32_t seed, int start_level,
     if (start_height > 5) start_height = 5;
     if (mode != TETRIS_MODE_B) mode = TETRIS_MODE_A;
 
+    game->initial_seed = seed;
     game->rng_seed = (uint16_t)((seed ^ (seed >> 16)) & 0xffffu);
     if (game->rng_seed == 0) game->rng_seed = 0x8988u;
     game->previous_piece = -1;

@@ -12,36 +12,44 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact: tetris-pc-v0.4-windows-x64
+            artifact: tetris-pc-v0.5-windows-x64
           - os: ubuntu-latest
-            artifact: tetris-pc-v0.4-linux-x64
+            artifact: tetris-pc-v0.5-linux-x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install SDL2 on Linux
+      - name: Install SDL2 headers on Linux
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+      - name: Self-test decompilation tools
+        run: python tools/disassemble_prg.py --self-test
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DTETRIS_FETCH_SDL2=${{ runner.os == 'Windows' }}
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/stage -DTETRIS_FETCH_SDL2=${{ runner.os == 'Windows' }} -DTETRIS_FETCH_SDL2_MIXER=ON
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
-      - name: Stage Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path dist/docs
-          Copy-Item build/Release/tetris_pc.exe dist/
-          Copy-Item README.md dist/
-          Copy-Item docs/PORT_STATUS.md,docs/ROM_MAP.md dist/docs/
-      - name: Stage Linux
+      - name: Install package tree
+        run: cmake --install build --config Release
+      - name: Check Linux mixer linkage
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          mkdir -p dist/docs
-          cp build/tetris_pc README.md dist/
-          cp docs/PORT_STATUS.md docs/ROM_MAP.md dist/docs/
+          set -euo pipefail
+          ldd stage/bin/tetris_pc | tee linux-dependencies.txt
+          if grep -E 'libSDL2_mixer' linux-dependencies.txt; then
+            echo 'Unexpected dynamic SDL2_mixer dependency in Linux artifact.' >&2
+            exit 1
+          fi
+      - name: Package
+        working-directory: build
+        run: cpack -C Release
+      - name: Stage package
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp build/tetris-nes-pc-port-v0.5.0-* dist/ || true
+          cp -R stage/* dist/
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}

@@ -1,0 +1,166 @@
+    begin_game(game, menu);
+    game->show_next = settings->show_next;
+    settings->last_mode = menu->mode;
+    settings->last_level = menu->level;
+    settings->last_height = menu->height;
+    save_settings_quiet(settings, settings_path);
+    begin_replay_recording(recording, game, recording_active);
+    *screen = SCREEN_GAME;
+    *result_handled = false;
+    clear_held(left, right, down);
+}
+
+static void start_demo(TetrisGame *game, TetrisDemoController *demo,
+                       AppScreen *screen, Uint32 *demo_started,
+                       bool *left, bool *right, bool *down) {
+    tetris_init_mode(game, 0x19891101u, 5, TETRIS_MODE_A, 0);
+    tetris_demo_reset(demo);
+    *screen = SCREEN_DEMO;
+    *demo_started = SDL_GetTicks();
+    clear_held(left, right, down);
+}
+
+static bool start_last_replay(TetrisReplay *playback, TetrisGame *game,
+                              const char *path, AppScreen *screen,
+                              uint32_t *replay_index, Uint32 *replay_done_at,
+                              char *replay_status, size_t replay_status_size,
+                              bool *left, bool *right, bool *down) {
+    char error[256];
+    if (!tetris_replay_load(playback, path, error, sizeof(error))) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION,
+                                 "Tetris NES PC Port", error, NULL);
+        return false;
+    }
+    tetris_init_mode(game, playback->seed, playback->start_level,
+                     playback->mode, playback->start_height);
+    game->show_next = playback->initial_show_next;
+    *replay_index = 0;
+    *replay_done_at = 0;
+    snprintf(replay_status, replay_status_size, "PLAYING %" PRIu32 " FRAMES",
+             playback->frame_count);
+    *screen = SCREEN_REPLAY;
+    clear_held(left, right, down);
+    return true;
+}
+
+static void begin_result_flow(TetrisHighScores *scores, const TetrisGame *game,
+                              AppResultState *result, AppScreen *screen,
+                              bool *result_handled, bool *left,
+                              bool *right, bool *down) {
+    int rank;
+    if (*result_handled) return;
+    if (game->phase != TETRIS_PHASE_GAME_OVER &&
+        game->phase != TETRIS_PHASE_COMPLETE) return;
+    *result_handled = true;
+    rank = tetris_high_scores_rank(scores, game->mode, game->score);
+    app_result_begin(result, game, rank);
+    clear_held(left, right, down);
+    if (rank >= 0) *screen = SCREEN_NAME_ENTRY;
+    else if (game->phase == TETRIS_PHASE_COMPLETE) *screen = SCREEN_ENDING;
+}
+
+static void save_name_entry(TetrisHighScores *scores,
+                            const AppResultState *result,
+                            const char *score_path, AppScreen *screen) {
+    if (tetris_high_scores_submit(scores, result->mode, result->name.text,
+                                  result->score, result->level,
+                                  result->height)) {
+        if (!tetris_high_scores_save(scores, score_path)) {
+            fprintf(stderr, "Could not save local scores to %s\n", score_path);
+        }
+    }
+    *screen = result->completed ? SCREEN_ENDING : SCREEN_RECORDS;
+}
+
+static bool key_to_name_character(SDL_Keycode key, char *character) {
+    if (key >= SDLK_a && key <= SDLK_z) {
+        *character = (char)('A' + (key - SDLK_a));
+        return true;
+    }
+    if (key >= SDLK_0 && key <= SDLK_9) {
+        *character = (char)('0' + (key - SDLK_0));
+        return true;
+    }
+    if (key == SDLK_MINUS) {
+        *character = '-';
+        return true;
+    }
+    return false;
+}
+
+static void apply_options(TetrisSettings *settings, AppOptionsState *options,
+                          int direction, SDL_Window *window,
+                          SDL_Renderer *renderer, TetrisAudio *audio,
+                          const char *settings_path) {
+    if (direction == 0) direction = 1;
+    switch (options->selected) {
+        case 0:
+            settings->audio_enabled = !settings->audio_enabled;
+            break;
+        case 1:
+            settings->music_track += direction > 0 ? 1 : -1;
+            if (settings->music_track > 2) settings->music_track = -1;
+            if (settings->music_track < -1) settings->music_track = 2;
+            break;
+        case 2:
+            settings->fullscreen = !settings->fullscreen;
+            SDL_SetWindowFullscreen(window,
+                settings->fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+            break;
+        case 3:
+            settings->integer_scale = !settings->integer_scale;
+            SDL_RenderSetIntegerScale(renderer,
+                settings->integer_scale ? SDL_TRUE : SDL_FALSE);
+            break;
+        case 4:
+            settings->demo_enabled = !settings->demo_enabled;
+            break;
+        case 5:
+            settings->hard_drop_enabled = !settings->hard_drop_enabled;
+            break;
+        case 6:
+            settings->show_next = !settings->show_next;
+            break;
+        default:
+            break;
+    }
+    tetris_audio_apply_settings(audio, settings->audio_enabled,
+                                settings->music_track);
+    save_settings_quiet(settings, settings_path);
+}
+
+static void parse_arguments(int argc, char **argv,
+                            const char **rom_path,
+                            const char **replay_path,
+                            const char **audio_pack_path) {
+    int index;
+    *rom_path = NULL;
+    *replay_path = NULL;
+    *audio_pack_path = NULL;
+    for (index = 1; index < argc; ++index) {
+        if (strcmp(argv[index], "--rom") == 0 && index + 1 < argc) {
+            *rom_path = argv[++index];
+        } else if (strcmp(argv[index], "--replay") == 0 && index + 1 < argc) {
+            *replay_path = argv[++index];
+        } else if (strcmp(argv[index], "--audio-pack") == 0 && index + 1 < argc) {
+            *audio_pack_path = argv[++index];
+        } else if (argv[index][0] != '-' && !*rom_path) {
+            *rom_path = argv[index];
+        }
+    }
+}
+
+int main(int argc, char **argv) {
+    const char *cli_rom_path;
+    const char *cli_replay_path;
+    const char *cli_audio_pack_path;
+    char score_path[1024];
+    char settings_path[1024];
+    char last_replay_path[1024];
+    TetrisSettings settings;
+    Uint32 window_flags;
+
+    parse_arguments(argc, argv, &cli_rom_path, &cli_replay_path,
+                    &cli_audio_pack_path);
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO |
+                 SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) != 0) {

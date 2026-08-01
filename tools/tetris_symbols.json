@@ -1,0 +1,49 @@
+{
+  "symbols": {
+    "0x8005": "nmi_entry",
+    "0x804A": "irq_entry",
+    "0xFF00": "reset_entry",
+    "0x898E": "ntsc_gravity_table",
+    "0x97FE": "line_clear_columns",
+    "0x984C": "level_palette_table",
+    "0x994E": "orientation_lookup_table",
+    "0x9CA5": "score_values_bcd",
+    "0x948B": "check_piece_collision",
+    "0x977F": "animate_line_clear",
+    "0x9808": "upload_level_palette",
+    "0x98EB": "select_next_piece",
+    "0x9907": "select_random_piece",
+    "0x9CAF": "record_lock_height",
+    "0xAB47": "advance_rng_lfsr",
+    "0xAB5E": "perform_oam_dma",
+    "0xAB69": "read_controller_ports",
+    "0xAB8B": "merge_controller_reads"
+  },
+  "data_ranges": [
+    {
+      "start": "0x898E",
+      "length": 30,
+      "name": "ntsc_gravity_table"
+    },
+    {
+      "start": "0x97FE",
+      "length": 10,
+      "name": "line_clear_columns"
+    },
+    {
+      "start": "0x984C",
+      "length": 40,
+      "name": "level_palette_table"
+    },
+    {
+      "start": "0x994E",
+      "length": 27,
+      "name": "orientation_lookup_table"
+    },
+    {
+      "start": "0x9CA5",
+      "length": 10,
+      "name": "score_values_bcd"
+    }
+  ]
+}

@@ -83,6 +83,7 @@ typedef struct TetrisGame {
     int soft_drop_counter;
     int soft_drop_points;
 
+    uint32_t initial_seed;
     uint16_t rng_seed;
     uint8_t spawn_count;
     int previous_piece;

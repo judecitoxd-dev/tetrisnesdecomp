@@ -6,9 +6,11 @@
 #include "highscores.h"
 #include "name_entry.h"
 #include "rom.h"
+#include "settings.h"
 
 #include <SDL.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #define LOGICAL_W 640
 #define LOGICAL_H 480
@@ -21,10 +23,12 @@ typedef enum AppScreen {
     SCREEN_TYPE_SELECT,
     SCREEN_LEVEL_SELECT,
     SCREEN_RECORDS,
+    SCREEN_OPTIONS,
     SCREEN_NAME_ENTRY,
     SCREEN_ENDING,
     SCREEN_GAME,
-    SCREEN_DEMO
+    SCREEN_DEMO,
+    SCREEN_REPLAY
 } AppScreen;
 
 typedef struct AppMenuState {
@@ -33,6 +37,10 @@ typedef struct AppMenuState {
     int height;
     bool selecting_height;
 } AppMenuState;
+
+typedef struct AppOptionsState {
+    int selected;
+} AppOptionsState;
 
 typedef struct AppResultState {
     TetrisNameEntry name;
@@ -55,11 +63,16 @@ typedef struct PendingInput {
 
 void render(SDL_Renderer *renderer, SDL_Texture *font, AppScreen screen,
             const TetrisGame *game, const AppMenuState *menu,
-            const AppResultState *result, bool non_exact_rom,
-            const TetrisAudio *audio, const NesRom *rom,
+            const AppResultState *result, const AppOptionsState *options,
+            const TetrisSettings *settings, const char *replay_status,
+            bool non_exact_rom, const TetrisAudio *audio, const NesRom *rom,
             const TetrisHighScores *scores);
 bool load_rom_and_font(SDL_Renderer *renderer, const char *path,
                        NesRom *rom, SDL_Texture **font);
+bool load_rom_and_font_ex(SDL_Renderer *renderer, const char *path,
+                          NesRom *rom, SDL_Texture **font, bool show_error,
+                          char *error, size_t error_size);
+void free_rom_graphics(void);
 SDL_GameController *open_first_controller(void);
 void clear_held(bool *left, bool *right, bool *down);
 void begin_game(TetrisGame *game, const AppMenuState *menu);
