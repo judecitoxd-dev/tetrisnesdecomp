@@ -1,29 +1,26 @@
 # Tetris NES — ports nativos para PC y Android
 
-Versión **0.19** de una reimplementación portable de **Tetris (USA) para NES**,
+Versión **0.20** de una reimplementación portable de **Tetris (USA) para NES**,
 escrita en C99. El repositorio no distribuye la ROM, gráficos, música ni datos
 extraídos; cada usuario proporciona su copia legal.
 
-## Reparación de jugabilidad de v0.19
+## Novedades de v0.20
 
-Esta versión corrige regresiones introducidas mientras se reconstruían las
-pantallas originales:
+- La selección `MUSIC-1`, `MUSIC-2`, `MUSIC-3` y `OFF` ya tiene un cursor visible
+  en las coordenadas usadas por el programa 6502 original.
+- `tetris_apu_scenario` puede producir WAV además de trazas CSV.
+- Los efectos pueden renderizarse con `--isolated`, sin música de fondo.
+- `tools/build_audio_cache.py` genera localmente desde la ROM legal:
+  - las diez pistas del driver original;
+  - ocho efectos aislados;
+  - alias OGG que usa el port durante la partida;
+  - trazas por pista y efecto;
+  - un manifiesto con SHA-256, CRC y hashes APU.
+- El port continúa aceptando paquetes OGG por `--audio-pack`, la variable
+  `TETRIS_AUDIO_PACK` o la carpeta `audio` de preferencias.
+- CMake y el APK pasan a v0.20.
 
-- El limpiado de estadísticas ya no borra la primera columna del tablero ni
-  hace desaparecer partes de las piezas.
-- Los ajustes antiguos que guardaron niveles ocultos 10–19 se migran al dígito
-  visible del menú original (`10 → 0`, `18 → 8`, `19 → 9`).
-- La selección normal vuelve a estar limitada a los niveles originales 0–9.
-- En `GAME TYPE`, izquierda/derecha eligen A-Type o B-Type y arriba/abajo
-  recorren `MUSIC-1`, `MUSIC-2`, `MUSIC-3` y `OFF`.
-- Teclado, mando y botones táctiles utilizan la misma lógica de navegación.
-- El audio APU solicita un búfer más amplio para reducir cortes mientras el
-  driver 6502 original se ejecuta en tiempo real.
-- El título del ejecutable, CMake, APK, documentación y paquetes pasan a v0.19.
-
-Las regresiones anteriores tienen una prueba específica llamada
-`playability_regressions`; no se consideran resueltas únicamente porque el
-programa compile.
+Los OGG generados nunca se incluyen en Git ni en los artefactos de Actions.
 
 ## Estado actual
 
@@ -31,19 +28,18 @@ programa compile.
 - Demo original desde comandos y piezas de la ROM.
 - Menús, récords y finales reconstruidos desde PPU, CHR y OAM.
 - Catedral B-Type animada mediante su máquina de estados original.
-- Música y efectos originales interactivos desde la ROM legal.
-- CPU y APU sincronizados por ciclos NTSC.
+- Driver 6502/APU original ejecutable desde una ROM legal.
+- Caché OGG local para evitar renderizar el APU dentro del callback durante la
+  reproducción normal.
 - Repeticiones deterministas y comparación de trazas.
 - Teclado, controles táctiles y gamepad.
 - Windows, Linux, ARM64 y ARMv7 sobre el mismo núcleo.
 
 Todavía no es una decompilación bit a bit. Quedan diferencias de
-microtemporización de bus, validación APU contra capturas Mesen reales,
+microtemporización de bus, puntos de bucle exactos, validación APU contra Mesen,
 diferencias de RAM/PPU de la demo y una construcción 6502 enlazable.
 
-## Controles de los menús originales
-
-En la pantalla `GAME TYPE`:
+## Controles del menú GAME TYPE
 
 ```text
 Izquierda / derecha : A-TYPE o B-TYPE
@@ -53,9 +49,8 @@ Enter / Start        : selección de nivel
 Retroceso / B        : volver
 ```
 
-En A-Type, la selección normal de nivel utiliza 0–9. Los niveles superiores se
-alcanzan durante la partida según las reglas del juego; no se guardan como una
-selección invisible del menú.
+El cursor musical utiliza `X=$67` y `Y=$8F + musicType×$10`, igual que la rutina
+original. En A-Type, la selección normal de nivel utiliza 0–9.
 
 ## Ejecutar el port de PC
 
@@ -63,26 +58,51 @@ selección invisible del menú.
 .\tetris_pc.exe --rom "C:\ruta\Tetris (USA).nes"
 ```
 
-El título de la ventana debe mostrar `Tetris NES PC Port v0.19`.
+El título de la ventana debe mostrar `Tetris NES PC Port v0.20`.
 
-## Ajustar el margen del audio
+## Generar todo el audio en OGG
 
-v0.19 solicita 2048 muestras en PC y 4096 en Android. Para probar otro tamaño:
+Se necesita Python 3, ffmpeg y los ejecutables `tetris_apu_render` y
+`tetris_apu_scenario` ya compilados.
 
 ```powershell
-$env:TETRIS_AUDIO_BUFFER_SAMPLES="4096"
-.\tetris_pc.exe --rom "C:\ruta\Tetris (USA).nes"
+python tools\build_audio_cache.py `
+  --rom "C:\ROMs\Tetris (USA).nes" `
+  --bin-dir build\Release `
+  --overwrite
 ```
 
-Se aceptan potencias de dos entre 256 y 8192. Esto reduce underruns, pero no se
-presenta como una solución definitiva: el siguiente paso es separar el
-renderizado APU del callback mediante un productor y un búfer circular.
-
-## Generar una pista o efecto original
+En Linux:
 
 ```bash
-tetris_apu_render "Tetris (USA).nes" 1 60 music-1.wav track-01.csv
-tetris_apu_scenario "Tetris (USA).nes" rotate 180 effect-rotate.csv
+python3 tools/build_audio_cache.py \
+  --rom "$HOME/ROMs/Tetris (USA).nes" \
+  --bin-dir build \
+  --overwrite
+```
+
+La salida predeterminada coincide con la carpeta `audio` de preferencias que el
+port busca automáticamente. También puede indicarse otra carpeta:
+
+```powershell
+python tools\build_audio_cache.py `
+  --rom "C:\ROMs\Tetris (USA).nes" `
+  --bin-dir build\Release `
+  --output "C:\TetrisAudio" `
+  --overwrite
+
+.\tetris_pc.exe --rom "C:\ROMs\Tetris (USA).nes" --audio-pack "C:\TetrisAudio"
+```
+
+El paquete contiene `track_01.ogg` a `track_10.ogg`, los tres alias musicales
+que usa actualmente el runtime, los ocho efectos y sus trazas. Consulta
+[`docs/OGG_CACHE.md`](docs/OGG_CACHE.md).
+
+## Generar una pista o efecto manualmente
+
+```bash
+tetris_apu_render "Tetris (USA).nes" 3 60 track-03.wav track-03.csv
+tetris_apu_scenario "Tetris (USA).nes" rotate 240 effect-rotate.csv rotate.wav --isolated
 ```
 
 Escenarios disponibles:
@@ -105,8 +125,7 @@ python tools/apu_matrix.py compare mesen-matrix port-matrix \
 ```
 
 La herramienta espera 18 casos y compara ciclos, stalls, IRQ y escrituras
-`$4000-$4017`. Las capturas de referencia se generan localmente con la ROM
-legal y permanecen fuera del repositorio.
+`$4000-$4017`. Las capturas se generan localmente con la ROM legal.
 
 ## Compilar y probar PC
 
@@ -116,7 +135,7 @@ cmake --build build --config Release --parallel
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-La suite v0.19 contiene 11 pruebas, incluida la regresión de jugabilidad.
+La suite v0.20 añade la autoprueba del generador de caché OGG.
 
 ## Android
 
@@ -125,11 +144,13 @@ cd android
 gradle --no-daemon :app:assembleDebug
 ```
 
-El APK usa el mismo núcleo C99 y no incluye ROM, audio renderizado ni trazas.
+El APK usa el mismo núcleo C99 y no incluye ROM, OGG, WAV ni trazas. La carga de
+un caché OGG generado por el usuario en Android sigue siendo trabajo pendiente.
 
 ## Documentación
 
 - [`docs/PORT_STATUS.md`](docs/PORT_STATUS.md)
+- [`docs/OGG_CACHE.md`](docs/OGG_CACHE.md)
 - [`docs/PLAYABILITY_VERIFICATION.md`](docs/PLAYABILITY_VERIFICATION.md)
 - [`docs/APU_RENDERING.md`](docs/APU_RENDERING.md)
 - [`docs/TRACE_COMPARISON.md`](docs/TRACE_COMPARISON.md)
@@ -145,5 +166,5 @@ El APK usa el mismo núcleo C99 y no incluye ROM, audio renderizado ni trazas.
 ## Legalidad
 
 El proyecto contiene código original, herramientas y documentación. No contiene
-ROM, PRG/CHR extraído, música de Nintendo, capturas de RAM, WAV generados ni
-tablas de audio extraídas.
+ROM, PRG/CHR extraído, música de Nintendo, capturas de RAM, WAV u OGG generados,
+ni tablas de audio extraídas.
