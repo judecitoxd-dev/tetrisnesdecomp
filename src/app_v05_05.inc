@@ -6,7 +6,7 @@
             break;
     }
     tetris_present_with_score_overlay(renderer, font, screen,
-                                      game, result, scores);
+                                      game, menu, result, rom, scores);
 }
 
 bool load_rom_and_font_ex(SDL_Renderer *renderer, const char *path,
@@ -73,6 +73,7 @@ bool load_rom_and_font(SDL_Renderer *renderer, const char *path,
 }
 
 void free_rom_graphics(void) {
+    tetris_score_overlay_reset();
     tetris_rom_type_a_backgrounds_free();
     tetris_rom_type_a_free();
     tetris_rom_cathedral_sprites_free();
