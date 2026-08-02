@@ -28,11 +28,31 @@ typedef struct TetrisCathedralSnapshot {
     uint8_t y[TETRIS_CATHEDRAL_MAX_SPRITES];
 } TetrisCathedralSnapshot;
 
-/* Reads the eight movement tables from the verified PRG layout. */
+/* Mirrors ending, ending_customVars, ending_currentSprite and $00CD. */
+typedef struct TetrisCathedralState {
+    const TetrisCathedralTables *tables;
+    int level;
+    int sprite_count;
+    uint8_t animation_counter;
+    uint8_t animation_phase;
+    uint8_t frame_delay_counter;
+    uint8_t x[TETRIS_CATHEDRAL_MAX_SPRITES];
+    uint64_t frames;
+    bool valid;
+} TetrisCathedralState;
+
 bool tetris_cathedral_tables_load(TetrisCathedralTables *tables,
                                   const uint8_t *prg, size_t prg_size);
 
-/* Reconstructs the state rendered at one B-Type cathedral frame. */
+void tetris_cathedral_state_init(TetrisCathedralState *state,
+                                 const TetrisCathedralTables *tables,
+                                 int level, int start_height);
+
+/* Renders the current frame exactly as the 6502 routine, then advances state. */
+bool tetris_cathedral_state_step(TetrisCathedralState *state,
+                                 TetrisCathedralSnapshot *snapshot);
+
+/* Random-access compatibility helper built on the exact incremental state. */
 void tetris_cathedral_snapshot(const TetrisCathedralTables *tables,
                                int level, int start_height, unsigned frame,
                                TetrisCathedralSnapshot *snapshot);
