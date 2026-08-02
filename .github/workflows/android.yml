@@ -13,12 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Self-test ROM-structure and trace tools
+      - name: Self-test ROM and verification tools
         run: |
           python tools/rom_assets_verify.py --self-test
           python tools/type_a_ending_verify.py --self-test
           python tools/cathedral_verify.py --self-test
           python tools/trace_compare.py --self-test
+          python tools/apu_matrix.py self-test
 
       - uses: actions/setup-java@v4
         with:
@@ -56,7 +57,7 @@ jobs:
         with:
           gradle-version: '8.0.2'
 
-      - name: Build debug APK with cycle-clocked APU
+      - name: Build debug APK v0.14
         working-directory: android
         run: gradle --no-daemon :app:assembleDebug
 
@@ -66,14 +67,14 @@ jobs:
           set -euo pipefail
           APK=android/app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK"
-          if unzip -l "$APK" | grep -Ei '\.(nes|ttr|ogg|wav)$'; then
-            echo "Forbidden ROM/replay/audio payload found in APK" >&2
+          if unzip -l "$APK" | grep -Ei '\.(nes|ttr|ogg|wav|csv)$'; then
+            echo "Forbidden ROM/replay/audio/trace payload found in APK" >&2
             exit 1
           fi
-          cp "$APK" Tetris-NES-Port-Android-v0.13-debug.apk
-          sha256sum Tetris-NES-Port-Android-v0.13-debug.apk
+          cp "$APK" Tetris-NES-Port-Android-v0.14-debug.apk
+          sha256sum Tetris-NES-Port-Android-v0.14-debug.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: tetris-nes-port-android-v0.13
-          path: Tetris-NES-Port-Android-v0.13-debug.apk
+          name: tetris-nes-port-android-v0.14
+          path: Tetris-NES-Port-Android-v0.14-debug.apk
