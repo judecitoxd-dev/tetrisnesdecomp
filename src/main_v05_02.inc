@@ -101,7 +101,7 @@
 #endif
 
     if (cli_replay_path) {
-        (void)start_last_replay(&playback, &game, cli_replay_path,
+        (void)start_last_replay(&playback, &game, &audio, cli_replay_path,
                                 &screen, &replay_index, &replay_done_at,
                                 replay_status, sizeof(replay_status),
                                 &left, &right, &down);
