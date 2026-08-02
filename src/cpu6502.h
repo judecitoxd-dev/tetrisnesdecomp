@@ -24,7 +24,10 @@ typedef struct Cpu6502 {
     void *userdata;
     bool stopped;
     bool irq_pending;
+    bool call_active;
+    bool call_returned;
     bool page_crossed;
+    uint8_t call_entry_sp;
     uint8_t branch_extra;
     uint8_t last_opcode;
     uint8_t last_cycles;

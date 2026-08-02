@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.15.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.16.1 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -33,7 +33,7 @@ add_library(tetris_core STATIC
     src/settings.c
     src/replay.c
     src/cathedral.c
-    src/cpu6502.c
+    src/cpu6502_runtime.c
     src/cpu6502_irq.c
     src/nes_apu.c
     src/nes_apu_frame_counter.c
@@ -159,9 +159,10 @@ if(TETRIS_BUILD_TESTS)
     add_executable(tetris_cathedral_tests tests/cathedral_tests.c)
     add_executable(tetris_apu_tests tests/apu_tests.c)
     add_executable(tetris_irq_timing_tests tests/irq_timing_tests.c)
+    add_executable(tetris_call_frame_tests tests/call_frame_regression_tests.c)
     foreach(target IN ITEMS
             tetris_game_tests tetris_demo_tests tetris_cathedral_tests
-            tetris_apu_tests tetris_irq_timing_tests)
+            tetris_apu_tests tetris_irq_timing_tests tetris_call_frame_tests)
         target_link_libraries(${target} PRIVATE tetris_core)
         tetris_strict_c(${target})
     endforeach()
@@ -170,6 +171,7 @@ if(TETRIS_BUILD_TESTS)
     add_test(NAME cathedral COMMAND tetris_cathedral_tests)
     add_test(NAME apu COMMAND tetris_apu_tests)
     add_test(NAME irq_timing COMMAND tetris_irq_timing_tests)
+    add_test(NAME call_frame COMMAND tetris_call_frame_tests)
     add_test(NAME apu_render_self_test COMMAND tetris_apu_render --self-test)
     add_test(NAME apu_scenario_self_test COMMAND tetris_apu_scenario --self-test)
     find_package(Python3 COMPONENTS Interpreter QUIET)
