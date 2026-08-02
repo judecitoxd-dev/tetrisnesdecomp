@@ -34,9 +34,10 @@ static int test_irq_entry_and_rti(void) {
     char error[128];
     memset(&memory, 0, sizeof(memory));
 
-    memory.bytes[0x8000] = 0x58; /* CLI */
-    memory.bytes[0x8001] = 0xEA; /* NOP after RTI */
-    memory.bytes[0x8002] = 0x60; /* RTS */
+    /* $8000 is cpu6502_call's synthetic return target, so use $8100. */
+    memory.bytes[0x8100] = 0x58; /* CLI */
+    memory.bytes[0x8101] = 0xEA; /* NOP after RTI */
+    memory.bytes[0x8102] = 0x60; /* RTS */
     memory.bytes[0x9000] = 0xE6; /* INC $20 */
     memory.bytes[0x9001] = 0x20;
     memory.bytes[0x9002] = 0x40; /* RTI */
@@ -46,7 +47,7 @@ static int test_irq_entry_and_rti(void) {
     cpu6502_init(&cpu, read_byte, write_byte, &memory);
     memory.cpu = &cpu;
     cpu6502_set_cycle_callback(&cpu, cycle_callback);
-    if (!cpu6502_call(&cpu, 0x8000, 100, error, sizeof(error))) {
+    if (!cpu6502_call(&cpu, 0x8100, 100, error, sizeof(error))) {
         fprintf(stderr, "IRQ CPU call failed: %s\n", error);
         return 1;
     }
