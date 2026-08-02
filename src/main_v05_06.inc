@@ -29,6 +29,7 @@
                &settings, replay_status, !rom.exact_supported_dump,
                &audio, &rom, &scores);
         tetris_touch_render(renderer, font, &touch, controller != NULL);
+        render_type_music_cursor_overlay(renderer, screen, &settings);
         SDL_RenderPresent(renderer);
         SDL_Delay(1);
     }
