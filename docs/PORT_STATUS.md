@@ -10,7 +10,8 @@ APU en tiempo real.
 
 También se corrige la falta de respuesta visual en `GAME TYPE`: v0.19 cambiaba
 `music_track`, pero la pantalla exacta no dibujaba el cursor de `musicType`.
-v0.20 añade el segundo cursor en las coordenadas de la rutina 6502 original.
+v0.20 localiza y decodifica `sprite53MusicTypeCursor` desde el PRG/CHR legal y
+lo coloca con las coordenadas de la rutina 6502 original.
 
 ## Progreso estimado
 
@@ -68,9 +69,13 @@ El cursor se coloca en:
 - X NES: `$67`;
 - Y NES: `$8F + musicType × $10`.
 
+El metasprite encontrado en el PRG contiene dos tiles `$27`; el segundo usa
+reflejo horizontal y desplazamiento X `$4A`. El renderer usa esos datos y los
+graba con el banco CHR y la paleta de la ROM, en vez de dibujar una fuente o un
+rectángulo inventado.
+
 La transición de estado es compartida por teclado, mando y controles táctiles.
-La nueva superposición permite comprobar visualmente que Up/Down modifican la
-fila seleccionada.
+El cursor permite comprobar visualmente que Up/Down modifican la fila.
 
 ## Correspondencia de pistas
 
@@ -129,8 +134,6 @@ archivos obligatorios sin necesitar una ROM.
   del bytecode musical y reproducir introducción/bucle sin corte.
 - Android todavía usa el backend APU; falta integrar SDL2_mixer o un decodificador
   OGG equivalente en el APK.
-- El cursor musical usa las coordenadas originales, pero su gráfico provisional
-  aún debe sustituirse por `sprite53MusicTypeCursor` decodificado del PRG/CHR.
 - Las escrituras APU se aplican a granularidad de instrucción y no al ciclo de
   bus exacto.
 - La matriz necesita capturas Mesen generadas localmente para medir igualdad.
@@ -142,8 +145,7 @@ archivos obligatorios sin necesitar una ROM.
 1. Cargar las diez pistas del manifiesto y cambiar a las pistas 6–8 al entrar en
    allegro.
 2. Detectar automáticamente los puntos de bucle del estado musical 6502.
-3. Decodificar y dibujar `sprite53MusicTypeCursor` directamente desde la ROM.
-4. Integrar el caché OGG generado por el usuario en Android.
-5. Comparar las 18 trazas con Mesen y corregir la primera divergencia.
-6. Continuar etiquetando y traduciendo rutinas PRG.
-7. Preparar una construcción 6502 enlazable y perseguir identidad binaria.
+3. Integrar el caché OGG generado por el usuario en Android.
+4. Comparar las 18 trazas con Mesen y corregir la primera divergencia.
+5. Continuar etiquetando y traduciendo rutinas PRG.
+6. Preparar una construcción 6502 enlazable y perseguir identidad binaria.
