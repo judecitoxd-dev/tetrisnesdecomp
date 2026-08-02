@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.10.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.11.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -25,12 +25,16 @@ add_library(tetris_core STATIC
     src/settings.c
     src/replay.c
     src/cathedral.c
+    src/cpu6502.c
+    src/nes_apu.c
+    src/rom_audio.c
 )
 target_include_directories(tetris_core PUBLIC src)
 if(MSVC)
     target_compile_options(tetris_core PRIVATE /W4)
 else()
     target_compile_options(tetris_core PRIVATE -Wall -Wextra -Wpedantic)
+    target_link_libraries(tetris_core PUBLIC m)
 endif()
 
 add_executable(tetris_replay_verify tools/replay_verify.c)
@@ -47,6 +51,14 @@ if(MSVC)
     target_compile_options(tetris_demo_verify PRIVATE /W4)
 else()
     target_compile_options(tetris_demo_verify PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+add_executable(tetris_apu_render tools/apu_render.c)
+target_link_libraries(tetris_apu_render PRIVATE tetris_core)
+if(MSVC)
+    target_compile_options(tetris_apu_render PRIVATE /W4)
+else()
+    target_compile_options(tetris_apu_render PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 if(TETRIS_BUILD_APP)
@@ -157,7 +169,6 @@ if(TETRIS_BUILD_APP)
         target_compile_options(tetris_pc PRIVATE /W4)
     else()
         target_compile_options(tetris_pc PRIVATE -Wall -Wextra -Wpedantic)
-        target_link_libraries(tetris_pc PRIVATE m)
     endif()
 endif()
 
@@ -189,19 +200,30 @@ if(TETRIS_BUILD_TESTS)
         target_compile_options(tetris_cathedral_tests PRIVATE -Wall -Wextra -Wpedantic)
     endif()
     add_test(NAME cathedral COMMAND tetris_cathedral_tests)
+
+    add_executable(tetris_apu_tests tests/apu_tests.c)
+    target_link_libraries(tetris_apu_tests PRIVATE tetris_core)
+    if(MSVC)
+        target_compile_options(tetris_apu_tests PRIVATE /W4)
+    else()
+        target_compile_options(tetris_apu_tests PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+    add_test(NAME apu COMMAND tetris_apu_tests)
+    add_test(NAME apu_render_self_test COMMAND tetris_apu_render --self-test)
 endif()
 
 include(GNUInstallDirs)
 if(TETRIS_BUILD_APP)
     install(TARGETS tetris_pc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
-install(TARGETS tetris_replay_verify tetris_demo_verify
+install(TARGETS tetris_replay_verify tetris_demo_verify tetris_apu_render
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(PROGRAMS
     tools/audio_pack.py
     tools/rom_assets_verify.py
     tools/type_a_ending_verify.py
     tools/trace_compare.py
+    tools/mesen_trace.lua
     DESTINATION tools
 )
 install(FILES README.md DESTINATION .)
@@ -213,6 +235,7 @@ install(FILES
     docs/ROM_DEMO_OAM.md
     docs/ROM_TYPE_A_ENDING.md
     docs/TRACE_COMPARISON.md
+    docs/APU_RENDERING.md
     docs/REPLAY_FORMAT.md
     docs/AUDIO_PACK.md
     docs/DECOMP_TOOLS.md
