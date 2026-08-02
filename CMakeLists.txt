@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.9.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.10.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -201,6 +201,7 @@ install(PROGRAMS
     tools/audio_pack.py
     tools/rom_assets_verify.py
     tools/type_a_ending_verify.py
+    tools/trace_compare.py
     DESTINATION tools
 )
 install(FILES README.md DESTINATION .)
@@ -211,6 +212,7 @@ install(FILES
     docs/ROM_SCREENS.md
     docs/ROM_DEMO_OAM.md
     docs/ROM_TYPE_A_ENDING.md
+    docs/TRACE_COMPARISON.md
     docs/REPLAY_FORMAT.md
     docs/AUDIO_PACK.md
     docs/DECOMP_TOOLS.md
