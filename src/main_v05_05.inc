@@ -86,7 +86,7 @@
                         recording_active = false;
                     }
                     tetris_tick(&game, &input);
-                    tetris_audio_play_events(&audio,
+                    tetris_audio_update_game(&audio, &game,
                                              tetris_consume_events(&game));
                     if (input.toggle_next_pressed) {
                         settings.show_next = game.show_next;
@@ -107,7 +107,7 @@
                 } else if (screen == SCREEN_DEMO) {
                     TetrisInput demo_input = tetris_demo_next_input(&demo, &game);
                     tetris_tick(&game, &demo_input);
-                    tetris_audio_play_events(&audio,
+                    tetris_audio_update_game(&audio, &game,
                                              tetris_consume_events(&game));
                     if (game.phase == TETRIS_PHASE_GAME_OVER ||
                         tetris_demo_is_finished(&demo) ||
