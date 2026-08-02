@@ -1,95 +1,87 @@
 # Comparación de trazas fotograma por fotograma
 
-La v0.10 añade una ruta reproducible para comparar el estado del port C con una
-captura obtenida en un emulador. La herramienta no incluye ROM, RAM, CHR, audio
-ni imágenes del juego: solo lee CSV creados localmente por el usuario.
+La v0.11 compara el estado del port C y las escrituras del APU contra capturas
+obtenidas localmente en Mesen. El repositorio no incluye ROM, RAM, audio ni
+datos capturados del juego.
 
-## Generar la traza del port
+## Traza del port
 
 ```bash
 tetris_demo_verify "Tetris (USA).nes" port-trace.csv
 ```
 
-El formato de traza v2 contiene una fila por fotograma y añade:
+El esquema v2 contiene entrada, tablero, piezas, posición, rotación,
+puntuación, líneas, nivel, RNG, DAS, fases y contadores.
 
-- máscara de entrada interpretada;
-- hash del tablero;
-- pieza activa y siguiente;
-- posición y rotación;
-- puntuación, líneas y nivel;
-- semilla RNG;
-- contadores de caída, DAS, fase y borrado;
-- offsets consumidos de las tablas de demo.
+## Captura automática de Mesen
 
-Los hashes son firmas de regresión del port. No sustituyen una comparación de
-RAM contra el programa 6502.
+1. Abre la ROM legal en Mesen 2 o Mesen CE.
+2. Permite acceso de Lua a I/O y funciones del sistema.
+3. Ejecuta `tools/mesen_trace.lua`.
+4. Reproduce la demo o escena deseada.
 
-## Preparar una traza de emulador
+El script crea:
 
-Exporta un CSV con una columna `frame` y las columnas que puedas mapear al
-estado del port. Los nombres comunes se comparan automáticamente. También se
-puede elegir un subconjunto explícito.
+- `tetris-reference.csv`: RAM mapeada, hash del campo y escrituras APU;
+- `tetris-apu-writes.csv`: solo `frame,apu_writes`.
 
-Ejemplo mínimo:
+Las escrituras se codifican en orden, por ejemplo:
 
 ```csv
-frame,active,next,x,y,rotation,score,lines,level,rng_seed
-0,6,0,3,-1,0,0,0,0,$8988
-1,6,0,3,-1,0,0,0,0,$44C4
+frame,apu_writes
+0,4017=C0|4015=0F|4000=9F|4002=FD|4003=08
 ```
 
-Los valores pueden escribirse en decimal, `0x` hexadecimal, `$` hexadecimal,
-`0b` binario o `%` binario. Las columnas cuyo nombre contiene `hash` también
-aceptan hexadecimal sin prefijo.
-
-## Comparar
+## Render y traza del controlador original
 
 ```bash
-python tools/trace_compare.py emulator.csv port-trace.csv
+tetris_apu_render "Tetris (USA).nes" 1 60 music.wav port-apu.csv
 ```
 
-Elegir columnas:
+El renderer ejecuta el controlador 6502 de la ROM una vez por fotograma y
+registra todas sus escrituras en `$4000-$4017`.
+
+## Comparar APU
 
 ```bash
-python tools/trace_compare.py emulator.csv port-trace.csv \
-  --columns active,next,x,y,rotation,score,lines,level,rng_seed
+python tools/trace_compare.py tetris-apu-writes.csv port-apu.csv \
+  --columns apu_writes --json apu-report.json
 ```
 
-Crear un informe JSON:
+La salida muestra el primer fotograma cuya secuencia de registros difiere. Esto
+permite separar errores del controlador 6502 de errores posteriores en la
+síntesis de ondas.
+
+## Comparar estado de juego
 
 ```bash
-python tools/trace_compare.py emulator.csv port-trace.csv \
-  --json trace-report.json
+python tools/trace_compare.py tetris-reference.csv port-trace.csv \
+  --columns input,x,y,level,fall_counter,das_counter,rng_seed
 ```
 
-La salida indica:
+Los valores pueden escribirse en decimal, `0x`, `$`, `0b` o `%`. Las columnas
+comunes se eligen automáticamente cuando no se especifica `--columns`.
 
-- cantidad de fotogramas de cada archivo;
-- columnas comparadas;
-- fotogramas ausentes;
-- primer fotograma divergente;
-- primer campo distinto;
-- hasta 20 diferencias por defecto.
+## Resultados y códigos de salida
 
-Códigos de salida:
+La herramienta informa cantidad de fotogramas, columnas, fotogramas ausentes,
+primer campo divergente y hasta 20 diferencias.
 
 | Código | Significado |
 |---:|---|
-| 0 | Las trazas coinciden en las columnas comparadas |
-| 1 | Existe al menos una divergencia |
+| 0 | Coincidencia en las columnas comparadas |
+| 1 | Existe una divergencia |
 | 2 | Archivo o esquema inválido |
 
-## Autoprueba
+## Autopruebas
 
 ```bash
 python tools/trace_compare.py --self-test
+tetris_apu_render --self-test
 ```
-
-GitHub Actions ejecuta esta autoprueba en Windows, Linux y Android antes de
-compilar.
 
 ## Alcance actual
 
-La comparación es por fotograma lógico del port, no por ciclo de CPU o PPU.
-Para llegar a paridad total todavía se necesita una captura de referencia con
-un mapeo estable de RAM, mapper, NMI, OAM y escrituras PPU/APU.
+La comparación se alinea por fotograma, no por ciclo de CPU/PPU/APU. El script
+de Mesen ya automatiza la referencia, pero todavía deben verificarse los mapas
+de RAM, la fase exacta de inicio y el orden de callbacks para cada escena.
