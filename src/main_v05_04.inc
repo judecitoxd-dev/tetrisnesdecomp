@@ -32,7 +32,7 @@
                     if (button == SDL_CONTROLLER_BUTTON_Y) screen = SCREEN_RECORDS;
                     if (button == SDL_CONTROLLER_BUTTON_X) screen = SCREEN_OPTIONS;
                     if (button == SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)
-                        (void)start_last_replay(&playback, &game,
+                        (void)start_last_replay(&playback, &game, &audio,
                             last_replay_path, &screen, &replay_index,
                             &replay_done_at, replay_status,
                             sizeof(replay_status), &left, &right, &down);

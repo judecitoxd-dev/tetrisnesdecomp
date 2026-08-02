@@ -1,6 +1,9 @@
 #ifndef TETRIS_AUDIO_H
 #define TETRIS_AUDIO_H
 
+#include "game.h"
+#include "rom_audio.h"
+
 #include <SDL.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -13,6 +16,7 @@
 #define TETRIS_AUDIO_PACK_PATH_LENGTH 1023
 #define TETRIS_AUDIO_MUSIC_COUNT 3
 #define TETRIS_AUDIO_SFX_COUNT 8
+#define TETRIS_AUDIO_ROM_FRAME_CAPACITY 1024
 
 typedef struct TetrisAudio {
     SDL_AudioDeviceID device;
@@ -31,6 +35,16 @@ typedef struct TetrisAudio {
     double music_frequency_melody;
     double music_frequency_bass;
 
+    TetrisRomAudio rom_audio;
+    float rom_frame_samples[TETRIS_AUDIO_ROM_FRAME_CAPACITY];
+    size_t rom_frame_count;
+    size_t rom_frame_index;
+    int rom_selected_track;
+    bool rom_apu_available;
+    bool rom_apu_active;
+    bool rom_apu_failed;
+    bool rom_allegro;
+
 #ifdef TETRIS_HAVE_SDL_MIXER
     Mix_Music *pack_music[TETRIS_AUDIO_MUSIC_COUNT];
     Mix_Chunk *pack_sfx[TETRIS_AUDIO_SFX_COUNT];
@@ -42,7 +56,12 @@ typedef struct TetrisAudio {
 
 bool tetris_audio_init(TetrisAudio *audio);
 void tetris_audio_shutdown(TetrisAudio *audio);
+bool tetris_audio_attach_rom(TetrisAudio *audio, const NesRom *rom,
+                             char *error, size_t error_size);
+void tetris_audio_detach_rom(TetrisAudio *audio);
 void tetris_audio_play_events(TetrisAudio *audio, uint32_t events);
+void tetris_audio_update_game(TetrisAudio *audio, const TetrisGame *game,
+                              uint32_t events);
 void tetris_audio_toggle(TetrisAudio *audio);
 void tetris_audio_cycle_music(TetrisAudio *audio);
 void tetris_audio_apply_settings(TetrisAudio *audio, bool enabled, int music_track);

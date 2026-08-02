@@ -1,5 +1,7 @@
     begin_game(game, menu);
     game->show_next = settings->show_next;
+    tetris_audio_apply_settings(audio, settings->audio_enabled,
+                                settings->music_track);
     settings->last_mode = menu->mode;
     settings->last_level = menu->level;
     settings->last_height = menu->height;
@@ -11,20 +13,22 @@
 }
 
 static void start_demo(TetrisGame *game, TetrisDemoController *demo,
-                       const NesRom *rom, AppScreen *screen,
-                       Uint32 *demo_started,
+                       TetrisAudio *audio, const NesRom *rom,
+                       AppScreen *screen, Uint32 *demo_started,
                        bool *left, bool *right, bool *down) {
     tetris_init_mode(game, 0x19891101u, 0, TETRIS_MODE_A, 0);
     if (!tetris_demo_reset_from_rom(demo, game, rom))
         tetris_demo_reset(demo);
+    tetris_audio_apply_settings(audio, audio->enabled, audio->music_track);
     *screen = SCREEN_DEMO;
     *demo_started = SDL_GetTicks();
     clear_held(left, right, down);
 }
 
 static bool start_last_replay(TetrisReplay *playback, TetrisGame *game,
-                              const char *path, AppScreen *screen,
-                              uint32_t *replay_index, Uint32 *replay_done_at,
+                              TetrisAudio *audio, const char *path,
+                              AppScreen *screen, uint32_t *replay_index,
+                              Uint32 *replay_done_at,
                               char *replay_status, size_t replay_status_size,
                               bool *left, bool *right, bool *down) {
     char error[256];
@@ -36,6 +40,7 @@ static bool start_last_replay(TetrisReplay *playback, TetrisGame *game,
     tetris_init_mode(game, playback->seed, playback->start_level,
                      playback->mode, playback->start_height);
     game->show_next = playback->initial_show_next;
+    tetris_audio_apply_settings(audio, audio->enabled, audio->music_track);
     *replay_index = 0;
     *replay_done_at = 0;
     snprintf(replay_status, replay_status_size, "PLAYING %" PRIu32 " FRAMES",

@@ -25,6 +25,9 @@ add_library(main SHARED
     "${ROOT_DIR}/src/settings.c"
     "${ROOT_DIR}/src/replay.c"
     "${ROOT_DIR}/src/cathedral.c"
+    "${ROOT_DIR}/src/cpu6502.c"
+    "${ROOT_DIR}/src/nes_apu.c"
+    "${ROOT_DIR}/src/rom_audio.c"
 )
 
 target_include_directories(main PRIVATE "${ROOT_DIR}/src")

@@ -15,10 +15,12 @@
                     } else if (key == SDLK_o) {
                         screen = SCREEN_OPTIONS;
                     } else if (key == SDLK_l) {
+                        tetris_audio_detach_rom(&audio);
                         (void)choose_and_load_rom(renderer, &rom, &font,
                                                   &settings, settings_path);
+                        attach_original_audio(&audio, &rom);
                     } else if (key == SDLK_F8) {
-                        (void)start_last_replay(&playback, &game,
+                        (void)start_last_replay(&playback, &game, &audio,
                                                 last_replay_path, &screen,
                                                 &replay_index, &replay_done_at,
                                                 replay_status,
@@ -86,7 +88,7 @@
                     if (key == SDLK_RETURN || key == SDLK_SPACE)
                         start_selected_game(&game, &menu, &screen,
                             &left, &right, &down, &result_handled,
-                            &settings, settings_path, &recording,
+                            &audio, &settings, settings_path, &recording,
                             &recording_active);
                     if (key == SDLK_BACKSPACE) screen = SCREEN_TYPE_SELECT;
                 } else if (screen == SCREEN_GAME) {

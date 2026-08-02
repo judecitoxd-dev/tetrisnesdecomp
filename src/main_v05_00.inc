@@ -69,6 +69,15 @@ static void load_optional_audio_pack(TetrisAudio *audio,
     (void)try_audio_pack(audio, "audio", false);
 }
 
+static void attach_original_audio(TetrisAudio *audio, const NesRom *rom) {
+    char error[256];
+    if (!audio || !audio->device || !rom) return;
+    tetris_audio_detach_rom(audio);
+    if (!tetris_audio_attach_rom(audio, rom, error, sizeof(error))) {
+        fprintf(stderr, "Original ROM APU unavailable: %s\n", error);
+    }
+}
+
 static void save_settings_quiet(const TetrisSettings *settings,
                                 const char *settings_path) {
     if (!tetris_settings_save(settings, settings_path)) {
@@ -162,7 +171,7 @@ static void begin_replay_recording(TetrisReplay *recording,
 static void start_selected_game(TetrisGame *game, const AppMenuState *menu,
                                 AppScreen *screen, bool *left, bool *right,
                                 bool *down, bool *result_handled,
-                                TetrisSettings *settings,
+                                TetrisAudio *audio, TetrisSettings *settings,
                                 const char *settings_path,
                                 TetrisReplay *recording,
                                 bool *recording_active) {

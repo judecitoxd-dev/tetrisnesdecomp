@@ -5,7 +5,7 @@
                         button == SDL_CONTROLLER_BUTTON_A)
                         start_selected_game(&game, &menu, &screen,
                             &left, &right, &down, &result_handled,
-                            &settings, settings_path, &recording,
+                            &audio, &settings, settings_path, &recording,
                             &recording_active);
                     if (button == SDL_CONTROLLER_BUTTON_B ||
                         button == SDL_CONTROLLER_BUTTON_BACK)
@@ -45,7 +45,7 @@
 
         if (screen == SCREEN_TITLE && settings.demo_enabled &&
             (Uint32)(SDL_GetTicks() - last_activity) >= DEMO_IDLE_MS) {
-            start_demo(&game, &demo, &rom, &screen, &demo_started,
+            start_demo(&game, &demo, &audio, &rom, &screen, &demo_started,
                        &left, &right, &down);
         }
 
@@ -86,7 +86,7 @@
                         recording_active = false;
                     }
                     tetris_tick(&game, &input);
-                    tetris_audio_play_events(&audio,
+                    tetris_audio_update_game(&audio, &game,
                                              tetris_consume_events(&game));
                     if (input.toggle_next_pressed) {
                         settings.show_next = game.show_next;
@@ -107,7 +107,7 @@
                 } else if (screen == SCREEN_DEMO) {
                     TetrisInput demo_input = tetris_demo_next_input(&demo, &game);
                     tetris_tick(&game, &demo_input);
-                    tetris_audio_play_events(&audio,
+                    tetris_audio_update_game(&audio, &game,
                                              tetris_consume_events(&game));
                     if (game.phase == TETRIS_PHASE_GAME_OVER ||
                         tetris_demo_is_finished(&demo) ||
