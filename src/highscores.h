@@ -12,6 +12,7 @@
 typedef struct TetrisHighScoreEntry {
     char name[TETRIS_HIGH_SCORE_NAME_LENGTH + 1];
     int score;
+    int lines;
     int level;
     int height;
 } TetrisHighScoreEntry;
@@ -26,7 +27,7 @@ bool tetris_high_scores_save(const TetrisHighScores *scores, const char *path);
 int tetris_high_scores_rank(const TetrisHighScores *scores, TetrisMode mode,
                             int score);
 bool tetris_high_scores_submit(TetrisHighScores *scores, TetrisMode mode,
-                               const char *name, int score,
+                               const char *name, int score, int lines,
                                int level, int height);
 const TetrisHighScoreEntry *tetris_high_scores_top(const TetrisHighScores *scores,
                                                    TetrisMode mode);
