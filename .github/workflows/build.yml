@@ -14,9 +14,9 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact: tetris-pc-v0.20-windows-x64
+            artifact: tetris-pc-v0.21-windows-x64
           - os: ubuntu-latest
-            artifact: tetris-pc-v0.20-linux-x64
+            artifact: tetris-pc-v0.21-linux-x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -34,9 +34,9 @@ jobs:
           python tools/build_audio_cache.py --self-test
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/stage -DTETRIS_FETCH_SDL2=${{ runner.os == 'Windows' }} -DTETRIS_FETCH_SDL2_MIXER=ON
-      - name: Build
+      - name: Build buffered audio and renderer
         run: cmake --build build --config Release --parallel
-      - name: Test playability, scores, timings, cathedral, APU and OGG cache
+      - name: Test playability, score table, APU ring and OGG cache
         run: ctest --test-dir build -C Release --output-on-failure
       - name: Install package tree
         run: cmake --install build --config Release
@@ -57,7 +57,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp build/tetris-nes-pc-port-v0.20.0-* dist/ || true
+          cp build/tetris-nes-pc-port-v0.21.0-* dist/ || true
           cp -R stage/* dist/
       - uses: actions/upload-artifact@v4
         with:
