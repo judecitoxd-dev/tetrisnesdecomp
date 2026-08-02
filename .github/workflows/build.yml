@@ -14,27 +14,28 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact: tetris-pc-v0.13-windows-x64
+            artifact: tetris-pc-v0.14-windows-x64
           - os: ubuntu-latest
-            artifact: tetris-pc-v0.13-linux-x64
+            artifact: tetris-pc-v0.14-linux-x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Install SDL2 headers on Linux
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
-      - name: Self-test decompilation and ROM-structure tools
+      - name: Self-test decompilation and ROM tools
         run: |
           python tools/disassemble_prg.py --self-test
           python tools/rom_assets_verify.py --self-test
           python tools/type_a_ending_verify.py --self-test
           python tools/cathedral_verify.py --self-test
           python tools/trace_compare.py --self-test
+          python tools/apu_matrix.py self-test
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/stage -DTETRIS_FETCH_SDL2=${{ runner.os == 'Windows' }} -DTETRIS_FETCH_SDL2_MIXER=ON
       - name: Build
         run: cmake --build build --config Release --parallel
-      - name: Test cycle-clocked CPU and APU
+      - name: Test cathedral and full APU matrix tools
         run: ctest --test-dir build -C Release --output-on-failure
       - name: Install package tree
         run: cmake --install build --config Release
@@ -55,7 +56,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp build/tetris-nes-pc-port-v0.13.0-* dist/ || true
+          cp build/tetris-nes-pc-port-v0.14.0-* dist/ || true
           cp -R stage/* dist/
       - uses: actions/upload-artifact@v4
         with:
