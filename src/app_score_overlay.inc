@@ -123,7 +123,7 @@ static void overlay_exact_name_entry(SDL_Renderer *renderer,
                        result->score, result->lines);
 }
 
-static void tetris_present_with_score_overlay(
+void tetris_present_with_score_overlay(
     SDL_Renderer *renderer, SDL_Texture *font, AppScreen screen,
     const TetrisGame *game, const AppResultState *result,
     const TetrisHighScores *scores) {
