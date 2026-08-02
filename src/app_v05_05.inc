@@ -5,6 +5,7 @@
             draw_replay_overlay(renderer, font, replay_status);
             break;
     }
+    SDL_RenderPresent(renderer);
 }
 
 bool load_rom_and_font_ex(SDL_Renderer *renderer, const char *path,
@@ -45,6 +46,11 @@ bool load_rom_and_font_ex(SDL_Renderer *renderer, const char *path,
             return false;
         }
         (void)tetris_rom_screens_load(renderer, &loaded);
+        (void)tetris_rom_sprites_load(renderer, &loaded);
+        (void)tetris_rom_endings_load(renderer, &loaded);
+        (void)tetris_rom_cathedral_sprites_load(renderer, &loaded);
+        (void)tetris_rom_type_a_load(renderer, &loaded);
+        (void)tetris_rom_type_a_backgrounds_load(renderer, &loaded);
         if (*font) SDL_DestroyTexture(*font);
         if (g_title_texture) SDL_DestroyTexture(g_title_texture);
         g_title_texture = new_title;
@@ -66,6 +72,11 @@ bool load_rom_and_font(SDL_Renderer *renderer, const char *path,
 }
 
 void free_rom_graphics(void) {
+    tetris_rom_type_a_backgrounds_free();
+    tetris_rom_type_a_free();
+    tetris_rom_cathedral_sprites_free();
+    tetris_rom_endings_free();
+    tetris_rom_sprites_free();
     tetris_rom_screens_free();
     destroy_block_textures();
     if (g_title_texture) {
@@ -121,4 +132,5 @@ void app_result_begin(AppResultState *result, const TetrisGame *game, int rank) 
     result->height = game->start_height;
     result->rank = rank;
     result->completed = game->phase == TETRIS_PHASE_COMPLETE;
+    result->ending_started_ms = SDL_GetTicks();
 }

@@ -11,10 +11,12 @@
 }
 
 static void start_demo(TetrisGame *game, TetrisDemoController *demo,
-                       AppScreen *screen, Uint32 *demo_started,
+                       const NesRom *rom, AppScreen *screen,
+                       Uint32 *demo_started,
                        bool *left, bool *right, bool *down) {
-    tetris_init_mode(game, 0x19891101u, 5, TETRIS_MODE_A, 0);
-    tetris_demo_reset(demo);
+    tetris_init_mode(game, 0x19891101u, 0, TETRIS_MODE_A, 0);
+    if (!tetris_demo_reset_from_rom(demo, game, rom))
+        tetris_demo_reset(demo);
     *screen = SCREEN_DEMO;
     *demo_started = SDL_GetTicks();
     clear_held(left, right, down);
@@ -55,8 +57,14 @@ static void begin_result_flow(TetrisHighScores *scores, const TetrisGame *game,
     rank = tetris_high_scores_rank(scores, game->mode, game->score);
     app_result_begin(result, game, rank);
     clear_held(left, right, down);
-    if (rank >= 0) *screen = SCREEN_NAME_ENTRY;
-    else if (game->phase == TETRIS_PHASE_COMPLETE) *screen = SCREEN_ENDING;
+    if (game->mode == TETRIS_MODE_A &&
+        game->phase == TETRIS_PHASE_GAME_OVER && game->score >= 30000) {
+        *screen = SCREEN_ENDING;
+    } else if (rank >= 0) {
+        *screen = SCREEN_NAME_ENTRY;
+    } else if (game->phase == TETRIS_PHASE_COMPLETE) {
+        *screen = SCREEN_ENDING;
+    }
 }
 
 static void save_name_entry(TetrisHighScores *scores,

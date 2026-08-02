@@ -1,5 +1,6 @@
 #include "app.h"
 #include "rom_screens.h"
+#include "rom_sprites.h"
 
 #include <stdio.h>
 #include <stdlib.h>

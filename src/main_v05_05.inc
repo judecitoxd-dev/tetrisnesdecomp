@@ -45,7 +45,7 @@
 
         if (screen == SCREEN_TITLE && settings.demo_enabled &&
             (Uint32)(SDL_GetTicks() - last_activity) >= DEMO_IDLE_MS) {
-            start_demo(&game, &demo, &screen, &demo_started,
+            start_demo(&game, &demo, &rom, &screen, &demo_started,
                        &left, &right, &down);
         }
 
@@ -110,7 +110,10 @@
                     tetris_audio_play_events(&audio,
                                              tetris_consume_events(&game));
                     if (game.phase == TETRIS_PHASE_GAME_OVER ||
-                        (Uint32)(SDL_GetTicks() - demo_started) >= DEMO_MAX_MS) {
+                        tetris_demo_is_finished(&demo) ||
+                        (Uint32)(SDL_GetTicks() - demo_started) >=
+                            (tetris_demo_uses_rom_script(&demo)
+                                ? DEMO_ROM_MAX_MS : DEMO_MAX_MS)) {
                         screen = SCREEN_TITLE;
                         last_activity = SDL_GetTicks();
                     }

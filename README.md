@@ -1,30 +1,41 @@
 # Tetris NES — ports nativos para PC y Android
 
-Versión **0.8** de una reimplementación portable de **Tetris (USA) para NES**, escrita en C99 con SDL2. Windows, Linux y Android ejecutan el mismo núcleo de reglas, carga de ROM, render, récords, ajustes y repeticiones.
+Versión **0.9** de una reimplementación portable de **Tetris (USA) para NES**, escrita en C99 con SDL2. Windows, Linux y Android ejecutan el mismo núcleo de reglas, carga de ROM, render, récords, ajustes, demo y repeticiones.
 
-El proyecto no distribuye la ROM, gráficos extraídos ni música del cartucho. Cada usuario proporciona su propia copia legal. El port valida el archivo y lee durante la ejecución los bancos CHR, paletas, tablas y streams PPU necesarios.
+El proyecto no distribuye la ROM, gráficos extraídos ni música del cartucho. Cada usuario proporciona su propia copia legal. El port valida el archivo y lee durante la ejecución los bancos CHR, paletas, tablas, streams PPU, secuencias de demo y descriptores OAM necesarios.
 
-## Novedades de v0.8
+## Novedades de v0.9
 
-- Pantalla de récords reconstruida desde `enter_high_score_nametable` y el parche `high_scores_nametable` de la ROM.
-- Nombres, puntuaciones y niveles locales colocados sobre las filas del marco original.
-- Alternancia automática entre tablas A-Type y B-Type.
-- Entrada de nombre sobre la pantalla original de “TETRIS MASTER”.
-- Cursor de letra, puntuación, nivel y fila del récord alineados a la cuadrícula NES.
-- Las mejoras se compilan simultáneamente para Android, Windows y Linux.
+- Demo original NTSC reproducida desde los comandos de botones en `PRG+0x5D00`.
+- Secuencia de piezas de la demo leída desde `PRG+0x5F00`.
+- Duraciones y pulsaciones nuevas interpretadas como la rutina 6502 identificada.
+- Cursores A-Type/B-Type, nivel/altura y récord reconstruidos desde OAM.
+- Final B-Type normal reconstruido desde el PRG y CHR de la ROM.
+- Castillo B-Type de nivel 9/19 con seis composiciones por altura.
+- Concierto B-Type con personajes y fotogramas OAM originales.
+- Final A-Type para 30k, 50k, 70k, 100k y 120k puntos.
+- Dos fondos A-Type, incluido el parche especial para ≥120,000.
+- Cinco cohetes y diez chorros reconstruidos desde quince metasprites OAM.
+- Orden final A-Type → entrada de nombre → récords.
+- Verificadores estructurales de demo, PPU, OAM y finales sin extraer assets.
+- Android, Windows y Linux compilan la misma implementación.
 
 ## Recursos originales ya utilizados
 
 - Cuatro bancos CHR de 4 KiB.
 - Fuente y tiles de los tetrominós.
-- Paletas de menús y niveles.
+- Paletas de menús, niveles y finales.
 - Pantalla de título.
 - Selección A-Type/B-Type.
 - Selección de nivel/altura.
 - Marco principal de partida.
 - Pantallas de récords y entrada de nombre.
+- Cursores OAM de tipo, nivel/altura y nombre.
+- Entradas y secuencia de piezas de la demo NTSC.
+- Fondos y reparto de finales B-Type.
+- Fondos, cohetes y chorros de finales A-Type.
 
-Los recursos se decodifican en memoria desde la ROM CRC32 `D16EA396`; no se escriben PNG, bancos CHR ni nametables descomprimidas. Una ROM con otro CRC usa el renderer alternativo.
+Los recursos se decodifican en memoria desde la ROM CRC32 `D16EA396`; no se escriben PNG, bancos CHR, nametables descomprimidas ni tablas de demo. Una ROM con otro CRC usa los renderers y la demo alternativos.
 
 ## Estado actual
 
@@ -36,12 +47,14 @@ Los recursos se decodifican en memoria desde la ROM CRC32 `D16EA396`; no se escr
 - Paquetes OGG opcionales en PC y sintetizador incorporado como respaldo.
 - Desensamblador NMOS 6502 por bancos MMC1 con símbolos y referencias cruzadas.
 
-Todavía no es una decompilación bit a bit. Los cursores OAM exactos, la demo original, los finales, los músicos y el controlador APU continúan incompletos.
+Todavía no es una decompilación bit a bit. La demo usa las entradas y piezas originales, pero su resultado todavía depende del modelo de reglas C del port. El controlador APU, algunas entradas animadas de finales y la reconstrucción enlazable del PRG continúan pendientes.
 
 Documentación:
 
 - [`docs/PORT_STATUS.md`](docs/PORT_STATUS.md)
 - [`docs/ROM_SCREENS.md`](docs/ROM_SCREENS.md)
+- [`docs/ROM_DEMO_OAM.md`](docs/ROM_DEMO_OAM.md)
+- [`docs/ROM_TYPE_A_ENDING.md`](docs/ROM_TYPE_A_ENDING.md)
 - [`docs/ANDROID_PORT.md`](docs/ANDROID_PORT.md)
 - [`docs/ROM_MAP.md`](docs/ROM_MAP.md)
 - [`docs/REPLAY_FORMAT.md`](docs/REPLAY_FORMAT.md)
@@ -120,6 +133,10 @@ gradle --no-daemon :app:assembleDebug
 
 Requiere SDK 34, Build Tools 34.0.0, NDK 26.3.11579264, CMake 3.22.1 y Java 17. El APK generado por CI es una build de depuración para instalación manual.
 
+## Estado de CI
+
+El código nuevo pasa validación local C99 estricta, análisis estático, pruebas Release y harnesses SDL2 con la ROM comprobada. Los últimos jobs de GitHub Actions terminan antes de crear `Set up job` y no generan pasos, registros ni artefactos. Por ello v0.9 permanece sin fusionar y el APK v0.8 continúa siendo la última versión Android publicada y validada.
+
 ## Legalidad
 
-El repositorio contiene código original, herramientas y documentación. No contiene ROM, PRG/CHR extraído, imágenes, música de Nintendo ni grabaciones OGG del cartucho.
+El repositorio contiene código original, herramientas y documentación. No contiene ROM, PRG/CHR extraído, imágenes, música de Nintendo, tablas de demo ni grabaciones OGG del cartucho.

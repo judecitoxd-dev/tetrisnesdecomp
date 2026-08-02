@@ -68,6 +68,11 @@ static void render_title(SDL_Renderer *renderer, SDL_Texture *font,
                                      "ROM CRC DIFFERS FROM TESTED DUMP");
 }
 
+static bool nes_cursor_visible(void) {
+    const unsigned frame = (unsigned)((SDL_GetTicks() * 60u) / 1000u);
+    return (frame & 3u) != 0u;
+}
+
 static void draw_nes_menu_cursor(SDL_Renderer *renderer, int x, int y,
                                  int width, int height) {
     SDL_Rect outer = {x, y, width, height};
@@ -82,9 +87,16 @@ static void draw_nes_menu_cursor(SDL_Renderer *renderer, int x, int y,
 static void render_type_select(SDL_Renderer *renderer, SDL_Texture *font,
                                const AppMenuState *menu) {
     if (tetris_rom_screen_available(TETRIS_ROM_SCREEN_TYPE_MENU)) {
-        const int cursor_x = menu->mode == TETRIS_MODE_A ? 176 : 368;
+        const int nes_x = 0x3f + (menu->mode == TETRIS_MODE_B ? 0x60 : 0);
         tetris_rom_screen_render(renderer, TETRIS_ROM_SCREEN_TYPE_MENU);
-        draw_nes_menu_cursor(renderer, cursor_x, 108, 160, 54);
+        if (nes_cursor_visible()) {
+            if (tetris_rom_sprite_available(TETRIS_ROM_SPRITE_TYPE_CURSOR))
+                tetris_rom_sprite_render(renderer, TETRIS_ROM_SPRITE_TYPE_CURSOR,
+                                          nes_x, 0x3f);
+            else
+                draw_nes_menu_cursor(renderer, 64 + nes_x * 2, 0x3f * 2,
+                                     120, 16);
+        }
         return;
     }
     draw_centered(renderer, font, 70, 3, "GAME TYPE");
@@ -103,18 +115,31 @@ static void render_level_select(SDL_Renderer *renderer, SDL_Texture *font,
     const TetrisRomScreen exact_screen = menu->mode == TETRIS_MODE_A
         ? TETRIS_ROM_SCREEN_LEVEL_A : TETRIS_ROM_SCREEN_LEVEL_B;
     if (tetris_rom_screen_available(exact_screen)) {
-        int cursor_x;
-        int cursor_y;
+        int nes_x;
+        int nes_y;
+        int selected_digit;
         tetris_rom_screen_render(renderer, exact_screen);
         if (menu->mode == TETRIS_MODE_B && menu->selecting_height) {
-            cursor_x = 375 + (menu->height % 3) * 32;
-            cursor_y = 162 + (menu->height / 3) * 36;
+            selected_digit = menu->height;
+            nes_x = 0x9c + (menu->height % 3) * 0x10;
+            nes_y = 0x53 + (menu->height / 3) * 0x10;
         } else {
-            const int displayed_level = menu->level % 10;
-            cursor_x = 167 + (displayed_level % 5) * 32;
-            cursor_y = 162 + (displayed_level / 5) * 36;
+            selected_digit = menu->level % 10;
+            nes_x = 0x34 + (selected_digit % 5) * 0x10;
+            nes_y = 0x53 + (selected_digit / 5) * 0x10;
         }
-        draw_nes_menu_cursor(renderer, cursor_x, cursor_y, 32, 32);
+        if (nes_cursor_visible()) {
+            char digit[2] = {(char)('0' + selected_digit), '\0'};
+            if (tetris_rom_sprite_available(TETRIS_ROM_SPRITE_LEVEL_CURSOR))
+                tetris_rom_sprite_render(renderer, TETRIS_ROM_SPRITE_LEVEL_CURSOR,
+                                          nes_x, nes_y);
+            else
+                draw_nes_menu_cursor(renderer, 64 + nes_x * 2, nes_y * 2,
+                                     16, 16);
+            /* The original sprite has priority behind the background digit. */
+            draw_text(renderer, font, 64 + (nes_x + 4) * 2,
+                      (nes_y + 5) * 2, 2, digit);
+        }
         if (menu->level >= 10) {
             snprintf(value, sizeof(value), "START LEVEL %02d", menu->level);
             draw_text(renderer, font, 232, 452, 1, value);
@@ -149,7 +174,7 @@ static void render_records(SDL_Renderer *renderer, SDL_Texture *font,
         for (int rank = 0; rank < TETRIS_HIGH_SCORE_COUNT; ++rank) {
             const TetrisHighScoreEntry *entry = &scores->entries[mode][rank];
             const int y = 320 + rank * 32;
-            draw_text(renderer, font, 224, y, 2, entry->name);
+            draw_text(renderer, font, 208, y, 2, entry->name);
             snprintf(value, sizeof(value), "%06d",
                      entry->score > 999999 ? 999999 : entry->score);
             draw_text(renderer, font, 320, y, 2, value);
@@ -178,7 +203,6 @@ static void render_records(SDL_Renderer *renderer, SDL_Texture *font,
     }
     draw_centered(renderer, font, 390, 1, "ENTER OR BACKSPACE RETURNS");
 }
-
 
 static void render_option_row(SDL_Renderer *renderer, SDL_Texture *font,
                               int y, bool selected, const char *label,

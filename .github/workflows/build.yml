@@ -2,7 +2,9 @@ name: Build PC port
 
 on:
   push:
+    branches: [main]
   pull_request:
+    types: [opened, reopened]
   workflow_dispatch:
 
 jobs:
@@ -12,17 +14,21 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact: tetris-pc-v0.8-windows-x64
+            artifact: tetris-pc-v0.9-windows-x64
           - os: ubuntu-latest
-            artifact: tetris-pc-v0.8-linux-x64
+            artifact: tetris-pc-v0.9-linux-x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Install SDL2 headers on Linux
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
-      - name: Self-test decompilation tools
-        run: python tools/disassemble_prg.py --self-test
+      - name: Self-test decompilation and ROM-structure tools
+        run: |
+          python tools/disassemble_prg.py --self-test
+          python tools/rom_assets_verify.py --self-test
+          python tools/type_a_ending_verify.py --self-test
+          python tools/cathedral_verify.py --self-test
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/stage -DTETRIS_FETCH_SDL2=${{ runner.os == 'Windows' }} -DTETRIS_FETCH_SDL2_MIXER=ON
       - name: Build
@@ -48,7 +54,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp build/tetris-nes-pc-port-v0.8.0-* dist/ || true
+          cp build/tetris-nes-pc-port-v0.9.0-* dist/ || true
           cp -R stage/* dist/
       - uses: actions/upload-artifact@v4
         with:

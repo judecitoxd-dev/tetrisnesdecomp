@@ -11,6 +11,12 @@ add_library(main SHARED
     "${ROOT_DIR}/src/android_bridge.c"
     "${ROOT_DIR}/src/touch_controls.c"
     "${ROOT_DIR}/src/rom_screens.c"
+    "${ROOT_DIR}/src/rom_sprites.c"
+    "${ROOT_DIR}/src/rom_endings.c"
+    "${ROOT_DIR}/src/rom_concert_animation.c"
+    "${ROOT_DIR}/src/rom_cathedral_sprites.c"
+    "${ROOT_DIR}/src/rom_type_a.c"
+    "${ROOT_DIR}/src/rom_type_a_background.c"
     "${ROOT_DIR}/src/game.c"
     "${ROOT_DIR}/src/rom.c"
     "${ROOT_DIR}/src/highscores.c"
@@ -18,6 +24,7 @@ add_library(main SHARED
     "${ROOT_DIR}/src/demo.c"
     "${ROOT_DIR}/src/settings.c"
     "${ROOT_DIR}/src/replay.c"
+    "${ROOT_DIR}/src/cathedral.c"
 )
 
 target_include_directories(main PRIVATE "${ROOT_DIR}/src")
