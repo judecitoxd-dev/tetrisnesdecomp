@@ -1,24 +1,26 @@
 # Tetris NES — ports nativos para PC y Android
 
-Versión **0.11** de una reimplementación portable de **Tetris (USA) para NES**,
+Versión **0.12** de una reimplementación portable de **Tetris (USA) para NES**,
 escrita en C99. El proyecto no distribuye la ROM, gráficos, música ni datos
 extraídos: cada usuario proporciona su copia legal.
 
-## Novedades de v0.11
+## Novedades de v0.12
 
-- Captura automática de RAM y escrituras APU con `tools/mesen_trace.lua`.
-- Intérprete 2A03/NMOS 6502 para las 151 instrucciones oficiales.
-- Ejecución del controlador de sonido de la ROM mediante `$E006` al iniciar y
-  `$E000` una vez por fotograma NTSC.
-- Síntesis de los cinco canales del APU: dos pulsos, triángulo, ruido y DMC.
-- Mezcla no lineal pulse/TND, envolventes, longitudes, barridos y filtro DC.
-- Herramienta `tetris_apu_render` para crear WAV mono PCM16 a 48 kHz.
-- Traza `frame,apu_writes` para comparar el driver del port con Mesen.
-- Autopruebas con un PRG artificial que no contiene bytes del juego.
+- El controlador de sonido 6502 original funciona ahora como backend en vivo.
+- Música y efectos se generan desde la ROM durante partida, demo y replay.
+- Windows, Linux y Android comparten el mismo CPU 6502, APU y driver.
+- Las tres selecciones musicales usan los comandos originales 3, 4 y 5.
+- Cambio automático a las variantes allegro 6, 7 y 8 al subir el tablero.
+- Movimiento, rotación, bloqueo, línea, Tetris, nivel, derrota y final usan los
+  slots originales del controlador.
+- Al cambiar la ROM se desconecta el driver anterior antes de liberar su PRG.
+- OGG sigue disponible como opción y el sintetizador incorporado funciona como
+  respaldo cuando la ROM no tiene offsets verificados.
+- Las herramientas WAV, trazas Mesen y autopruebas de v0.11 continúan incluidas.
 
-La ruta APU es funcional y automática, pero todavía no es exacta por ciclo. El
-renderer WAV/traza se valida primero antes de sustituir el backend interactivo
-de PC y Android.
+La integración interactiva está terminada, pero la emulación APU todavía no es
+exacta por ciclo. Quedan la temporización de cada instrucción, IRQ y robos de
+ciclos del DMC.
 
 ## Estado actual
 
@@ -27,12 +29,25 @@ de PC y Android.
 - Menús, récords y finales reconstruidos desde PPU, CHR y OAM.
 - Teclado, controles táctiles y gamepad.
 - Repeticiones deterministas y comparación de trazas por fotograma.
-- Renderer automático del controlador musical/APU original desde la ROM legal.
-- Audio sintetizado alternativo y paquetes OGG opcionales para el juego en vivo.
+- Música y efectos originales interactivos desde la ROM legal.
+- Renderer WAV y traza APU automática para análisis offline.
+- Paquetes OGG opcionales y sintetizador de respaldo.
 
-Todavía no es una decompilación bit a bit. Quedan la paridad APU por ciclo, la
-integración del APU original como backend interactivo, diferencias de RAM/PPU,
-parte de la catedral B-Type y una construcción 6502 enlazable.
+Todavía no es una decompilación bit a bit. Quedan la paridad APU por ciclo,
+diferencias de RAM/PPU, parte del movimiento de la catedral B-Type y una
+construcción 6502 enlazable.
+
+## Ejecutar el port de PC
+
+```powershell
+.\tetris_pc.exe --rom "C:\ruta\Tetris (USA).nes"
+```
+
+Cuando la ROM coincide con CRC32 `D16EA396`, la consola informa:
+
+```text
+Audio backend: ROM APU
+```
 
 ## Generar audio original desde la ROM
 
@@ -47,8 +62,7 @@ tetris_apu_render "Tetris (USA).nes" 1 60 music-1.wav port-apu.csv
 python tools/trace_compare.py mesen-apu.csv port-apu.csv --columns apu_writes
 ```
 
-Las pistas aceptadas son `1` a `10`. El renderer solo activa offsets originales
-para la ROM verificada CRC32 `D16EA396`.
+Las pistas aceptadas son `1` a `10`.
 
 ## Captura automática con Mesen
 
@@ -60,13 +74,7 @@ para la ROM verificada CRC32 `D16EA396`.
 El script crea `tetris-reference.csv` y `tetris-apu-writes.csv` dentro de la
 carpeta de datos del script.
 
-## Ejecutar el port de PC
-
-```powershell
-.\tetris_pc.exe --rom "C:\ruta\Tetris (USA).nes"
-```
-
-## Compilar y probar
+## Compilar y probar PC
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -87,9 +95,9 @@ cd android
 gradle --no-daemon :app:assembleDebug
 ```
 
-La aplicación Android sigue utilizando el backend interactivo existente. El
-renderer APU original se integra primero como herramienta verificable y será el
-backend en vivo después de cerrar diferencias contra Mesen.
+El APK compila el intérprete 6502, el núcleo APU y el driver original para
+`arm64-v8a` y `armeabi-v7a`. La ROM se selecciona mediante el selector del
+sistema y permanece en el almacenamiento privado de la aplicación.
 
 ## Documentación
 
