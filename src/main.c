@@ -1,6 +1,6 @@
 #include "touch_controls.h"
-#include "main_v05_00.inc"
 #include "main_menu_helpers.inc"
+#include "main_v05_00.inc"
 #include "main_v05_01.inc"
 #include "main_v05_02.inc"
 #include "main_v05_03.inc"
