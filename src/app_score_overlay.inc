@@ -1,8 +1,10 @@
+#include "exact_layout.h"
+
 /*
  * ROM-native dynamic fields.
  *
- * The exact backgrounds contain placeholder digits.  Earlier versions drew a
- * second, grayscale font over those placeholders.  This module reconstructs
+ * The exact backgrounds contain placeholder digits. Earlier versions drew a
+ * second, grayscale font over those placeholders. This module reconstructs
  * the relevant nametable/palette state and replaces complete 8x8 NES tiles,
  * preserving the original CHR bank, palette and pixel alignment.
  */
@@ -329,28 +331,30 @@ static void overlay_draw_game(SDL_Renderer *renderer, const NesRom *rom,
     state = overlay_get_screen(renderer, rom, OVERLAY_EXACT_GAME);
     if (!state) return;
 
-    /* Remove every misplaced half-size value drawn by render_game_exact. */
+    /* Remove obsolete generic values without ever crossing into board X=12. */
     overlay_restore_rectangle(renderer, state, 17, 2, 7, 4);
     overlay_restore_rectangle(renderer, state, 23, 4, 9, 7);
     overlay_restore_rectangle(renderer, state, 25, 20, 7, 4);
-    overlay_restore_rectangle(renderer, state, 4, 10, 9, 17);
+    overlay_restore_rectangle(renderer, state,
+        TETRIS_EXACT_STATS_CLEAN_X, TETRIS_EXACT_STATS_CLEAN_Y,
+        TETRIS_EXACT_STATS_CLEAN_W, TETRIS_EXACT_STATS_CLEAN_H);
 
     snprintf(value, sizeof(value), "%03d",
              game->lines < 0 ? 0 : (game->lines > 999 ? 999 : game->lines));
-    overlay_draw_text(renderer, state, 0x2073u, value);
+    overlay_draw_text(renderer, state, TETRIS_PPU_LINES, value);
 
     top = tetris_high_scores_top(scores, game->mode);
     snprintf(value, sizeof(value), "%06d",
              top->score < 0 ? 0 : (top->score > 999999 ? 999999 : top->score));
-    overlay_draw_text(renderer, state, 0x20b8u, value);
+    overlay_draw_text(renderer, state, TETRIS_PPU_TOP_SCORE, value);
 
     snprintf(value, sizeof(value), "%06d",
              game->score < 0 ? 0 : (game->score > 999999 ? 999999 : game->score));
-    overlay_draw_text(renderer, state, 0x2118u, value);
+    overlay_draw_text(renderer, state, TETRIS_PPU_SCORE, value);
 
     snprintf(value, sizeof(value), "%02d",
              game->level < 0 ? 0 : (game->level > 99 ? 99 : game->level));
-    overlay_draw_text(renderer, state, 0x22bau, value);
+    overlay_draw_text(renderer, state, TETRIS_PPU_LEVEL, value);
 
     for (index = 0; index < 7; ++index) {
         const int count = game->piece_count[index] < 0 ? 0 :

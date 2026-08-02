@@ -35,6 +35,10 @@ bool tetris_settings_load(TetrisSettings *settings, const char *path);
 bool tetris_settings_save(const TetrisSettings *settings, const char *path);
 void tetris_settings_set_rom_path(TetrisSettings *settings, const char *path);
 
+/* Original type/menu behavior: levels 0-9 and music 1,2,3,OFF. */
+int tetris_settings_step_level(int current, int delta);
+int tetris_settings_step_music(int current, int direction);
+
 /* Compatibility inside settings.c; touch_controls.h undefines it before its enum. */
 #define TETRIS_TOUCH_ACTION_COUNT TETRIS_TOUCH_SETTING_COUNT
 

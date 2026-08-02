@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.18.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.19.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -78,7 +78,7 @@ if(TETRIS_BUILD_APP)
     endif()
 
     add_executable(tetris_pc
-        src/main.c src/app.c src/audio.c src/rom_picker.c
+        src/main.c src/app.c src/audio.c src/audio_device.c src/rom_picker.c
         src/android_bridge.c src/touch_controls.c
         src/rom_screens.c src/rom_sprites.c src/rom_endings.c
         src/rom_concert_animation.c src/rom_cathedral_sprites.c
@@ -161,10 +161,11 @@ if(TETRIS_BUILD_TESTS)
     add_executable(tetris_irq_timing_tests tests/irq_timing_tests.c)
     add_executable(tetris_call_frame_tests tests/call_frame_regression_tests.c)
     add_executable(tetris_highscores_tests tests/highscores_tests.c)
+    add_executable(tetris_playability_tests tests/playability_regression_tests.c)
     foreach(target IN ITEMS
             tetris_game_tests tetris_demo_tests tetris_cathedral_tests
             tetris_apu_tests tetris_irq_timing_tests tetris_call_frame_tests
-            tetris_highscores_tests)
+            tetris_highscores_tests tetris_playability_tests)
         target_link_libraries(${target} PRIVATE tetris_core)
         tetris_strict_c(${target})
     endforeach()
@@ -175,6 +176,7 @@ if(TETRIS_BUILD_TESTS)
     add_test(NAME irq_timing COMMAND tetris_irq_timing_tests)
     add_test(NAME call_frame COMMAND tetris_call_frame_tests)
     add_test(NAME highscores COMMAND tetris_highscores_tests)
+    add_test(NAME playability_regressions COMMAND tetris_playability_tests)
     add_test(NAME apu_render_self_test COMMAND tetris_apu_render --self-test)
     add_test(NAME apu_scenario_self_test COMMAND tetris_apu_scenario --self-test)
     find_package(Python3 COMPONENTS Interpreter QUIET)
@@ -202,6 +204,7 @@ install(FILES
     docs/ROM_SCREENS.md docs/ROM_DEMO_OAM.md docs/ROM_TYPE_A_ENDING.md
     docs/TRACE_COMPARISON.md docs/APU_RENDERING.md
     docs/REPLAY_FORMAT.md docs/AUDIO_PACK.md docs/DECOMP_TOOLS.md
+    docs/PLAYABILITY_VERIFICATION.md
     DESTINATION docs)
 
 set(CPACK_PACKAGE_NAME "tetris-nes-pc-port")

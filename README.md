@@ -1,26 +1,29 @@
 # Tetris NES — ports nativos para PC y Android
 
-Versión **0.14** de una reimplementación portable de **Tetris (USA) para NES**,
+Versión **0.19** de una reimplementación portable de **Tetris (USA) para NES**,
 escrita en C99. El repositorio no distribuye la ROM, gráficos, música ni datos
 extraídos; cada usuario proporciona su copia legal.
 
-## Novedades de v0.14
+## Reparación de jugabilidad de v0.19
 
-- Máquina incremental de la catedral B-Type basada en los contadores del 6502.
-- Movimiento, animación y activación en cascada desde las tablas originales.
-- Prueba de 43,200 estados: diez niveles, seis alturas y 720 fotogramas.
-- Nueva herramienta `tetris_apu_scenario` para ocho efectos originales.
-- Nueva herramienta `tools/apu_matrix.py` para capturar y comparar:
-  - diez pistas musicales;
-  - movimiento, rotación, bloqueo, línea, Tetris y subida de nivel;
-  - derrota y final completado.
-- Manifiesto JSON con hashes, ciclos, fotogramas y actividad APU.
-- Detección del primer caso, fotograma y registro divergente frente a Mesen.
-- Herramientas y paquetes actualizados para Windows, Linux y Android.
+Esta versión corrige regresiones introducidas mientras se reconstruían las
+pantallas originales:
 
-La entrada móvil de la catedral ya no figura como pendiente. El APU dispone de
-una matriz completa de validación, aunque las capturas de referencia deben ser
-generadas localmente por el usuario.
+- El limpiado de estadísticas ya no borra la primera columna del tablero ni
+  hace desaparecer partes de las piezas.
+- Los ajustes antiguos que guardaron niveles ocultos 10–19 se migran al dígito
+  visible del menú original (`10 → 0`, `18 → 8`, `19 → 9`).
+- La selección normal vuelve a estar limitada a los niveles originales 0–9.
+- En `GAME TYPE`, izquierda/derecha eligen A-Type o B-Type y arriba/abajo
+  recorren `MUSIC-1`, `MUSIC-2`, `MUSIC-3` y `OFF`.
+- Teclado, mando y botones táctiles utilizan la misma lógica de navegación.
+- El audio APU solicita un búfer más amplio para reducir cortes mientras el
+  driver 6502 original se ejecuta en tiempo real.
+- El título del ejecutable, CMake, APK, documentación y paquetes pasan a v0.19.
+
+Las regresiones anteriores tienen una prueba específica llamada
+`playability_regressions`; no se consideran resueltas únicamente porque el
+programa compile.
 
 ## Estado actual
 
@@ -34,9 +37,25 @@ generadas localmente por el usuario.
 - Teclado, controles táctiles y gamepad.
 - Windows, Linux, ARM64 y ARMv7 sobre el mismo núcleo.
 
-Todavía no es una decompilación bit a bit. Quedan la microtemporización de bus,
-la entrega asíncrona de IRQ, diferencias de RAM/PPU de la demo y una
-construcción 6502 enlazable.
+Todavía no es una decompilación bit a bit. Quedan diferencias de
+microtemporización de bus, validación APU contra capturas Mesen reales,
+diferencias de RAM/PPU de la demo y una construcción 6502 enlazable.
+
+## Controles de los menús originales
+
+En la pantalla `GAME TYPE`:
+
+```text
+Izquierda / derecha : A-TYPE o B-TYPE
+Abajo                : MUSIC-1 → MUSIC-2 → MUSIC-3 → OFF
+Arriba               : recorrido inverso
+Enter / Start        : selección de nivel
+Retroceso / B        : volver
+```
+
+En A-Type, la selección normal de nivel utiliza 0–9. Los niveles superiores se
+alcanzan durante la partida según las reglas del juego; no se guardan como una
+selección invisible del menú.
 
 ## Ejecutar el port de PC
 
@@ -44,15 +63,25 @@ construcción 6502 enlazable.
 .\tetris_pc.exe --rom "C:\ruta\Tetris (USA).nes"
 ```
 
-## Generar una pista
+El título de la ventana debe mostrar `Tetris NES PC Port v0.19`.
+
+## Ajustar el margen del audio
+
+v0.19 solicita 2048 muestras en PC y 4096 en Android. Para probar otro tamaño:
+
+```powershell
+$env:TETRIS_AUDIO_BUFFER_SAMPLES="4096"
+.\tetris_pc.exe --rom "C:\ruta\Tetris (USA).nes"
+```
+
+Se aceptan potencias de dos entre 256 y 8192. Esto reduce underruns, pero no se
+presenta como una solución definitiva: el siguiente paso es separar el
+renderizado APU del callback mediante un productor y un búfer circular.
+
+## Generar una pista o efecto original
 
 ```bash
 tetris_apu_render "Tetris (USA).nes" 1 60 music-1.wav track-01.csv
-```
-
-## Generar un efecto
-
-```bash
 tetris_apu_scenario "Tetris (USA).nes" rotate 180 effect-rotate.csv
 ```
 
@@ -62,7 +91,7 @@ Escenarios disponibles:
 move rotate lock line tetris level game-over complete
 ```
 
-## Generar la matriz completa
+## Generar y comparar la matriz APU
 
 ```bash
 python tools/apu_matrix.py capture \
@@ -70,26 +99,14 @@ python tools/apu_matrix.py capture \
   --apu-scenario ./tetris_apu_scenario \
   --rom "Tetris (USA).nes" \
   --output port-matrix
-```
 
-Compararla con una matriz de referencia:
-
-```bash
 python tools/apu_matrix.py compare mesen-matrix port-matrix \
   --json apu-matrix-report.json
 ```
 
-La herramienta espera 18 casos y compara por defecto ciclos, stalls, IRQ y
-escrituras `$4000-$4017`.
-
-## Captura de referencia con Mesen
-
-1. Abre la ROM legal en Mesen 2 o Mesen CE.
-2. Permite acceso Lua a I/O y funciones del sistema.
-3. Ejecuta `tools/mesen_trace.lua`.
-4. Captura cada pista o efecto que vas a incorporar a la matriz de referencia.
-
-Las capturas, WAV y ROM permanecen fuera del repositorio.
+La herramienta espera 18 casos y compara ciclos, stalls, IRQ y escrituras
+`$4000-$4017`. Las capturas de referencia se generan localmente con la ROM
+legal y permanecen fuera del repositorio.
 
 ## Compilar y probar PC
 
@@ -98,6 +115,8 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release --parallel
 ctest --test-dir build -C Release --output-on-failure
 ```
+
+La suite v0.19 contiene 11 pruebas, incluida la regresión de jugabilidad.
 
 ## Android
 
@@ -111,6 +130,7 @@ El APK usa el mismo núcleo C99 y no incluye ROM, audio renderizado ni trazas.
 ## Documentación
 
 - [`docs/PORT_STATUS.md`](docs/PORT_STATUS.md)
+- [`docs/PLAYABILITY_VERIFICATION.md`](docs/PLAYABILITY_VERIFICATION.md)
 - [`docs/APU_RENDERING.md`](docs/APU_RENDERING.md)
 - [`docs/TRACE_COMPARISON.md`](docs/TRACE_COMPARISON.md)
 - [`docs/ROM_DEMO_OAM.md`](docs/ROM_DEMO_OAM.md)

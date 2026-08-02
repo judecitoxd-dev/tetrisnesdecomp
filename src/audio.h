@@ -18,6 +18,21 @@
 #define TETRIS_AUDIO_SFX_COUNT 8
 #define TETRIS_AUDIO_ROM_FRAME_CAPACITY 1024
 
+/*
+ * The original APU driver is heavier than the fallback synth. The wrapper
+ * raises the tiny SDL callback buffer used by older builds so the 6502/APU
+ * renderer has enough real-time headroom on Windows and Android.
+ */
+SDL_AudioDeviceID tetris_open_audio_device_buffered(
+    const char *device, int iscapture, const SDL_AudioSpec *desired,
+    SDL_AudioSpec *obtained, int allowed_changes);
+
+#ifndef TETRIS_AUDIO_DEVICE_IMPLEMENTATION
+#define SDL_OpenAudioDevice(device, iscapture, desired, obtained, allowed) \
+    tetris_open_audio_device_buffered((device), (iscapture), (desired), \
+                                      (obtained), (allowed))
+#endif
+
 typedef struct TetrisAudio {
     SDL_AudioDeviceID device;
     int sample_rate;

@@ -81,10 +81,14 @@
                         screen = SCREEN_TITLE;
                 } else if (screen == SCREEN_TYPE_SELECT) {
                     if (button == SDL_CONTROLLER_BUTTON_DPAD_LEFT ||
-                        button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT ||
-                        button == SDL_CONTROLLER_BUTTON_DPAD_UP ||
-                        button == SDL_CONTROLLER_BUTTON_DPAD_DOWN)
+                        button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
                         toggle_menu_mode(&menu);
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_DOWN)
+                        step_type_menu_music(&settings, &audio, 1,
+                                             settings_path);
+                    if (button == SDL_CONTROLLER_BUTTON_DPAD_UP)
+                        step_type_menu_music(&settings, &audio, -1,
+                                             settings_path);
                     if (button == SDL_CONTROLLER_BUTTON_START ||
                         button == SDL_CONTROLLER_BUTTON_A)
                         screen = SCREEN_LEVEL_SELECT;

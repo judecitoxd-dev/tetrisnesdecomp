@@ -32,6 +32,35 @@ static void trim_line(char *line) {
     }
 }
 
+static int normalize_menu_level(int level) {
+    if (level < 0) return 0;
+    /* v0.18 could persist 10-19 while drawing only the low decimal digit. */
+    if (level > 9) return level % 10;
+    return level;
+}
+
+int tetris_settings_step_level(int current, int delta) {
+    long value = (long)normalize_menu_level(current) + (long)delta;
+    if (value < 0) value = 0;
+    if (value > 9) value = 9;
+    return (int)value;
+}
+
+int tetris_settings_step_music(int current, int direction) {
+    if (current < -1 || current > 2) current = 0;
+    if (direction > 0) {
+        if (current < 0) return -1;
+        if (current < 2) return current + 1;
+        return -1;
+    }
+    if (direction < 0) {
+        if (current < 0) return 2;
+        if (current > 0) return current - 1;
+        return 0;
+    }
+    return current;
+}
+
 void tetris_settings_init(TetrisSettings *settings) {
     int index;
     if (!settings) return;
@@ -59,8 +88,7 @@ void tetris_settings_sanitize(TetrisSettings *settings) {
     if (settings->music_track < -1) settings->music_track = -1;
     if (settings->music_track > 2) settings->music_track = 2;
     if (settings->last_mode != TETRIS_MODE_B) settings->last_mode = TETRIS_MODE_A;
-    if (settings->last_level < 0) settings->last_level = 0;
-    if (settings->last_level > 19) settings->last_level = 19;
+    settings->last_level = normalize_menu_level(settings->last_level);
     if (settings->last_height < 0) settings->last_height = 0;
     if (settings->last_height > 5) settings->last_height = 5;
     if (settings->window_width < 640) settings->window_width = 640;
@@ -162,7 +190,7 @@ bool tetris_settings_save(const TetrisSettings *settings, const char *path) {
         return false;
     file = fopen(temporary, "wb");
     if (!file) return false;
-    fprintf(file, "# Tetris NES Port settings v2\n");
+    fprintf(file, "# Tetris NES Port settings v3\n");
     fprintf(file, "audio_enabled=%d\n", settings->audio_enabled ? 1 : 0);
     fprintf(file, "music_track=%d\n", settings->music_track);
     fprintf(file, "fullscreen=%d\n", settings->fullscreen ? 1 : 0);
@@ -171,7 +199,7 @@ bool tetris_settings_save(const TetrisSettings *settings, const char *path) {
     fprintf(file, "hard_drop_enabled=%d\n", settings->hard_drop_enabled ? 1 : 0);
     fprintf(file, "show_next=%d\n", settings->show_next ? 1 : 0);
     fprintf(file, "last_mode=%d\n", settings->last_mode == TETRIS_MODE_B ? 1 : 0);
-    fprintf(file, "last_level=%d\n", settings->last_level);
+    fprintf(file, "last_level=%d\n", normalize_menu_level(settings->last_level));
     fprintf(file, "last_height=%d\n", settings->last_height);
     fprintf(file, "window_width=%d\n", settings->window_width);
     fprintf(file, "window_height=%d\n", settings->window_height);
