@@ -1,24 +1,29 @@
 # Tetris NES — ports nativos para PC y Android
 
-Versión **0.9** de una reimplementación portable de **Tetris (USA) para NES**, escrita en C99 con SDL2. Windows, Linux y Android ejecutan el mismo núcleo de reglas, carga de ROM, render, récords, ajustes, demo y repeticiones.
+Versión **0.10** de una reimplementación portable de **Tetris (USA) para NES**,
+escrita en C99 con SDL2. Windows, Linux y Android ejecutan el mismo núcleo de
+reglas, carga de ROM, render, récords, demo, finales, ajustes y repeticiones.
 
-El proyecto no distribuye la ROM, gráficos extraídos ni música del cartucho. Cada usuario proporciona su propia copia legal. El port valida el archivo y lee durante la ejecución los bancos CHR, paletas, tablas, streams PPU, secuencias de demo y descriptores OAM necesarios.
+El proyecto no distribuye la ROM, gráficos extraídos ni música del cartucho.
+Cada usuario proporciona su propia copia legal. El port valida el archivo y lee
+durante la ejecución los bancos CHR, paletas, streams PPU, secuencias de demo y
+descriptores OAM necesarios.
 
-## Novedades de v0.9
+## Novedades de v0.10
 
-- Demo original NTSC reproducida desde los comandos de botones en `PRG+0x5D00`.
-- Secuencia de piezas de la demo leída desde `PRG+0x5F00`.
-- Duraciones y pulsaciones nuevas interpretadas como la rutina 6502 identificada.
-- Cursores A-Type/B-Type, nivel/altura y récord reconstruidos desde OAM.
-- Final B-Type normal reconstruido desde el PRG y CHR de la ROM.
-- Castillo B-Type de nivel 9/19 con seis composiciones por altura.
-- Concierto B-Type con personajes y fotogramas OAM originales.
-- Final A-Type para 30k, 50k, 70k, 100k y 120k puntos.
-- Dos fondos A-Type, incluido el parche especial para ≥120,000.
-- Cinco cohetes y diez chorros reconstruidos desde quince metasprites OAM.
-- Orden final A-Type → entrada de nombre → récords.
-- Verificadores estructurales de demo, PPU, OAM y finales sin extraer assets.
-- Android, Windows y Linux compilan la misma implementación.
+- Traza de demo **v2** con una fila por fotograma.
+- Máscara de entrada, hash del tablero, semilla RNG y contadores internos.
+- Estado de pieza, posición, rotación, puntuación, líneas, nivel, DAS y fases.
+- `tools/trace_compare.py` para comparar el port contra una captura de emulador.
+- Detección del primer fotograma y campo divergente.
+- Informes legibles y JSON, selección de columnas y normalización decimal/hex/bin.
+- Autoprueba sin ROM para el comparador.
+- GitHub Actions vuelve a ejecutarse al sincronizar cambios de un pull request.
+- Artefactos y versiones de Android, Windows y Linux actualizados a v0.10.
+
+La comparación de trazas crea la infraestructura para localizar diferencias
+reales entre el modelo C y el programa 6502. Todavía no significa paridad por
+ciclo ni reconstrucción binaria del PRG.
 
 ## Recursos originales ya utilizados
 
@@ -35,23 +40,34 @@ El proyecto no distribuye la ROM, gráficos extraídos ni música del cartucho. 
 - Fondos y reparto de finales B-Type.
 - Fondos, cohetes y chorros de finales A-Type.
 
-Los recursos se decodifican en memoria desde la ROM CRC32 `D16EA396`; no se escriben PNG, bancos CHR, nametables descomprimidas ni tablas de demo. Una ROM con otro CRC usa los renderers y la demo alternativos.
+Los recursos se decodifican en memoria desde la ROM CRC32 `D16EA396`; no se
+escriben PNG, bancos CHR, nametables descomprimidas, tablas de demo ni sprites
+extraídos. Una ROM con otro CRC usa renderers y secuencias alternativas para
+evitar offsets no verificados.
 
 ## Estado actual
 
 - Modos A y B jugables a 60.0988 actualizaciones por segundo.
-- Orientaciones, gravedad, puntuación, transiciones, RNG, DAS y borrado contrastados con datos identificados en la ROM.
+- Orientaciones, gravedad, puntuación, transiciones, RNG, DAS y borrado
+  contrastados con datos identificados en la ROM.
+- Demo NTSC ejecutada desde sus comandos de botones y secuencia de piezas.
+- Menús, récords y finales reconstruidos desde PPU, CHR y OAM de la ROM legal.
 - Teclado, controles táctiles y gamepad sobre el mismo núcleo C99.
-- Android horizontal e inmersivo, selector SAF, almacenamiento privado y controles editables.
+- Android horizontal e inmersivo, selector SAF, almacenamiento privado y
+  controles editables.
 - Opciones persistentes, selector de ROM, récords y repeticiones deterministas.
-- Paquetes OGG opcionales en PC y sintetizador incorporado como respaldo.
+- Paquetes OGG opcionales en PC y sintetizador original como respaldo.
 - Desensamblador NMOS 6502 por bancos MMC1 con símbolos y referencias cruzadas.
+- Comparación reproducible de trazas fotograma por fotograma.
 
-Todavía no es una decompilación bit a bit. La demo usa las entradas y piezas originales, pero su resultado todavía depende del modelo de reglas C del port. El controlador APU, algunas entradas animadas de finales y la reconstrucción enlazable del PRG continúan pendientes.
+Todavía no es una decompilación bit a bit. El controlador APU, parte del
+movimiento de la catedral B-Type, la validación contra RAM de emulador y una
+construcción 6502 enlazable continúan pendientes.
 
-Documentación:
+## Documentación
 
 - [`docs/PORT_STATUS.md`](docs/PORT_STATUS.md)
+- [`docs/TRACE_COMPARISON.md`](docs/TRACE_COMPARISON.md)
 - [`docs/ROM_SCREENS.md`](docs/ROM_SCREENS.md)
 - [`docs/ROM_DEMO_OAM.md`](docs/ROM_DEMO_OAM.md)
 - [`docs/ROM_TYPE_A_ENDING.md`](docs/ROM_TYPE_A_ENDING.md)
@@ -80,9 +96,12 @@ Documentación:
 1. Instala el APK.
 2. Abre **Tetris NES Port**.
 3. Selecciona tu ROM legal con el selector del sistema.
-4. La app valida cabecera, mapper y tamaños y copia el archivo al almacenamiento privado.
+4. La app valida cabecera, mapper y tamaños y copia el archivo al
+   almacenamiento privado.
 
-La capa táctil incluye cruceta, A/B, caída, Start, Select, ROM y EDIT. En modo EDIT se mueven los botones; START cambia el tamaño y SEL la opacidad. Al conectar un mando físico, la capa se oculta.
+La capa táctil incluye cruceta, A/B, caída, Start, Select, ROM y EDIT. En modo
+EDIT se mueven los botones; START cambia el tamaño y SEL la opacidad. Al
+conectar un mando físico, la capa se oculta.
 
 ## Ejecutar en PC
 
@@ -94,6 +113,20 @@ Repetición:
 
 ```powershell
 .\tetris_pc.exe --rom "C:\ruta\Tetris (USA).nes" --replay "C:\ruta\partida.ttr"
+```
+
+## Generar y comparar una traza
+
+```bash
+tetris_demo_verify "Tetris (USA).nes" port-trace.csv
+python tools/trace_compare.py emulator.csv port-trace.csv
+```
+
+Elegir campos concretos:
+
+```bash
+python tools/trace_compare.py emulator.csv port-trace.csv \
+  --columns active,next,x,y,rotation,score,lines,level,rng_seed
 ```
 
 ## Controles de PC
@@ -131,12 +164,20 @@ cd android
 gradle --no-daemon :app:assembleDebug
 ```
 
-Requiere SDK 34, Build Tools 34.0.0, NDK 26.3.11579264, CMake 3.22.1 y Java 17. El APK generado por CI es una build de depuración para instalación manual.
+Requiere SDK 34, Build Tools 34.0.0, NDK 26.3.11579264, CMake 3.22.1 y Java 17.
 
-## Estado de CI
+## Autopruebas sin ROM
 
-El código nuevo pasa validación local C99 estricta, análisis estático, pruebas Release y harnesses SDL2 con la ROM comprobada. Los últimos jobs de GitHub Actions terminan antes de crear `Set up job` y no generan pasos, registros ni artefactos. Por ello v0.9 permanece sin fusionar y el APK v0.8 continúa siendo la última versión Android publicada y validada.
+```bash
+python tools/disassemble_prg.py --self-test
+python tools/rom_assets_verify.py --self-test
+python tools/type_a_ending_verify.py --self-test
+python tools/cathedral_verify.py --self-test
+python tools/trace_compare.py --self-test
+```
 
 ## Legalidad
 
-El repositorio contiene código original, herramientas y documentación. No contiene ROM, PRG/CHR extraído, imágenes, música de Nintendo, tablas de demo ni grabaciones OGG del cartucho.
+El repositorio contiene código original, herramientas y documentación. No
+contiene ROM, PRG/CHR extraído, imágenes, música de Nintendo, tablas de demo,
+capturas de RAM ni grabaciones OGG del cartucho.
