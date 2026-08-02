@@ -11,7 +11,7 @@
 
     window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
     if (settings.fullscreen) window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.12",
+    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.19",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         settings.window_width, settings.window_height, window_flags);
     if (!window) {
