@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.13.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.14.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -16,6 +16,14 @@ if(MSVC AND TETRIS_STATIC_MSVC_RUNTIME)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
+function(tetris_strict_c target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endfunction()
+
 add_library(tetris_core STATIC
     src/game.c
     src/rom.c
@@ -30,36 +38,21 @@ add_library(tetris_core STATIC
     src/rom_audio.c
 )
 target_include_directories(tetris_core PUBLIC src)
-if(MSVC)
-    target_compile_options(tetris_core PRIVATE /W4)
-else()
-    target_compile_options(tetris_core PRIVATE -Wall -Wextra -Wpedantic)
+tetris_strict_c(tetris_core)
+if(NOT MSVC)
     target_link_libraries(tetris_core PUBLIC m)
 endif()
 
 add_executable(tetris_replay_verify tools/replay_verify.c)
-target_link_libraries(tetris_replay_verify PRIVATE tetris_core)
-if(MSVC)
-    target_compile_options(tetris_replay_verify PRIVATE /W4)
-else()
-    target_compile_options(tetris_replay_verify PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-
 add_executable(tetris_demo_verify tools/demo_verify.c)
-target_link_libraries(tetris_demo_verify PRIVATE tetris_core)
-if(MSVC)
-    target_compile_options(tetris_demo_verify PRIVATE /W4)
-else()
-    target_compile_options(tetris_demo_verify PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-
 add_executable(tetris_apu_render tools/apu_render.c)
-target_link_libraries(tetris_apu_render PRIVATE tetris_core)
-if(MSVC)
-    target_compile_options(tetris_apu_render PRIVATE /W4)
-else()
-    target_compile_options(tetris_apu_render PRIVATE -Wall -Wextra -Wpedantic)
-endif()
+add_executable(tetris_apu_scenario tools/apu_scenario.c)
+foreach(target IN ITEMS
+        tetris_replay_verify tetris_demo_verify
+        tetris_apu_render tetris_apu_scenario)
+    target_link_libraries(${target} PRIVATE tetris_core)
+    tetris_strict_c(${target})
+endforeach()
 
 if(TETRIS_BUILD_APP)
     find_package(SDL2 CONFIG QUIET)
@@ -161,68 +154,54 @@ if(TETRIS_BUILD_APP)
             message(WARNING "SDL2_mixer was not found; OGG audio-pack support is disabled.")
         endif()
     endif()
+
     if(WIN32)
         target_link_libraries(tetris_pc PRIVATE comdlg32)
         set_target_properties(tetris_pc PROPERTIES WIN32_EXECUTABLE OFF)
     endif()
-    if(MSVC)
-        target_compile_options(tetris_pc PRIVATE /W4)
-    else()
-        target_compile_options(tetris_pc PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
+    tetris_strict_c(tetris_pc)
 endif()
 
 if(TETRIS_BUILD_TESTS)
     enable_testing()
     add_executable(tetris_game_tests tests/game_tests.c)
-    target_link_libraries(tetris_game_tests PRIVATE tetris_core)
-    if(MSVC)
-        target_compile_options(tetris_game_tests PRIVATE /W4)
-    else()
-        target_compile_options(tetris_game_tests PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
-    add_test(NAME gameplay COMMAND tetris_game_tests)
-
     add_executable(tetris_demo_tests tests/demo_rom_tests.c)
-    target_link_libraries(tetris_demo_tests PRIVATE tetris_core)
-    if(MSVC)
-        target_compile_options(tetris_demo_tests PRIVATE /W4)
-    else()
-        target_compile_options(tetris_demo_tests PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
-    add_test(NAME demo_rom COMMAND tetris_demo_tests)
-
     add_executable(tetris_cathedral_tests tests/cathedral_tests.c)
-    target_link_libraries(tetris_cathedral_tests PRIVATE tetris_core)
-    if(MSVC)
-        target_compile_options(tetris_cathedral_tests PRIVATE /W4)
-    else()
-        target_compile_options(tetris_cathedral_tests PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
-    add_test(NAME cathedral COMMAND tetris_cathedral_tests)
-
     add_executable(tetris_apu_tests tests/apu_tests.c)
-    target_link_libraries(tetris_apu_tests PRIVATE tetris_core)
-    if(MSVC)
-        target_compile_options(tetris_apu_tests PRIVATE /W4)
-    else()
-        target_compile_options(tetris_apu_tests PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
+    foreach(target IN ITEMS
+            tetris_game_tests tetris_demo_tests
+            tetris_cathedral_tests tetris_apu_tests)
+        target_link_libraries(${target} PRIVATE tetris_core)
+        tetris_strict_c(${target})
+    endforeach()
+    add_test(NAME gameplay COMMAND tetris_game_tests)
+    add_test(NAME demo_rom COMMAND tetris_demo_tests)
+    add_test(NAME cathedral COMMAND tetris_cathedral_tests)
     add_test(NAME apu COMMAND tetris_apu_tests)
     add_test(NAME apu_render_self_test COMMAND tetris_apu_render --self-test)
+    add_test(NAME apu_scenario_self_test COMMAND tetris_apu_scenario --self-test)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME apu_matrix_self_test
+                 COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/apu_matrix.py self-test)
+    endif()
 endif()
 
 include(GNUInstallDirs)
 if(TETRIS_BUILD_APP)
     install(TARGETS tetris_pc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
-install(TARGETS tetris_replay_verify tetris_demo_verify tetris_apu_render
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS
+    tetris_replay_verify tetris_demo_verify
+    tetris_apu_render tetris_apu_scenario
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
 install(PROGRAMS
     tools/audio_pack.py
     tools/rom_assets_verify.py
     tools/type_a_ending_verify.py
     tools/trace_compare.py
+    tools/apu_matrix.py
     tools/mesen_trace.lua
     DESTINATION tools
 )
