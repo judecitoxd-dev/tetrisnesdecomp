@@ -1,5 +1,5 @@
                         tetris_tick(&game, &replay_input);
-                        tetris_audio_play_events(&audio,
+                        tetris_audio_update_game(&audio, &game,
                                                  tetris_consume_events(&game));
                         if (replay_index == playback.frame_count) {
                             const uint64_t actual = tetris_state_hash(&game);
