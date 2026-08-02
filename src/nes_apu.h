@@ -66,6 +66,8 @@ typedef struct NesApu {
     uint32_t pending_stall_cycles;
     uint8_t status;
     uint8_t frame_counter;
+    uint8_t pending_frame_counter;
+    uint8_t frame_counter_delay;
     uint8_t frame_irq;
     uint8_t dmc_irq;
     bool external_clock;
