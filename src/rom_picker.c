@@ -7,7 +7,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef _WIN32
+#ifdef __ANDROID__
+#include "android_bridge.h"
+
+bool tetris_pick_rom(char *path, size_t path_size) {
+    if (path && path_size > 0) path[0] = '\0';
+    (void)tetris_android_request_rom();
+    return false;
+}
+#elif defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <commdlg.h>

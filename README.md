@@ -1,45 +1,39 @@
-# Tetris NES — port nativo para PC
+# Tetris NES — ports nativos para PC y Android
 
-Versión **0.5** de una reimplementación portable de **Tetris (USA) para NES**, escrita en C99 con SDL2.
-El programa no incorpora una CPU NES ni distribuye la ROM, gráficos o música del cartucho. Cada
-usuario proporciona su propia copia legal; el port valida el archivo y lee los tiles CHR y las
-paletas de nivel durante la ejecución.
+Versión **0.6** de una reimplementación portable de **Tetris (USA) para NES**, escrita en C99 con SDL2. Windows, Linux y Android ejecutan el mismo núcleo de reglas, carga de ROM, render, récords, ajustes y repeticiones.
 
-## Novedades de v0.5
+El proyecto no distribuye la ROM, gráficos extraídos ni música del cartucho. Cada usuario proporciona su propia copia legal; durante la ejecución se leen los tiles CHR, la composición del título y las paletas desde esa copia.
 
-- Opciones persistentes para audio, música, pantalla completa, escalado entero, demostración,
-  caída instantánea y siguiente pieza.
-- Recuerda el tamaño de la ventana, el último modo, nivel, altura y la última ROM válida.
-- Selector de ROM desde el propio programa: diálogo nativo en Windows y selector externo compatible
-  en Linux/macOS cuando está disponible.
-- Grabación automática de la última partida en un formato de repetición determinista.
-- Reproducción con **F8** y verificación del hash final para detectar desincronizaciones.
-- Herramienta `tetris_replay_verify` para comprobar repeticiones sin abrir una ventana.
-- Pantalla de título reconstruida en tiempo de ejecución desde el nametable, atributos, paleta y CHR de la ROM comprobada.
-- Bloques originales de los tiles CHR `$7B`–`$7D`, con la paleta correspondiente a cada nivel.
-- Paquetes portables mediante CPack y artefactos automáticos para Windows y Linux.
-- Pruebas que permanecen activas también en compilaciones Release; ya no dependen de `assert`.
-- Desensamblador recursivo NMOS 6502 por bancos MMC1, mapa de símbolos, referencias cruzadas y
-  generador de un espacio de trabajo privado a partir de la ROM legal del usuario.
+## Novedades de v0.6
+
+- APK horizontal e inmersivo para Android 6.0 o posterior, ARM64 y ARMv7.
+- Selector Android SAF: importa la ROM legal sin permiso general de almacenamiento.
+- Controles multitouch con cruceta, A/B, caída, Start, Select, ROM y EDIT.
+- Botones movibles; tamaño, opacidad y posiciones persistentes.
+- La capa táctil se oculta automáticamente al conectar un gamepad.
+- Botón Atrás integrado con los menús y la partida.
+- Windows y Linux pasan a v0.6 usando exactamente el mismo núcleo C99.
+- CI genera APK y paquetes de escritorio, ejecuta pruebas Release y verifica que no se incluyan `.nes`, `.ttr` ni `.ogg`.
 
 ## Estado actual
 
 - Modos A y B jugables a 60.0988 actualizaciones por segundo.
 - Tablero 10×20, siete tetrominós, puntuación, líneas, niveles, estadísticas y récords.
-- Orientaciones, gravedad, puntuación, progresión principal, RNG y borrado contrastados con tablas y
-  rutinas identificadas en la ROM comprobada.
-- Teclado y mando SDL con conexión en caliente.
-- Fuente, título, bloques y paletas cargados desde la ROM legal; no se distribuyen imágenes extraídas.
-- Audio nativo, tres composiciones chiptune originales, paquetes OGG opcionales, pantalla completa y opciones persistentes.
-- Demostración automática, final equivalente de B-Type y repeticiones verificables.
-- Compilación, pruebas, instalación y empaquetado automáticos para Windows y Linux.
+- Orientaciones, gravedad, puntuación, progresión principal, RNG y borrado contrastados con tablas y rutinas identificadas en la ROM comprobada.
+- Teclado, táctil y mando SDL con conexión en caliente.
+- Fuente, título, bloques y paletas cargados desde la ROM legal.
+- Opciones persistentes, selector de ROM, pantalla completa y repeticiones verificables.
+- Paquetes OGG opcionales en escritorio y sintetizador incorporado como respaldo.
+- Desensamblador recursivo NMOS 6502 por bancos MMC1, símbolos y referencias cruzadas.
 
-Todavía no es una decompilación reproducible bit a bit. El título y los bloques ya usan la composición
-y los tiles originales de la ROM comprobada, pero otros menús, finales, demostración y música siguen
-siendo equivalentes nativos, no traducciones completas de sus rutinas originales. Consulta
-[`docs/PORT_STATUS.md`](docs/PORT_STATUS.md), [`docs/ROM_MAP.md`](docs/ROM_MAP.md),
-[`docs/REPLAY_FORMAT.md`](docs/REPLAY_FORMAT.md), [`docs/AUDIO_PACK.md`](docs/AUDIO_PACK.md) y
-[`docs/DECOMP_TOOLS.md`](docs/DECOMP_TOOLS.md).
+Todavía no es una decompilación reproducible bit a bit. El título y los bloques ya usan composición y tiles del cartucho, pero otros menús, finales, demostración y música continúan como equivalentes nativos. Consulta:
+
+- [`docs/PORT_STATUS.md`](docs/PORT_STATUS.md)
+- [`docs/ANDROID_PORT.md`](docs/ANDROID_PORT.md)
+- [`docs/ROM_MAP.md`](docs/ROM_MAP.md)
+- [`docs/REPLAY_FORMAT.md`](docs/REPLAY_FORMAT.md)
+- [`docs/AUDIO_PACK.md`](docs/AUDIO_PACK.md)
+- [`docs/DECOMP_TOOLS.md`](docs/DECOMP_TOOLS.md)
 
 ## ROM comprobada
 
@@ -50,91 +44,54 @@ siendo equivalentes nativos, no traducciones completas de sus rutinas originales
 | Mapper | MMC1 / mapper 1 |
 | PRG ROM | 32 KiB |
 | CHR ROM | 16 KiB |
+| Tamaño total | 49,168 bytes |
 | CRC32 | `D16EA396` |
 | SHA-1 | `3026d28b63d94c921fe58364f8b0659d10b5a0ac` |
 | NMI / RESET / IRQ | `$8005` / `$FF00` / `$804A` |
 
-Otras revisiones estructuralmente compatibles pueden abrir, pero aparecen como no verificadas porque
-sus offsets y comportamiento aún no se han contrastado.
+Otras revisiones estructuralmente compatibles pueden abrir, pero aparecen como no verificadas porque sus offsets y comportamiento aún no se han contrastado.
 
-## Ejecutar
+## Android
 
-Al primer inicio, coloca `Tetris (USA).nes` junto al ejecutable o selecciona tu archivo legal desde
-el diálogo. También puedes arrastrar una ROM compatible sobre la ventana.
+Instala el APK, ábrelo y selecciona tu ROM legal mediante el selector del sistema. La aplicación valida la cabecera, mapper y tamaños, y copia el archivo al almacenamiento privado. No solicita permiso para explorar todo el almacenamiento.
+
+En modo **EDIT**, arrastra los controles para moverlos. **START** cambia el tamaño y **SEL** cambia la opacidad. La configuración se conserva entre sesiones.
+
+El artefacto actual es un APK de depuración firmado automáticamente, apto para instalación y pruebas. No es todavía una publicación firmada para Play Store. Consulta [`docs/ANDROID_PORT.md`](docs/ANDROID_PORT.md).
+
+## Ejecutar en PC
+
+Coloca `Tetris (USA).nes` junto al ejecutable, selecciónala desde el diálogo o pásala por argumento:
 
 ```powershell
 .\tetris_pc.exe --rom "C:\ruta\Tetris (USA).nes"
 ```
 
-El port recuerda la última ROM válida. Para reproducir un archivo concreto:
+Para reproducir una partida:
 
 ```powershell
 .\tetris_pc.exe --rom "C:\ruta\Tetris (USA).nes" --replay "C:\ruta\partida.ttr"
 ```
 
-## Compilar en Windows
-
-Necesitas CMake, Git y Visual Studio 2022 con **Desktop development with C++**. Cuando SDL2 o
-SDL2_mixer no están instalados, CMake descarga versiones estáticas durante la configuración.
-
-```powershell
-cmake -S . -B build -A x64
-cmake --build build --config Release --parallel
-ctest --test-dir build -C Release --output-on-failure
-cmake --install build --config Release --prefix stage
-cpack --config build\CPackConfig.cmake -C Release
-```
-
-También puedes ejecutar `build_windows.bat`.
-
-## Compilar en Linux
-
-En Debian o Ubuntu:
-
-```bash
-sudo apt install cmake build-essential libsdl2-dev libsdl2-mixer-dev
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-./build/tetris_pc --rom "/ruta/Tetris (USA).nes"
-```
-
-
-## Audio OGG opcional
-
-El port puede usar música y efectos Ogg Vorbis creados localmente desde capturas de la copia legal del
-usuario. La ROM no contiene archivos OGG: el NES genera el sonido mediante su APU, así que primero hay
-que renderizar o capturar cada pista y efecto.
-
-```bash
-python tools/audio_pack.py recordings audio
-./build/tetris_pc --rom "Tetris (USA).nes" --audio-pack ./audio
-```
-
-También se acepta la variable `TETRIS_AUDIO_PACK`. Si el paquete está incompleto o SDL2_mixer no está
-disponible, el juego vuelve al sintetizador incluido. Consulta
-[`docs/AUDIO_PACK.md`](docs/AUDIO_PACK.md) para los once nombres requeridos y el flujo legal completo.
-
-## Menús y controles
+## Controles de PC
 
 | Tecla | Acción |
 |---|---|
 | Enter / espacio | Confirmar |
 | Flechas | Navegar, mover y caída suave |
 | Z / X | Rotar antihorario / horario |
-| Espacio durante partida | Caída instantánea, si está habilitada |
+| Espacio durante partida | Caída instantánea |
 | P | Pausa |
 | Tab | Mostrar u ocultar siguiente pieza |
 | M | Activar o desactivar audio |
-| N | Cambiar música 1 / 2 / 3 / apagada |
+| N | Cambiar música |
 | H | Ver récords |
-| O | Abrir opciones desde el título |
-| L | Elegir otra ROM desde el título |
-| F8 | Reproducir y verificar la última partida |
+| O | Opciones |
+| L | Elegir otra ROM |
+| F8 | Reproducir la última partida |
 | F11 | Pantalla completa |
 | R | Reiniciar después de perder |
-| Retroceso | Volver al menú anterior o al título |
-| Letras y números | Editar el nombre de un récord |
+| Retroceso | Volver |
 | Esc | Salir |
 
 ### Mando
@@ -143,58 +100,64 @@ disponible, el juego vuelve al sintetizador incluido. Consulta
 |---|---|
 | Cruceta | Navegar, mover y caída suave |
 | A / B | Confirmar o rotar |
-| X | Opciones en el título / caída instantánea en partida |
-| Y | Récords en el título / siguiente pieza en partida |
+| X | Opciones / caída instantánea |
+| Y | Récords / siguiente pieza |
 | Start | Confirmar, pausar o reiniciar |
 | Back | Regresar |
-| Hombro derecho | Reproducir la última partida desde el título |
+| Hombro derecho | Reproducir última partida |
 
-## Archivos persistentes
+## Compilar PC
 
-SDL asigna una carpeta de preferencias a `YlPorts/TetrisNESPC`. Allí se guardan:
+Windows:
 
-- `settings.ini`: opciones y última ROM;
-- `scores.txt`: los tres mejores resultados de cada modo;
-- `last_replay.ttr`: última partida grabada.
-
-## Verificar una repetición
-
-```bash
-./build/tetris_replay_verify /ruta/last_replay.ttr
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Release --parallel
+ctest --test-dir build -C Release --output-on-failure
+cmake --install build --config Release --prefix stage
 ```
 
-La herramienta devuelve código `0` cuando el hash reproducido coincide, `1` cuando hay una
-sincronización distinta y `2` cuando el archivo no es válido. El formato está documentado en
-[`docs/REPLAY_FORMAT.md`](docs/REPLAY_FORMAT.md).
+Linux:
 
-## Herramientas de ROM y decompilación
+```bash
+sudo apt install cmake build-essential libsdl2-dev
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
 
-Inspección básica:
+CMake descarga SDL2_mixer estático cuando es necesario para proporcionar Ogg Vorbis sin una dependencia dinámica adicional.
+
+## Compilar Android
+
+El workflow descarga SDL2 2.30.11 oficialmente y lo usa como dependencia temporal. Requiere Java 17, Android SDK 34, Build Tools 34.0.0, NDK 26.3.11579264 y CMake 3.22.1.
+
+```bash
+cd android
+gradle --no-daemon :app:assembleDebug
+```
+
+## Audio OGG opcional en escritorio
+
+```bash
+python tools/audio_pack.py recordings audio
+./build/tetris_pc --rom "Tetris (USA).nes" --audio-pack ./audio
+```
+
+La ROM no contiene OGG; estos archivos deben crearse localmente desde capturas legales. Si el paquete está incompleto, el juego vuelve al sintetizador.
+
+## Herramientas de decompilación
 
 ```bash
 python tools/rom_info.py "Tetris (USA).nes"
 python tools/rom_tables.py "Tetris (USA).nes"
-```
-
-Autoprueba del desensamblador y generación de listados:
-
-```bash
 python tools/disassemble_prg.py --self-test
 python tools/disassemble_prg.py "Tetris (USA).nes" --output tetris_recursive.asm --report report.json
-python tools/disassemble_prg.py "Tetris (USA).nes" --aggressive --output tetris_aggressive.asm
-```
-
-Para crear un espacio de trabajo **privado** con los bancos y listados derivados de tu ROM:
-
-```bash
 python tools/create_decomp_workspace.py "Tetris (USA).nes" mi_decomp_privado
 ```
 
-No subas esa carpeta: contiene bytes extraídos de tu copia. El repositorio solo guarda herramientas,
-símbolos y documentación. Más detalles en [`docs/DECOMP_TOOLS.md`](docs/DECOMP_TOOLS.md).
+No subas el espacio de trabajo privado: contiene bytes derivados de la ROM. El repositorio guarda únicamente código, símbolos, herramientas y documentación.
 
 ## Aviso legal
 
-Este proyecto exige que cada usuario proporcione su propia copia legal. No subas ROMs, gráficos,
-música, bancos ni otros archivos extraídos. «Tetris» y los recursos del juego original pertenecen a
-sus respectivos titulares. Este proyecto es una reimplementación técnica no oficial.
+Este proyecto exige que cada usuario proporcione su propia copia legal. No subas ROMs, bancos, gráficos, música ni otros archivos extraídos. «Tetris» y los recursos originales pertenecen a sus respectivos titulares. Este proyecto es una reimplementación técnica no oficial.

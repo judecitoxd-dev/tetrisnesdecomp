@@ -11,7 +11,7 @@
 
     window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
     if (settings.fullscreen) window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.5",
+    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.6",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         settings.window_width, settings.window_height, window_flags);
     if (!window) {
@@ -61,6 +61,7 @@
     (void)tetris_high_scores_load(&scores, score_path);
 
     SDL_GameController *controller = open_first_controller();
+    TetrisTouchControls touch;
     TetrisGame game;
     TetrisDemoController demo;
     TetrisReplay recording;
@@ -91,6 +92,11 @@
     tetris_replay_init(&recording);
     tetris_replay_init(&playback);
     tetris_init(&game, (uint32_t)time(NULL), 0);
+#ifdef __ANDROID__
+    tetris_touch_init(&touch, &settings, true);
+#else
+    tetris_touch_init(&touch, &settings, SDL_GetNumTouchDevices() > 0);
+#endif
 
     if (cli_replay_path) {
         (void)start_last_replay(&playback, &game, cli_replay_path,
@@ -102,6 +108,20 @@
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
+            TetrisTouchEvent touch_event;
+            if (!controller && tetris_touch_handle_event(&touch, &event,
+                    window, renderer, &touch_event)) {
+                last_activity = SDL_GetTicks();
+                if (touch.dirty) {
+                    tetris_touch_store_settings(&touch, &settings);
+                    save_settings_quiet(&settings, settings_path);
+                    touch.dirty = false;
+                }
+                if (touch_event.action != TETRIS_TOUCH_NONE)
+                    push_touch_key(touch_event.action, touch_event.pressed,
+                                   screen, &game);
+                continue;
+            }
             if (event.type == SDL_QUIT) running = false;
             if (event.type == SDL_WINDOWEVENT &&
                 event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED &&
@@ -116,6 +136,7 @@
             }
             if (event.type == SDL_CONTROLLERDEVICEADDED && !controller) {
                 controller = SDL_GameControllerOpen(event.cdevice.which);
+                if (controller) tetris_touch_release_all(&touch);
             }
             if (event.type == SDL_CONTROLLERDEVICEREMOVED && controller) {
                 SDL_Joystick *joy = SDL_GameControllerGetJoystick(controller);
@@ -146,6 +167,24 @@
                     replay_done_at = 0;
                     last_activity = SDL_GetTicks();
                     clear_held(&left, &right, &down);
+                } else if (key == SDLK_AC_BACK) {
+                    if (screen == SCREEN_TITLE) running = false;
+                    else if (screen == SCREEN_GAME) {
+                        finish_replay_recording(&recording, &game,
+                                                last_replay_path,
+                                                &recording_active);
+                        screen = SCREEN_TITLE;
+                        clear_held(&left, &right, &down);
+                    } else {
+                        SDL_Event back_event;
+                        memset(&back_event, 0, sizeof(back_event));
+                        back_event.type = SDL_KEYDOWN;
+                        back_event.key.type = SDL_KEYDOWN;
+                        back_event.key.state = SDL_PRESSED;
+                        back_event.key.keysym.sym = SDLK_BACKSPACE;
+                        back_event.key.keysym.scancode = SDL_SCANCODE_BACKSPACE;
+                        (void)SDL_PushEvent(&back_event);
+                    }
                 } else if (key == SDLK_ESCAPE) {
                     running = false;
                 } else if (screen == SCREEN_DEMO) {

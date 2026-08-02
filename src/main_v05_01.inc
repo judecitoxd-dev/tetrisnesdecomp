@@ -150,6 +150,51 @@ static void parse_arguments(int argc, char **argv,
     }
 }
 
+static SDL_Keycode touch_key_for_action(TetrisTouchAction action,
+                                              AppScreen screen,
+                                              const TetrisGame *game) {
+    switch (action) {
+        case TETRIS_TOUCH_UP: return SDLK_UP;
+        case TETRIS_TOUCH_DOWN: return SDLK_DOWN;
+        case TETRIS_TOUCH_LEFT: return SDLK_LEFT;
+        case TETRIS_TOUCH_RIGHT: return SDLK_RIGHT;
+        case TETRIS_TOUCH_A:
+            if (screen == SCREEN_GAME) {
+                if (game && (game->phase == TETRIS_PHASE_GAME_OVER ||
+                             game->phase == TETRIS_PHASE_COMPLETE)) return SDLK_r;
+                return SDLK_x;
+            }
+            return SDLK_RETURN;
+        case TETRIS_TOUCH_B:
+            return screen == SCREEN_GAME ? SDLK_z : SDLK_BACKSPACE;
+        case TETRIS_TOUCH_DROP:
+            return screen == SCREEN_GAME ? SDLK_SPACE : SDLK_RETURN;
+        case TETRIS_TOUCH_START:
+            return screen == SCREEN_GAME ? SDLK_p : SDLK_RETURN;
+        case TETRIS_TOUCH_SELECT:
+            if (screen == SCREEN_GAME) return SDLK_TAB;
+            if (screen == SCREEN_TITLE) return SDLK_o;
+            return SDLK_BACKSPACE;
+        case TETRIS_TOUCH_ROM: return SDLK_l;
+        default: return SDLK_UNKNOWN;
+    }
+}
+
+static void push_touch_key(TetrisTouchAction action, bool pressed,
+                           AppScreen screen, const TetrisGame *game) {
+    SDL_Event key_event;
+    const SDL_Keycode key = touch_key_for_action(action, screen, game);
+    if (key == SDLK_UNKNOWN) return;
+    memset(&key_event, 0, sizeof(key_event));
+    key_event.type = pressed ? SDL_KEYDOWN : SDL_KEYUP;
+    key_event.key.type = key_event.type;
+    key_event.key.state = pressed ? SDL_PRESSED : SDL_RELEASED;
+    key_event.key.repeat = 0;
+    key_event.key.keysym.sym = key;
+    key_event.key.keysym.scancode = SDL_GetScancodeFromKey(key);
+    (void)SDL_PushEvent(&key_event);
+}
+
 int main(int argc, char **argv) {
     const char *cli_rom_path;
     const char *cli_replay_path;

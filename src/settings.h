@@ -7,6 +7,7 @@
 #include <stddef.h>
 
 #define TETRIS_SETTINGS_PATH_LENGTH 1023
+#define TETRIS_TOUCH_SETTING_COUNT 11
 
 typedef struct TetrisSettings {
     bool audio_enabled;
@@ -21,6 +22,10 @@ typedef struct TetrisSettings {
     int last_height;
     int window_width;
     int window_height;
+    int touch_opacity;
+    int touch_scale;
+    int touch_x[TETRIS_TOUCH_SETTING_COUNT];
+    int touch_y[TETRIS_TOUCH_SETTING_COUNT];
     char rom_path[TETRIS_SETTINGS_PATH_LENGTH + 1];
 } TetrisSettings;
 
@@ -29,5 +34,8 @@ void tetris_settings_sanitize(TetrisSettings *settings);
 bool tetris_settings_load(TetrisSettings *settings, const char *path);
 bool tetris_settings_save(const TetrisSettings *settings, const char *path);
 void tetris_settings_set_rom_path(TetrisSettings *settings, const char *path);
+
+/* Compatibility inside settings.c; touch_controls.h undefines it before its enum. */
+#define TETRIS_TOUCH_ACTION_COUNT TETRIS_TOUCH_SETTING_COUNT
 
 #endif

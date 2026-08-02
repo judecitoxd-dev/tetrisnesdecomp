@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.5.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.6.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -67,6 +67,8 @@ if(TETRIS_BUILD_APP)
         src/app.c
         src/audio.c
         src/rom_picker.c
+        src/android_bridge.c
+        src/touch_controls.c
     )
     target_link_libraries(tetris_pc PRIVATE tetris_core)
     if(TARGET SDL2::SDL2)
@@ -139,6 +141,7 @@ if(TETRIS_BUILD_APP)
         target_compile_options(tetris_pc PRIVATE /W4)
     else()
         target_compile_options(tetris_pc PRIVATE -Wall -Wextra -Wpedantic)
+        target_link_libraries(tetris_pc PRIVATE m)
     endif()
 endif()
 

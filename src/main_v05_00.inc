@@ -3,6 +3,7 @@
 #include "replay.h"
 #include "rom_picker.h"
 #include "settings.h"
+#include "touch_controls.h"
 
 #include <inttypes.h>
 #include <stdint.h>

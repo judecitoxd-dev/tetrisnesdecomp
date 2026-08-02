@@ -28,6 +28,8 @@
         render(renderer, font, screen, &game, &menu, &result, &options,
                &settings, replay_status, !rom.exact_supported_dump,
                &audio, &rom, &scores);
+        tetris_touch_render(renderer, font, &touch, controller != NULL);
+        SDL_RenderPresent(renderer);
         SDL_Delay(1);
     }
 
@@ -39,6 +41,7 @@
                           &settings.window_height);
     settings.audio_enabled = audio.enabled;
     settings.music_track = audio.music_track;
+    tetris_touch_store_settings(&touch, &settings);
     save_settings_quiet(&settings, settings_path);
     (void)tetris_high_scores_save(&scores, score_path);
     tetris_replay_free(&recording);

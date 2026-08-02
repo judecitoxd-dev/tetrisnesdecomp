@@ -23,3 +23,10 @@ __pycache__/
 *.pyc
 audio/
 recordings/
+android/.gradle/
+android/local.properties
+android/app/build/
+android/app/jni/SDL/
+.android-deps/
+*.apk
+*.aab

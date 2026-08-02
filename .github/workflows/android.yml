@@ -1,0 +1,70 @@
+name: Build Android port
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android SDK, NDK and CMake
+        shell: bash
+        run: |
+          sdkmanager \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "ndk;26.3.11579264" \
+            "cmake;3.22.1"
+
+      - name: Fetch official SDL2 Android glue
+        shell: bash
+        run: |
+          git clone --depth 1 --branch release-2.30.11 \
+            https://github.com/libsdl-org/SDL.git .android-deps/SDL
+          mkdir -p android/app/jni/SDL android/app/src/main/java/org/libsdl/app
+          cp -R .android-deps/SDL/. android/app/jni/SDL/
+          cp .android-deps/SDL/android-project/app/src/main/java/org/libsdl/app/*.java \
+            android/app/src/main/java/org/libsdl/app/
+          rm -rf .android-deps/SDL/android-project \
+                 android/app/jni/SDL/android-project \
+                 .android-deps/SDL/.git \
+                 android/app/jni/SDL/.git
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.0.2'
+
+      - name: Build debug APK
+        working-directory: android
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Verify APK excludes ROMs
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK"
+          if unzip -l "$APK" | grep -Ei '\.(nes|ttr|ogg)$'; then
+            echo "Forbidden ROM/replay/audio payload found in APK" >&2
+            exit 1
+          fi
+          cp "$APK" Tetris-NES-Port-Android-v0.6-debug.apk
+          sha256sum Tetris-NES-Port-Android-v0.6-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tetris-nes-port-android-v0.6
+          path: Tetris-NES-Port-Android-v0.6-debug.apk

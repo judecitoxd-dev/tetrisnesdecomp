@@ -33,6 +33,7 @@ static void trim_line(char *line) {
 }
 
 void tetris_settings_init(TetrisSettings *settings) {
+    int index;
     if (!settings) return;
     memset(settings, 0, sizeof(*settings));
     settings->audio_enabled = true;
@@ -44,9 +45,16 @@ void tetris_settings_init(TetrisSettings *settings) {
     settings->last_mode = TETRIS_MODE_A;
     settings->window_width = 960;
     settings->window_height = 720;
+    settings->touch_opacity = 58;
+    settings->touch_scale = 100;
+    for (index = 0; index < TETRIS_TOUCH_ACTION_COUNT; ++index) {
+        settings->touch_x[index] = -1;
+        settings->touch_y[index] = -1;
+    }
 }
 
 void tetris_settings_sanitize(TetrisSettings *settings) {
+    int index;
     if (!settings) return;
     if (settings->music_track < -1) settings->music_track = -1;
     if (settings->music_track > 2) settings->music_track = 2;
@@ -59,6 +67,16 @@ void tetris_settings_sanitize(TetrisSettings *settings) {
     if (settings->window_width > 7680) settings->window_width = 7680;
     if (settings->window_height < 480) settings->window_height = 480;
     if (settings->window_height > 4320) settings->window_height = 4320;
+    if (settings->touch_opacity < 20) settings->touch_opacity = 20;
+    if (settings->touch_opacity > 100) settings->touch_opacity = 100;
+    if (settings->touch_scale < 60) settings->touch_scale = 60;
+    if (settings->touch_scale > 160) settings->touch_scale = 160;
+    for (index = 0; index < TETRIS_TOUCH_ACTION_COUNT; ++index) {
+        if (settings->touch_x[index] < -1 || settings->touch_x[index] > 1000)
+            settings->touch_x[index] = -1;
+        if (settings->touch_y[index] < -1 || settings->touch_y[index] > 1000)
+            settings->touch_y[index] = -1;
+    }
     settings->rom_path[TETRIS_SETTINGS_PATH_LENGTH] = '\0';
 }
 
@@ -115,7 +133,19 @@ bool tetris_settings_load(TetrisSettings *settings, const char *path) {
             settings->window_width = parse_int(value, settings->window_width);
         else if (strcmp(key, "window_height") == 0)
             settings->window_height = parse_int(value, settings->window_height);
-        else if (strcmp(key, "rom_path") == 0)
+        else if (strcmp(key, "touch_opacity") == 0)
+            settings->touch_opacity = parse_int(value, settings->touch_opacity);
+        else if (strcmp(key, "touch_scale") == 0)
+            settings->touch_scale = parse_int(value, settings->touch_scale);
+        else if (strncmp(key, "touch_x_", 8) == 0) {
+            int index = parse_int(key + 8, -1);
+            if (index >= 0 && index < TETRIS_TOUCH_ACTION_COUNT)
+                settings->touch_x[index] = parse_int(value, settings->touch_x[index]);
+        } else if (strncmp(key, "touch_y_", 8) == 0) {
+            int index = parse_int(key + 8, -1);
+            if (index >= 0 && index < TETRIS_TOUCH_ACTION_COUNT)
+                settings->touch_y[index] = parse_int(value, settings->touch_y[index]);
+        } else if (strcmp(key, "rom_path") == 0)
             tetris_settings_set_rom_path(settings, value);
     }
     fclose(file);
@@ -125,13 +155,14 @@ bool tetris_settings_load(TetrisSettings *settings, const char *path) {
 
 bool tetris_settings_save(const TetrisSettings *settings, const char *path) {
     FILE *file;
+    int index;
     char temporary[1400];
     if (!settings || !path || !*path) return false;
     if (snprintf(temporary, sizeof(temporary), "%s.tmp", path) >= (int)sizeof(temporary))
         return false;
     file = fopen(temporary, "wb");
     if (!file) return false;
-    fprintf(file, "# Tetris NES PC Port settings v1\n");
+    fprintf(file, "# Tetris NES Port settings v2\n");
     fprintf(file, "audio_enabled=%d\n", settings->audio_enabled ? 1 : 0);
     fprintf(file, "music_track=%d\n", settings->music_track);
     fprintf(file, "fullscreen=%d\n", settings->fullscreen ? 1 : 0);
@@ -144,6 +175,12 @@ bool tetris_settings_save(const TetrisSettings *settings, const char *path) {
     fprintf(file, "last_height=%d\n", settings->last_height);
     fprintf(file, "window_width=%d\n", settings->window_width);
     fprintf(file, "window_height=%d\n", settings->window_height);
+    fprintf(file, "touch_opacity=%d\n", settings->touch_opacity);
+    fprintf(file, "touch_scale=%d\n", settings->touch_scale);
+    for (index = 0; index < TETRIS_TOUCH_ACTION_COUNT; ++index) {
+        fprintf(file, "touch_x_%d=%d\n", index, settings->touch_x[index]);
+        fprintf(file, "touch_y_%d=%d\n", index, settings->touch_y[index]);
+    }
     fprintf(file, "rom_path=%s\n", settings->rom_path);
     if (fclose(file) != 0) {
         remove(temporary);

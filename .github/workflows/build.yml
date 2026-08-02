@@ -12,9 +12,9 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact: tetris-pc-v0.5-windows-x64
+            artifact: tetris-pc-v0.6-windows-x64
           - os: ubuntu-latest
-            artifact: tetris-pc-v0.5-linux-x64
+            artifact: tetris-pc-v0.6-linux-x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp build/tetris-nes-pc-port-v0.5.0-* dist/ || true
+          cp build/tetris-nes-pc-port-v0.6.0-* dist/ || true
           cp -R stage/* dist/
       - uses: actions/upload-artifact@v4
         with:

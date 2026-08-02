@@ -5,7 +5,6 @@
             draw_replay_overlay(renderer, font, replay_status);
             break;
     }
-    SDL_RenderPresent(renderer);
 }
 
 bool load_rom_and_font_ex(SDL_Renderer *renderer, const char *path,
