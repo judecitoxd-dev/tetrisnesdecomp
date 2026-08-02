@@ -44,6 +44,7 @@ bool load_rom_and_font_ex(SDL_Renderer *renderer, const char *path,
                                                      "Tetris NES PC Port", error, NULL);
             return false;
         }
+        (void)tetris_rom_screens_load(renderer, &loaded);
         if (*font) SDL_DestroyTexture(*font);
         if (g_title_texture) SDL_DestroyTexture(g_title_texture);
         g_title_texture = new_title;
@@ -65,6 +66,7 @@ bool load_rom_and_font(SDL_Renderer *renderer, const char *path,
 }
 
 void free_rom_graphics(void) {
+    tetris_rom_screens_free();
     destroy_block_textures();
     if (g_title_texture) {
         SDL_DestroyTexture(g_title_texture);

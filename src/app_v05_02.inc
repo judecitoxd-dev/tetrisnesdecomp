@@ -68,8 +68,25 @@ static void render_title(SDL_Renderer *renderer, SDL_Texture *font,
                                      "ROM CRC DIFFERS FROM TESTED DUMP");
 }
 
+static void draw_nes_menu_cursor(SDL_Renderer *renderer, int x, int y,
+                                 int width, int height) {
+    SDL_Rect outer = {x, y, width, height};
+    SDL_Rect inner = {x + 2, y + 2, width - 4, height - 4};
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 236, 238, 236, 230);
+    SDL_RenderDrawRect(renderer, &outer);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 165);
+    SDL_RenderDrawRect(renderer, &inner);
+}
+
 static void render_type_select(SDL_Renderer *renderer, SDL_Texture *font,
                                const AppMenuState *menu) {
+    if (tetris_rom_screen_available(TETRIS_ROM_SCREEN_TYPE_MENU)) {
+        const int cursor_x = menu->mode == TETRIS_MODE_A ? 176 : 368;
+        tetris_rom_screen_render(renderer, TETRIS_ROM_SCREEN_TYPE_MENU);
+        draw_nes_menu_cursor(renderer, cursor_x, 108, 160, 54);
+        return;
+    }
     draw_centered(renderer, font, 70, 3, "GAME TYPE");
     draw_centered(renderer, font, 170, 3,
                   menu->mode == TETRIS_MODE_A ? "A TYPE" : "B TYPE");
@@ -83,6 +100,27 @@ static void render_type_select(SDL_Renderer *renderer, SDL_Texture *font,
 static void render_level_select(SDL_Renderer *renderer, SDL_Texture *font,
                                 const AppMenuState *menu) {
     char value[32];
+    const TetrisRomScreen exact_screen = menu->mode == TETRIS_MODE_A
+        ? TETRIS_ROM_SCREEN_LEVEL_A : TETRIS_ROM_SCREEN_LEVEL_B;
+    if (tetris_rom_screen_available(exact_screen)) {
+        int cursor_x;
+        int cursor_y;
+        tetris_rom_screen_render(renderer, exact_screen);
+        if (menu->mode == TETRIS_MODE_B && menu->selecting_height) {
+            cursor_x = 375 + (menu->height % 3) * 32;
+            cursor_y = 162 + (menu->height / 3) * 36;
+        } else {
+            const int displayed_level = menu->level % 10;
+            cursor_x = 167 + (displayed_level % 5) * 32;
+            cursor_y = 162 + (displayed_level / 5) * 36;
+        }
+        draw_nes_menu_cursor(renderer, cursor_x, cursor_y, 32, 32);
+        if (menu->level >= 10) {
+            snprintf(value, sizeof(value), "START LEVEL %02d", menu->level);
+            draw_text(renderer, font, 232, 452, 1, value);
+        }
+        return;
+    }
     draw_centered(renderer, font, 54, 3,
                   menu->mode == TETRIS_MODE_A ? "A TYPE SETUP" : "B TYPE SETUP");
     snprintf(value, sizeof(value), "LEVEL %02d", menu->level);

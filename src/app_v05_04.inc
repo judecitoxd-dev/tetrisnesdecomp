@@ -2,9 +2,95 @@
     }
 }
 
+static void render_game_exact(SDL_Renderer *renderer, SDL_Texture *font,
+                              const TetrisGame *game, const NesRom *rom,
+                              const TetrisHighScores *scores) {
+    enum { EXACT_BOARD_X = 256, EXACT_BOARD_Y = 96, EXACT_CELL = 16 };
+    const TetrisHighScoreEntry *top = tetris_high_scores_top(scores, game->mode);
+    char value[32];
+
+    tetris_rom_screen_render(renderer, TETRIS_ROM_SCREEN_GAME);
+
+    for (int y = 0; y < TETRIS_BOARD_H; ++y) {
+        for (int x = 0; x < TETRIS_BOARD_W; ++x) {
+            if (game->board[y][x] && !tetris_cell_hidden(game, x, y)) {
+                draw_block(renderer, rom, game->level,
+                           EXACT_BOARD_X + x * EXACT_CELL,
+                           EXACT_BOARD_Y + y * EXACT_CELL,
+                           EXACT_CELL, game->board[y][x] - 1);
+            }
+        }
+    }
+    if (game->phase == TETRIS_PHASE_ACTIVE) {
+        draw_piece(renderer, rom, game->level, game->active, game->rotation,
+                   game->x, game->y, EXACT_BOARD_X, EXACT_BOARD_Y, EXACT_CELL);
+    }
+
+    if (game->phase == TETRIS_PHASE_GAME_OVER_CURTAIN ||
+        game->phase == TETRIS_PHASE_GAME_OVER) {
+        const int rows = game->phase == TETRIS_PHASE_GAME_OVER
+            ? TETRIS_BOARD_H : game->curtain_rows;
+        for (int y = 0; y < rows; ++y) {
+            for (int x = 0; x < TETRIS_BOARD_W; ++x) {
+                SDL_Rect tile = {EXACT_BOARD_X + x * EXACT_CELL,
+                                 EXACT_BOARD_Y + y * EXACT_CELL,
+                                 EXACT_CELL, EXACT_CELL};
+                SDL_SetRenderDrawColor(renderer, 92, 92, 104, 255);
+                SDL_RenderFillRect(renderer, &tile);
+            }
+        }
+    }
+
+    /* Dynamic values are placed over the original zero-filled PPU fields. */
+    draw_text(renderer, font, 112, 68, 2,
+              game->mode == TETRIS_MODE_A ? "A" : "B");
+    snprintf(value, sizeof(value), "%03d", game->lines > 999 ? 999 : game->lines);
+    draw_text(renderer, font, 344, 52, 2, value);
+    snprintf(value, sizeof(value), "%06d", top->score > 999999 ? 999999 : top->score);
+    draw_text(renderer, font, 448, 88, 1, value);
+    snprintf(value, sizeof(value), "%06d", game->score > 999999 ? 999999 : game->score);
+    draw_text(renderer, font, 448, 142, 1, value);
+    snprintf(value, sizeof(value), "%02d", game->level > 99 ? 99 : game->level);
+    draw_text(renderer, font, 486, 356, 2, value);
+
+    if (game->show_next) {
+        draw_piece(renderer, rom, game->level, game->next,
+                   tetris_spawn_rotation(game->next),
+                   2, 2, 456, 218, 14);
+    }
+
+    for (int index = 0; index < 7; ++index) {
+        snprintf(value, sizeof(value), "%03d",
+                 game->piece_count[index] > 999 ? 999 : game->piece_count[index]);
+        draw_text(renderer, font, 174, 188 + index * 36, 1, value);
+    }
+
+    if (game->paused || game->phase == TETRIS_PHASE_GAME_OVER ||
+        game->phase == TETRIS_PHASE_COMPLETE) {
+        SDL_Rect overlay = {EXACT_BOARD_X, EXACT_BOARD_Y + 112,
+                            TETRIS_BOARD_W * EXACT_CELL, 96};
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 215);
+        SDL_RenderFillRect(renderer, &overlay);
+        if (game->paused)
+            draw_text(renderer, font, EXACT_BOARD_X + 32,
+                      EXACT_BOARD_Y + 148, 2, "PAUSED");
+        else if (game->phase == TETRIS_PHASE_GAME_OVER)
+            draw_text(renderer, font, EXACT_BOARD_X + 8,
+                      EXACT_BOARD_Y + 148, 2, "GAME OVER");
+        else
+            draw_text(renderer, font, EXACT_BOARD_X + 24,
+                      EXACT_BOARD_Y + 148, 2, "SUCCESS");
+    }
+}
+
 static void render_game(SDL_Renderer *renderer, SDL_Texture *font,
                         const TetrisGame *game, const TetrisAudio *audio,
                         const NesRom *rom, const TetrisHighScores *scores) {
+    if (tetris_rom_screen_available(TETRIS_ROM_SCREEN_GAME)) {
+        render_game_exact(renderer, font, game, rom, scores);
+        return;
+    }
     SDL_Rect board_bg = {BOARD_X - 4, BOARD_Y - 4,
                          TETRIS_BOARD_W * CELL + 8,
                          TETRIS_BOARD_H * CELL + 8};
