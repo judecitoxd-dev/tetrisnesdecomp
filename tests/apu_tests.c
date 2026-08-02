@@ -1,4 +1,5 @@
 #include "cpu6502.h"
+#include "game.h"
 #include "nes_apu.h"
 #include "rom_audio.h"
 
@@ -6,6 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define MUSIC_TRACK_ADDR 0x06F5u
+#define SFX_SLOT0_ADDR 0x06F0u
+#define SFX_SLOT1_ADDR 0x06F1u
 
 static void build_test_prg(uint8_t prg[0x8000]) {
     static const uint8_t update[] = {
@@ -27,6 +32,42 @@ static void build_test_prg(uint8_t prg[0x8000]) {
     memcpy(prg + 0x6100u, update, sizeof(update));
 }
 
+static int test_event_mapping(TetrisRomAudio *audio) {
+    char error[128];
+    if (!tetris_rom_audio_select_track(audio, 3, error, sizeof(error))) {
+        fprintf(stderr, "track selection failed: %s\n", error);
+        return 1;
+    }
+    if (tetris_rom_audio_ram(audio, MUSIC_TRACK_ADDR) != 3u) {
+        fputs("normal music command was not stored\n", stderr);
+        return 1;
+    }
+    tetris_rom_audio_stop_music(audio);
+    if (tetris_rom_audio_ram(audio, MUSIC_TRACK_ADDR) != 0xFFu) {
+        fputs("music stop command was not stored\n", stderr);
+        return 1;
+    }
+
+    tetris_rom_audio_apply_events(audio, TETRIS_EVENT_MOVE);
+    if (tetris_rom_audio_ram(audio, SFX_SLOT1_ADDR) != 3u) return 1;
+    tetris_rom_audio_apply_events(audio, TETRIS_EVENT_ROTATE);
+    if (tetris_rom_audio_ram(audio, SFX_SLOT1_ADDR) != 5u) return 1;
+    tetris_rom_audio_apply_events(audio, TETRIS_EVENT_LOCK);
+    if (tetris_rom_audio_ram(audio, SFX_SLOT1_ADDR) != 7u) return 1;
+    tetris_rom_audio_apply_events(audio, TETRIS_EVENT_LINE);
+    if (tetris_rom_audio_ram(audio, SFX_SLOT1_ADDR) != 10u) return 1;
+    tetris_rom_audio_apply_events(
+        audio, TETRIS_EVENT_LINE | TETRIS_EVENT_TETRIS);
+    if (tetris_rom_audio_ram(audio, SFX_SLOT1_ADDR) != 4u) return 1;
+    tetris_rom_audio_apply_events(audio, TETRIS_EVENT_LEVEL_UP);
+    if (tetris_rom_audio_ram(audio, SFX_SLOT1_ADDR) != 6u) return 1;
+    tetris_rom_audio_apply_events(audio, TETRIS_EVENT_GAME_OVER);
+    if (tetris_rom_audio_ram(audio, SFX_SLOT0_ADDR) != 2u) return 1;
+    tetris_rom_audio_apply_events(audio, TETRIS_EVENT_COMPLETE);
+    if (tetris_rom_audio_ram(audio, MUSIC_TRACK_ADDR) != 2u) return 1;
+    return 0;
+}
+
 static int test_rom_driver(void) {
     uint8_t *prg = (uint8_t *)malloc(0x8000u);
     TetrisRomAudio audio;
@@ -40,6 +81,11 @@ static int test_rom_driver(void) {
     if (!tetris_rom_audio_init_prg(&audio, prg, 0x8000u,
                                    error, sizeof(error))) {
         fprintf(stderr, "init failed: %s\n", error);
+        free(prg);
+        return 1;
+    }
+    if (test_event_mapping(&audio) != 0) {
+        fputs("original event mapping failed\n", stderr);
         free(prg);
         return 1;
     }
