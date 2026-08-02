@@ -1,26 +1,25 @@
 # Tetris NES — ports nativos para PC y Android
 
-Versión **0.12** de una reimplementación portable de **Tetris (USA) para NES**,
+Versión **0.13** de una reimplementación portable de **Tetris (USA) para NES**,
 escrita en C99. El proyecto no distribuye la ROM, gráficos, música ni datos
 extraídos: cada usuario proporciona su copia legal.
 
-## Novedades de v0.12
+## Novedades de v0.13
 
-- El controlador de sonido 6502 original funciona ahora como backend en vivo.
-- Música y efectos se generan desde la ROM durante partida, demo y replay.
-- Windows, Linux y Android comparten el mismo CPU 6502, APU y driver.
-- Las tres selecciones musicales usan los comandos originales 3, 4 y 5.
-- Cambio automático a las variantes allegro 6, 7 y 8 al subir el tablero.
-- Movimiento, rotación, bloqueo, línea, Tetris, nivel, derrota y final usan los
-  slots originales del controlador.
-- Al cambiar la ROM se desconecta el driver anterior antes de liberar su PRG.
-- OGG sigue disponible como opción y el sintetizador incorporado funciona como
-  respaldo cuando la ROM no tiene offsets verificados.
-- Las herramientas WAV, trazas Mesen y autopruebas de v0.11 continúan incluidas.
+- El intérprete 6502 cuenta los ciclos de las instrucciones oficiales usadas.
+- Ramas tomadas y lecturas indexadas aplican penalizaciones de ciclo y página.
+- El APU avanza con el reloj NTSC de CPU, no solamente con el número de muestras.
+- Pulso, triángulo, ruido y DMC usan temporizadores por ciclos.
+- El secuenciador de cuatro/cinco pasos activa envolventes, longitudes y barridos.
+- Frame IRQ y DMC IRQ aparecen en `$4015`.
+- Las lecturas DMC contabilizan robos de cuatro ciclos.
+- Cada fotograma recibe aproximadamente 29,780.5 ciclos y 798.7 muestras.
+- Las trazas añaden ciclos del fotograma, ciclos del driver, stalls e IRQ.
+- Windows, Linux y Android usan la misma implementación portable.
 
-La integración interactiva está terminada, pero la emulación APU todavía no es
-exacta por ciclo. Quedan la temporización de cada instrucción, IRQ y robos de
-ciclos del DMC.
+El audio original ya es interactivo y guiado por ciclos. Todavía falta ubicar
+cada escritura en su ciclo exacto de bus y demostrar igualdad completa contra
+Mesen para todas las pistas y efectos.
 
 ## Estado actual
 
@@ -30,12 +29,13 @@ ciclos del DMC.
 - Teclado, controles táctiles y gamepad.
 - Repeticiones deterministas y comparación de trazas por fotograma.
 - Música y efectos originales interactivos desde la ROM legal.
+- CPU y APU sincronizados por ciclos NTSC.
 - Renderer WAV y traza APU automática para análisis offline.
 - Paquetes OGG opcionales y sintetizador de respaldo.
 
-Todavía no es una decompilación bit a bit. Quedan la paridad APU por ciclo,
-diferencias de RAM/PPU, parte del movimiento de la catedral B-Type y una
-construcción 6502 enlazable.
+Todavía no es una decompilación bit a bit. Quedan la microtemporización del bus,
+la entrega asíncrona de IRQ, diferencias de RAM/PPU, parte del movimiento de la
+catedral B-Type y una construcción 6502 enlazable.
 
 ## Ejecutar el port de PC
 
@@ -49,16 +49,21 @@ Cuando la ROM coincide con CRC32 `D16EA396`, la consola informa:
 Audio backend: ROM APU
 ```
 
-## Generar audio original desde la ROM
-
-```bash
-tetris_apu_render "Tetris (USA).nes" 1 60 music-1.wav
-```
-
-También generar la traza de escrituras APU:
+## Generar audio y traza desde la ROM
 
 ```bash
 tetris_apu_render "Tetris (USA).nes" 1 60 music-1.wav port-apu.csv
+```
+
+La traza incluye:
+
+```text
+frame,cpu_cycles,driver_cycles,dmc_stall_cycles,irq,apu_writes
+```
+
+Comparación con una captura local de Mesen:
+
+```bash
 python tools/trace_compare.py mesen-apu.csv port-apu.csv --columns apu_writes
 ```
 
@@ -82,11 +87,8 @@ cmake --build build --config Release --parallel
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-Autoprueba directa del renderer:
-
-```bash
-tetris_apu_render --self-test
-```
+Las pruebas comprueban ciclos CPU, secuenciador, IRQ, stalls DMC y audio no
+silencioso usando exclusivamente un PRG artificial.
 
 ## Android
 
@@ -95,7 +97,7 @@ cd android
 gradle --no-daemon :app:assembleDebug
 ```
 
-El APK compila el intérprete 6502, el núcleo APU y el driver original para
+El APK compila el intérprete 6502, el APU por ciclos y el driver original para
 `arm64-v8a` y `armeabi-v7a`. La ROM se selecciona mediante el selector del
 sistema y permanece en el almacenamiento privado de la aplicación.
 
