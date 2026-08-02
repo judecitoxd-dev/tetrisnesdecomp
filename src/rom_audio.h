@@ -27,9 +27,14 @@ typedef struct TetrisRomAudio {
     Cpu6502 cpu;
     NesApu apu;
     double sample_fraction;
+    double cycle_fraction;
     uint64_t rendered_frames;
+    uint64_t rendered_cpu_cycles;
     uint64_t apu_write_count;
     uint64_t apu_write_hash;
+    uint32_t last_frame_cpu_cycles;
+    uint32_t last_driver_cycles;
+    uint32_t last_stall_cycles;
     TetrisApuWrite frame_writes[TETRIS_ROM_AUDIO_MAX_FRAME_WRITES];
     size_t frame_write_count;
     bool frame_writes_overflow;
@@ -38,7 +43,6 @@ typedef struct TetrisRomAudio {
 
 bool tetris_rom_audio_init(TetrisRomAudio *audio, const NesRom *rom,
                            char *error, size_t error_size);
-/* Test/tool entry point for an already mapped 32 KiB PRG image. */
 bool tetris_rom_audio_init_prg(TetrisRomAudio *audio,
                                const uint8_t *prg, size_t prg_size,
                                char *error, size_t error_size);
