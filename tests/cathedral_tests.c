@@ -15,17 +15,29 @@
 
 static TetrisCathedralTables fake_tables(void) {
     TetrisCathedralTables tables;
+    int level;
     memset(&tables, 0, sizeof(tables));
-    for (int level = 0; level < TETRIS_CATHEDRAL_LEVELS; ++level) {
-        tables.animation_speed[level] = 1;
-        tables.frame_delay[level] = 1;
-        tables.start_x[level] = 2;
-        tables.sentinel_x[level] = 0;
-        tables.vector_x[level] = 1;
-        tables.sprite_base[level] = 1;
+    for (level = 0; level < TETRIS_CATHEDRAL_LEVELS; ++level) {
+        tables.animation_speed[level] = (uint8_t)(1 + level % 6);
+        tables.frame_delay[level] = (uint8_t)(1 + level % 5);
+        tables.start_x[level] = (level & 1) ? 0xfeu : 0x02u;
+        tables.sentinel_x[level] = (level & 1) ? 0x10u : 0xf0u;
+        tables.vector_x[level] = (level & 1) ? -1 : 1;
+        tables.sprite_base[level] = (uint8_t)(0x20 + level * 2);
+        for (int index = 0; index < TETRIS_CATHEDRAL_MAX_SPRITES; ++index) {
+            const size_t table_index =
+                (size_t)level * TETRIS_CATHEDRAL_MAX_SPRITES + (size_t)index;
+            tables.trigger_x[table_index] = (uint8_t)(
+                tables.start_x[level] +
+                tables.vector_x[level] * (6 + index * 3));
+            tables.position_y[table_index] = (uint8_t)(0x20 + level * 8 + index * 5);
+        }
     }
     tables.animation_speed[0] = 2;
     tables.frame_delay[0] = 3;
+    tables.start_x[0] = 2;
+    tables.sentinel_x[0] = 0;
+    tables.vector_x[0] = 1;
     tables.sprite_base[0] = 0x2c;
     tables.trigger_x[0] = 0x3a;
     tables.trigger_x[1] = 0x24;
@@ -34,12 +46,16 @@ static TetrisCathedralTables fake_tables(void) {
 
     tables.animation_speed[1] = 4;
     tables.frame_delay[1] = 1;
+    tables.start_x[1] = 2;
+    tables.sentinel_x[1] = 0;
+    tables.vector_x[1] = 1;
     tables.sprite_base[1] = 0x2e;
     tables.position_y[6] = 0xb0;
 
     tables.animation_speed[2] = 6;
     tables.frame_delay[2] = 1;
     tables.start_x[2] = 0xfe;
+    tables.sentinel_x[2] = 0;
     tables.vector_x[2] = -1;
     tables.sprite_base[2] = 0x54;
     tables.position_y[12] = 0xc8;
@@ -47,11 +63,25 @@ static TetrisCathedralTables fake_tables(void) {
     return tables;
 }
 
+static int snapshots_equal(const TetrisCathedralSnapshot *a,
+                           const TetrisCathedralSnapshot *b) {
+    int index;
+    if (a->sprite_index != b->sprite_index ||
+        a->sprite_count != b->sprite_count) return 0;
+    for (index = 0; index < a->sprite_count; ++index) {
+        if (a->visible[index] != b->visible[index] ||
+            a->x[index] != b->x[index] ||
+            a->y[index] != b->y[index]) return 0;
+    }
+    return 1;
+}
+
 static int test_loader(void) {
     uint8_t prg[TEST_PRG_SIZE];
     TetrisCathedralTables tables;
+    int level;
     memset(prg, 0, sizeof(prg));
-    for (int level = 0; level < TETRIS_CATHEDRAL_LEVELS; ++level) {
+    for (level = 0; level < TETRIS_CATHEDRAL_LEVELS; ++level) {
         prg[0x2749u + (size_t)level] = (uint8_t)(level + 1);
         prg[0x2753u + (size_t)level] = 1;
         prg[0x275du + (size_t)level] = 2;
@@ -91,18 +121,15 @@ static int test_animation_and_render_before_move(void) {
     tetris_cathedral_snapshot(&tables, 0, 0, 1, &snapshot);
     CHECK(snapshot.sprite_index == 0x2du);
     CHECK(snapshot.x[0] == 0x02u);
-
     tetris_cathedral_snapshot(&tables, 0, 0, 2, &snapshot);
     CHECK(snapshot.x[0] == 0x02u);
     tetris_cathedral_snapshot(&tables, 0, 0, 3, &snapshot);
     CHECK(snapshot.x[0] == 0x03u);
-
     tetris_cathedral_snapshot(&tables, 1, 0, 0, &snapshot);
     CHECK(snapshot.x[0] == 0x02u);
     tetris_cathedral_snapshot(&tables, 1, 0, 1, &snapshot);
     CHECK(snapshot.x[0] == 0x03u);
     CHECK(snapshot.y[0] == 0xb0u);
-
     tetris_cathedral_snapshot(&tables, 2, 0, 0, &snapshot);
     CHECK(snapshot.x[0] == 0xfeu);
     tetris_cathedral_snapshot(&tables, 2, 0, 1, &snapshot);
@@ -124,23 +151,39 @@ static int test_spawn_chain(void) {
     return 0;
 }
 
+static int test_incremental_equivalence(void) {
+    TetrisCathedralTables tables = fake_tables();
+    int level;
+    for (level = 0; level < TETRIS_CATHEDRAL_LEVELS; ++level) {
+        int height;
+        for (height = 0; height < TETRIS_CATHEDRAL_MAX_SPRITES; ++height) {
+            TetrisCathedralState state;
+            unsigned frame;
+            tetris_cathedral_state_init(&state, &tables, level, height);
+            CHECK(state.valid);
+            for (frame = 0; frame < 720u; ++frame) {
+                TetrisCathedralSnapshot incremental;
+                TetrisCathedralSnapshot random_access;
+                CHECK(tetris_cathedral_state_step(&state, &incremental));
+                tetris_cathedral_snapshot(&tables, level, height, frame,
+                                           &random_access);
+                CHECK(snapshots_equal(&incremental, &random_access));
+                CHECK(state.frames == (uint64_t)frame + 1u);
+            }
+        }
+    }
+    return 0;
+}
+
 static int test_normalization_and_clamps(void) {
     TetrisCathedralTables tables = fake_tables();
     TetrisCathedralSnapshot level0;
     TetrisCathedralSnapshot level10;
     TetrisCathedralSnapshot low_height;
     TetrisCathedralSnapshot high_height;
-
     tetris_cathedral_snapshot(&tables, 0, 2, 33, &level0);
     tetris_cathedral_snapshot(&tables, 10, 2, 33, &level10);
-    CHECK(level0.sprite_index == level10.sprite_index);
-    CHECK(level0.sprite_count == level10.sprite_count);
-    for (int index = 0; index < level0.sprite_count; ++index) {
-        CHECK(level0.visible[index] == level10.visible[index]);
-        CHECK(level0.x[index] == level10.x[index]);
-        CHECK(level0.y[index] == level10.y[index]);
-    }
-
+    CHECK(snapshots_equal(&level0, &level10));
     tetris_cathedral_snapshot(&tables, 4, -3, 0, &low_height);
     CHECK(low_height.sprite_count == 1);
     tetris_cathedral_snapshot(&tables, 4, 99, 0, &high_height);
@@ -153,7 +196,8 @@ int main(void) {
     if (test_initial_state() != 0) return 1;
     if (test_animation_and_render_before_move() != 0) return 1;
     if (test_spawn_chain() != 0) return 1;
+    if (test_incremental_equivalence() != 0) return 1;
     if (test_normalization_and_clamps() != 0) return 1;
-    puts("Cathedral movement tests passed.");
+    puts("Cathedral 6502 state-machine tests passed.");
     return 0;
 }
