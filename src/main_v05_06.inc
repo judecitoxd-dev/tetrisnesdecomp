@@ -28,6 +28,7 @@
         render(renderer, font, screen, &game, &menu, &result, &options,
                &settings, replay_status, !rom.exact_supported_dump,
                &audio, &rom, &scores);
+        render_level_score_table_fix(renderer, font, screen, &menu, &scores);
         tetris_touch_render(renderer, font, &touch, controller != NULL);
         render_type_music_cursor_overlay(renderer, screen, &settings);
         SDL_RenderPresent(renderer);
