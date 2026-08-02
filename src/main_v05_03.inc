@@ -15,8 +15,10 @@
                     } else if (key == SDLK_o) {
                         screen = SCREEN_OPTIONS;
                     } else if (key == SDLK_l) {
+                        tetris_audio_detach_rom(&audio);
                         (void)choose_and_load_rom(renderer, &rom, &font,
                                                   &settings, settings_path);
+                        attach_original_audio(&audio, &rom);
                     } else if (key == SDLK_F8) {
                         (void)start_last_replay(&playback, &game,
                                                 last_replay_path, &screen,
