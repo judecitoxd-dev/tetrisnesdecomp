@@ -84,6 +84,8 @@ void nes_apu_init(NesApu *apu, int sample_rate,
 void nes_apu_reset(NesApu *apu);
 void nes_apu_write(NesApu *apu, uint16_t address, uint8_t value);
 uint8_t nes_apu_read_status(NesApu *apu);
+void nes_apu_schedule_frame_counter(NesApu *apu, uint8_t value);
+void nes_apu_clock_frame_counter_delay(NesApu *apu);
 void nes_apu_advance_cycles(NesApu *apu, uint32_t cycles);
 uint32_t nes_apu_consume_stall_cycles(NesApu *apu);
 bool nes_apu_irq_pending(const NesApu *apu);
