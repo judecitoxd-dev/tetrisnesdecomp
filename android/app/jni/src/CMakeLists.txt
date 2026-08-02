@@ -7,6 +7,7 @@ add_library(main SHARED
     "${ROOT_DIR}/src/main.c"
     "${ROOT_DIR}/src/app.c"
     "${ROOT_DIR}/src/audio.c"
+    "${ROOT_DIR}/src/audio_device.c"
     "${ROOT_DIR}/src/rom_picker.c"
     "${ROOT_DIR}/src/android_bridge.c"
     "${ROOT_DIR}/src/touch_controls.c"
