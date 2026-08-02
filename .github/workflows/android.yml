@@ -61,10 +61,10 @@ jobs:
             echo "Forbidden ROM/replay/audio payload found in APK" >&2
             exit 1
           fi
-          cp "$APK" Tetris-NES-Port-Android-v0.7-debug.apk
-          sha256sum Tetris-NES-Port-Android-v0.7-debug.apk
+          cp "$APK" Tetris-NES-Port-Android-v0.8-debug.apk
+          sha256sum Tetris-NES-Port-Android-v0.8-debug.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: tetris-nes-port-android-v0.7
-          path: Tetris-NES-Port-Android-v0.7-debug.apk
+          name: tetris-nes-port-android-v0.8
+          path: Tetris-NES-Port-Android-v0.8-debug.apk

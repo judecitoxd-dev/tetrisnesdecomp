@@ -15,6 +15,7 @@
 #define PRG_LEVEL_MENU         0x3adbu
 #define PRG_GAME_NAMETABLE     0x3f3cu
 #define PRG_ENTER_HIGH_SCORE   0x439du
+#define PRG_HIGH_SCORES_PATCH  0x47feu
 #define PRG_HEIGHT_MENU_PATCH  0x495du
 
 #define CHR_TITLE_MENU 0u
@@ -187,6 +188,9 @@ bool tetris_rom_screens_load(SDL_Renderer *renderer, const NesRom *rom) {
     screens[TETRIS_ROM_SCREEN_ENTER_HIGH_SCORE] =
         build_screen(renderer, rom, PRG_ENTER_HIGH_SCORE, PRG_MENU_PALETTE,
                      CHR_TITLE_MENU, SIZE_MAX);
+    screens[TETRIS_ROM_SCREEN_HIGH_SCORES] =
+        build_screen(renderer, rom, PRG_ENTER_HIGH_SCORE, PRG_MENU_PALETTE,
+                     CHR_TITLE_MENU, PRG_HIGH_SCORES_PATCH);
     for (int index = 0; index < TETRIS_ROM_SCREEN_COUNT; ++index)
         if (screens[index]) any = true;
     tetris_rom_screens_free();

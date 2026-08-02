@@ -142,6 +142,25 @@ static void render_level_select(SDL_Renderer *renderer, SDL_Texture *font,
 static void render_records(SDL_Renderer *renderer, SDL_Texture *font,
                            const TetrisHighScores *scores) {
     char value[64];
+    if (tetris_rom_screen_available(TETRIS_ROM_SCREEN_HIGH_SCORES)) {
+        const int mode = (int)((SDL_GetTicks() / 3000u) & 1u);
+        tetris_rom_screen_render(renderer, TETRIS_ROM_SCREEN_HIGH_SCORES);
+        draw_text(renderer, font, 296, 48, 2, mode == 0 ? "A" : "B");
+        for (int rank = 0; rank < TETRIS_HIGH_SCORE_COUNT; ++rank) {
+            const TetrisHighScoreEntry *entry = &scores->entries[mode][rank];
+            const int y = 320 + rank * 32;
+            draw_text(renderer, font, 224, y, 2, entry->name);
+            snprintf(value, sizeof(value), "%06d",
+                     entry->score > 999999 ? 999999 : entry->score);
+            draw_text(renderer, font, 320, y, 2, value);
+            snprintf(value, sizeof(value), "%02d",
+                     entry->level > 99 ? 99 : entry->level);
+            draw_text(renderer, font, 448, y, 2, value);
+        }
+        draw_centered(renderer, font, 438, 1,
+                      "A/B RECORDS SWITCH EVERY 3 SECONDS");
+        return;
+    }
     draw_centered(renderer, font, 38, 3, "LOCAL RECORDS");
     draw_text(renderer, font, 95, 105, 2, "A TYPE");
     draw_text(renderer, font, 385, 105, 2, "B TYPE");

@@ -27,6 +27,28 @@ static void render_name_entry(SDL_Renderer *renderer, SDL_Texture *font,
                               const AppResultState *result) {
     char value[64];
     int start_x;
+    if (tetris_rom_screen_available(TETRIS_ROM_SCREEN_ENTER_HIGH_SCORE)) {
+        const int row_y = 320 + result->rank * 32;
+        tetris_rom_screen_render(renderer, TETRIS_ROM_SCREEN_ENTER_HIGH_SCORE);
+        draw_text(renderer, font, 296, 48, 2,
+                  result->mode == TETRIS_MODE_A ? "A" : "B");
+        draw_text(renderer, font, 224, row_y, 2, result->name.text);
+        snprintf(value, sizeof(value), "%06d",
+                 result->score > 999999 ? 999999 : result->score);
+        draw_text(renderer, font, 320, row_y, 2, value);
+        snprintf(value, sizeof(value), "%02d",
+                 result->level > 99 ? 99 : result->level);
+        draw_text(renderer, font, 448, row_y, 2, value);
+        if (((SDL_GetTicks() / 250u) & 1u) == 0u) {
+            SDL_Rect cursor = {224 + result->name.cursor * 16,
+                               row_y + 16, 16, 3};
+            SDL_SetRenderDrawColor(renderer, 236, 238, 236, 255);
+            SDL_RenderFillRect(renderer, &cursor);
+        }
+        draw_centered(renderer, font, 438, 1,
+                      "ARROWS EDIT  ENTER SAVES");
+        return;
+    }
     draw_centered(renderer, font, 52, 3, "NEW RECORD");
     snprintf(value, sizeof(value), "%s RANK %d",
              result->mode == TETRIS_MODE_A ? "A TYPE" : "B TYPE",

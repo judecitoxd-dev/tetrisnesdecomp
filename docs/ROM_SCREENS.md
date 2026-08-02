@@ -1,6 +1,6 @@
 # Pantallas reconstruidas desde la ROM
 
-La versión v0.7 incorpora un intérprete del formato usado por la rutina `bulkCopyToPpu` del cartucho. El port lee los streams comprimidos directamente desde el PRG de la copia legal del usuario, aplica escrituras horizontales, verticales y repetidas a una nametable virtual, interpreta atributos y paletas y finalmente dibuja los tiles del banco CHR correspondiente.
+La versión v0.8 incorpora un intérprete del formato usado por la rutina `bulkCopyToPpu` del cartucho. El port lee los streams comprimidos directamente desde el PRG de la copia legal del usuario, aplica escrituras horizontales, verticales y repetidas a una nametable virtual, interpreta atributos y paletas y finalmente dibuja los tiles del banco CHR correspondiente.
 
 No se guardan PNG, nametables descomprimidas, bancos CHR ni otros recursos derivados en el repositorio o en los paquetes.
 
@@ -16,23 +16,27 @@ Esta tabla solo se activa para la ROM CRC32 `D16EA396`, porque los offsets todav
 | Selección de nivel | `0x3ADB` | 0 |
 | Marco de partida | `0x3F3C` | 3 |
 | Entrada de récord | `0x439D` | 0 |
+| Parche de tabla de récords | `0x47FE` | 0 |
 | Parche A-Type para ocultar altura | `0x495D` | 0 |
 
-## Pantallas usadas en v0.7
+## Pantallas usadas en v0.8
 
 - Selección A-Type/B-Type reconstruida desde la ROM.
 - Selección de nivel y altura reconstruida desde la ROM.
 - Marco principal de partida reconstruido desde la ROM.
+- Entrada de nombre reconstruida desde `enter_high_score_nametable`.
+- Tabla de récords creada aplicando `high_scores_nametable` sobre la composición de entrada.
 - Tablero alineado a la cuadrícula original de tiles de 8×8, escalada 2×.
 - Piezas, siguiente pieza y bloques fijados al banco CHR de juego.
-- Valores dinámicos —puntuación, líneas, nivel, estadísticas y cursores— dibujados encima del fondo original.
+- Nombres, puntuaciones, niveles y cursores colocados sobre las posiciones del cartucho.
 
 ## Límites
 
-- Los cursores y algunos números dinámicos todavía son equivalentes SDL; no son sprites OAM traducidos exactamente.
-- Récords y entrada de nombre aún no usan por completo las tablas originales de nombres y puntuaciones.
+- Los cursores aún son equivalentes SDL; no son sprites OAM traducidos exactamente.
+- Los récords locales usan tres filas por modo; el cartucho conserva su propio formato interno en RAM.
+- La vista de récords alterna A/B automáticamente, en vez de reproducir toda la máquina de estados original.
 - Las animaciones y sprites de finales no están reconstruidos desde las tablas OAM.
 - La ejecución no emula el PPU por ciclos; reconstruye el resultado visual estático de los streams.
 - Una ROM compatible con otro CRC usa el renderer alternativo para evitar leer offsets incorrectos.
 
-El siguiente objetivo es interpretar las tablas OAM y los parches de nametable usados por récords, demostración y finales, seguido del controlador APU.
+El siguiente objetivo es interpretar las tablas OAM de cursores y finales, reproducir la demo almacenada en el PRG y traducir el controlador APU.
