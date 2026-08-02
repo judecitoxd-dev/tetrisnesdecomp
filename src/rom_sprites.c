@@ -87,6 +87,19 @@ static bool apply_palette_stream(const uint8_t *stream, size_t stream_size,
     return false;
 }
 
+static size_t find_sprite_data(const uint8_t *data, size_t data_size,
+                               const uint8_t *signature,
+                               size_t signature_size) {
+    size_t offset;
+    if (!data || !signature || signature_size == 0 ||
+        data_size < signature_size) return SIZE_MAX;
+    for (offset = 0; offset + signature_size <= data_size; ++offset) {
+        if (memcmp(data + offset, signature, signature_size) == 0)
+            return offset;
+    }
+    return SIZE_MAX;
+}
+
 static bool sprite_bounds(const uint8_t *data, size_t available,
                           int *min_x, int *min_y, int *max_x, int *max_y,
                           int *entry_count) {
@@ -190,8 +203,12 @@ void tetris_rom_sprites_free(void) {
 }
 
 bool tetris_rom_sprites_load(SDL_Renderer *renderer, const NesRom *rom) {
+    static const uint8_t music_cursor_signature[] = {
+        0x00,0x27,0x00,0x00,0x00,0x27,0x40,0x4a,0xff
+    };
     uint8_t palette[32];
     RomSpriteTexture sprites[TETRIS_ROM_SPRITE_COUNT];
+    size_t music_cursor_offset;
     bool any = false;
     memset(sprites, 0, sizeof(sprites));
     if (!renderer || !rom || !rom->exact_supported_dump || !rom->prg ||
@@ -212,6 +229,13 @@ bool tetris_rom_sprites_load(SDL_Renderer *renderer, const NesRom *rom) {
         build_sprite(renderer, rom, PRG_LEVEL_CURSOR, palette);
     sprites[TETRIS_ROM_SPRITE_TYPE_CURSOR] =
         build_sprite(renderer, rom, PRG_TYPE_CURSOR, palette);
+    music_cursor_offset = find_sprite_data(rom->prg, rom->prg_size,
+                                           music_cursor_signature,
+                                           sizeof(music_cursor_signature));
+    if (music_cursor_offset != SIZE_MAX) {
+        sprites[TETRIS_ROM_SPRITE_MUSIC_CURSOR] =
+            build_sprite(renderer, rom, music_cursor_offset, palette);
+    }
     sprites[TETRIS_ROM_SPRITE_HIGH_SCORE_CURSOR] =
         build_sprite(renderer, rom, PRG_HIGH_SCORE_CURSOR, palette);
     for (int index = 0; index < TETRIS_ROM_SPRITE_COUNT; ++index)
