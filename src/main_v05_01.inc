@@ -76,8 +76,8 @@ static void save_name_entry(TetrisHighScores *scores,
                             const AppResultState *result,
                             const char *score_path, AppScreen *screen) {
     if (tetris_high_scores_submit(scores, result->mode, result->name.text,
-                                  result->score, result->level,
-                                  result->height)) {
+                                  result->score, result->lines,
+                                  result->level, result->height)) {
         if (!tetris_high_scores_save(scores, score_path)) {
             fprintf(stderr, "Could not save local scores to %s\n", score_path);
         }
