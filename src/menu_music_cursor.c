@@ -1,11 +1,11 @@
 #include "menu_music_cursor.h"
 #include "rom_screens.h"
+#include "rom_sprites.h"
 
 /*
  * The 6502 type-menu renderer places sprite53MusicTypeCursor at NES X=$67 and
  * Y=$8F + musicType*$10. v0.19 changed the setting but never drew that second
- * cursor, making Up/Down look broken. This provisional outline uses the exact
- * position and extent until sprite53 itself is decoded by rom_sprites.c.
+ * cursor, making Up/Down look broken.
  */
 static bool type_music_cursor_visible(void) {
     const unsigned frame = (unsigned)((SDL_GetTicks() * 60u) / 1000u);
@@ -31,6 +31,12 @@ void render_type_music_cursor_overlay(SDL_Renderer *renderer,
 
     nes_x = 0x67;
     nes_y = 0x8f + music_type * 0x10;
+    if (tetris_rom_sprite_available(TETRIS_ROM_SPRITE_MUSIC_CURSOR)) {
+        tetris_rom_sprite_render(renderer, TETRIS_ROM_SPRITE_MUSIC_CURSOR,
+                                 nes_x, nes_y);
+        return;
+    }
+
     outer.x = 64 + nes_x * 2;
     outer.y = nes_y * 2;
     outer.w = (0x4a + 8) * 2;
