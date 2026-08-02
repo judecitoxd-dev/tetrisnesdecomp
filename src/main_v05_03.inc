@@ -67,9 +67,14 @@
                             screen = SCREEN_TITLE;
                     }
                 } else if (screen == SCREEN_TYPE_SELECT) {
-                    if (key == SDLK_LEFT || key == SDLK_RIGHT ||
-                        key == SDLK_UP || key == SDLK_DOWN)
+                    if (key == SDLK_LEFT || key == SDLK_RIGHT)
                         toggle_menu_mode(&menu);
+                    if (key == SDLK_DOWN)
+                        step_type_menu_music(&settings, &audio, 1,
+                                             settings_path);
+                    if (key == SDLK_UP)
+                        step_type_menu_music(&settings, &audio, -1,
+                                             settings_path);
                     if (key == SDLK_RETURN || key == SDLK_SPACE)
                         screen = SCREEN_LEVEL_SELECT;
                     if (key == SDLK_BACKSPACE) screen = SCREEN_TITLE;
