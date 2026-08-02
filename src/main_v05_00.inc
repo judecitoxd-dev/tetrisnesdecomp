@@ -171,7 +171,7 @@ static void begin_replay_recording(TetrisReplay *recording,
 static void start_selected_game(TetrisGame *game, const AppMenuState *menu,
                                 AppScreen *screen, bool *left, bool *right,
                                 bool *down, bool *result_handled,
-                                TetrisSettings *settings,
+                                TetrisAudio *audio, TetrisSettings *settings,
                                 const char *settings_path,
                                 TetrisReplay *recording,
                                 bool *recording_active) {
