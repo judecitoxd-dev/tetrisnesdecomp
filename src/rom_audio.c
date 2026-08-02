@@ -1,4 +1,5 @@
 #include "rom_audio.h"
+#include "game.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -139,6 +140,11 @@ bool tetris_rom_audio_select_track(TetrisRomAudio *audio, int track,
     return true;
 }
 
+void tetris_rom_audio_stop_music(TetrisRomAudio *audio) {
+    if (!audio || !audio->initialized) return;
+    audio->ram[MUSIC_TRACK_ADDR] = 0xFFu;
+}
+
 bool tetris_rom_audio_run_frame(TetrisRomAudio *audio,
                                 float *samples, size_t capacity,
                                 size_t *written,
@@ -176,6 +182,33 @@ void tetris_rom_audio_set_sound_effect(TetrisRomAudio *audio,
                                        int slot, uint8_t effect) {
     if (!audio || !audio->initialized || slot < 0 || slot > 4) return;
     audio->ram[SOUND_EFFECT_SLOT0_ADDR + (uint16_t)slot] = effect;
+}
+
+void tetris_rom_audio_apply_events(TetrisRomAudio *audio, uint32_t events) {
+    uint8_t pulse_effect = 0;
+    if (!audio || !audio->initialized || events == 0) return;
+
+    if (events & TETRIS_EVENT_GAME_OVER)
+        tetris_rom_audio_set_sound_effect(audio, 0, 2);
+
+    if (events & TETRIS_EVENT_TETRIS) {
+        pulse_effect = 4;
+    } else if (events & TETRIS_EVENT_LEVEL_UP) {
+        pulse_effect = 6;
+    } else if (events & TETRIS_EVENT_LINE) {
+        pulse_effect = 10;
+    } else if (events & TETRIS_EVENT_LOCK) {
+        pulse_effect = 7;
+    } else if (events & TETRIS_EVENT_ROTATE) {
+        pulse_effect = 5;
+    } else if (events & TETRIS_EVENT_MOVE) {
+        pulse_effect = 3;
+    }
+    if (pulse_effect)
+        tetris_rom_audio_set_sound_effect(audio, 1, pulse_effect);
+
+    if (events & TETRIS_EVENT_COMPLETE)
+        audio->ram[MUSIC_TRACK_ADDR] = 2;
 }
 
 uint8_t tetris_rom_audio_ram(const TetrisRomAudio *audio, uint16_t address) {
