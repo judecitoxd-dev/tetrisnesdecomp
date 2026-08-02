@@ -1,6 +1,8 @@
+#include "app_score_overlay.h"
 #include "app_v05_00.inc"
 #include "app_v05_01.inc"
 #include "app_v05_02.inc"
 #include "app_v05_03.inc"
 #include "app_v05_04.inc"
 #include "app_v05_05.inc"
+#include "app_score_overlay.inc"

@@ -5,7 +5,8 @@
             draw_replay_overlay(renderer, font, replay_status);
             break;
     }
-    SDL_RenderPresent(renderer);
+    tetris_present_with_score_overlay(renderer, font, screen,
+                                      game, result, scores);
 }
 
 bool load_rom_and_font_ex(SDL_Renderer *renderer, const char *path,
@@ -128,6 +129,7 @@ void app_result_begin(AppResultState *result, const TetrisGame *game, int rank) 
     tetris_name_entry_init(&result->name, "PLAYER");
     result->mode = game->mode;
     result->score = game->score;
+    result->lines = game->total_lines;
     result->level = game->start_level;
     result->height = game->start_height;
     result->rank = rank;
