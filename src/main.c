@@ -1,5 +1,6 @@
 #include "touch_controls.h"
 #include "menu_music_cursor.h"
+#include "level_score_table_fix.h"
 #include "main_menu_helpers.inc"
 #include "main_v05_00.inc"
 #include "main_v05_01.inc"
