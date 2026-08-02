@@ -52,7 +52,7 @@ static void build_self_test_prg(uint8_t prg[0x8000]) {
         0x60
     };
     memset(prg, 0xEA, 0x8000u);
-    prg[0x6000u] = 0x4C; /* $E000: JMP $E100 */
+    prg[0x6000u] = 0x4C;
     prg[0x6001u] = 0x00;
     prg[0x6002u] = 0xE1;
     prg[0x6006u] = 0x60;
@@ -95,13 +95,15 @@ static int self_test(void) {
         }
     }
     free(prg);
-    if (energy < 0.01 || audio.apu_write_count < 16u) {
-        fprintf(stderr, "apu_render self-test produced no useful audio\n");
+    if (energy < 0.01 || audio.apu_write_count < 16u ||
+        audio.rendered_cpu_cycles < 119000u) {
+        fprintf(stderr, "apu_render self-test produced no useful timed audio\n");
         return 1;
     }
-    printf("apu_render self-test: OK hash=%016llx writes=%llu\n",
+    printf("apu_render self-test: OK hash=%016llx writes=%llu cycles=%llu\n",
            (unsigned long long)hash,
-           (unsigned long long)audio.apu_write_count);
+           (unsigned long long)audio.apu_write_count,
+           (unsigned long long)audio.rendered_cpu_cycles);
     return 0;
 }
 
@@ -172,7 +174,8 @@ int main(int argc, char **argv) {
             nes_rom_free(&rom);
             return 1;
         }
-        fputs("frame,apu_writes\n", trace);
+        fputs("frame,cpu_cycles,driver_cycles,dmc_stall_cycles,irq,apu_writes\n",
+              trace);
     }
     frames = (uint64_t)ceil(seconds * NTSC_FRAME_RATE);
     for (frame = 0; frame < frames; ++frame) {
@@ -190,7 +193,12 @@ int main(int argc, char **argv) {
         }
         if (trace) {
             size_t write_index;
-            fprintf(trace, "%llu,", (unsigned long long)frame);
+            fprintf(trace, "%llu,%u,%u,%u,%u,",
+                    (unsigned long long)frame,
+                    audio.last_frame_cpu_cycles,
+                    audio.last_driver_cycles,
+                    audio.last_stall_cycles,
+                    nes_apu_irq_pending(&audio.apu) ? 1u : 0u);
             for (write_index = 0;
                  write_index < audio.frame_write_count; ++write_index) {
                 const TetrisApuWrite *write = &audio.frame_writes[write_index];
@@ -229,6 +237,8 @@ int main(int argc, char **argv) {
     printf("TRACK=%ld\n", track);
     printf("FRAMES=%llu\n", (unsigned long long)frames);
     printf("SAMPLES=%u\n", total_samples);
+    printf("CPU_CYCLES=%llu\n",
+           (unsigned long long)audio.rendered_cpu_cycles);
     printf("APU_WRITES=%llu\n", (unsigned long long)audio.apu_write_count);
     printf("APU_WRITE_HASH=%016llx\n",
            (unsigned long long)audio.apu_write_hash);
