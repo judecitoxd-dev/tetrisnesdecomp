@@ -11,8 +11,8 @@ android {
         applicationId 'com.ylports.tetrisnes'
         minSdk 23
         targetSdk 34
-        versionCode 11
-        versionName '0.11-android'
+        versionCode 12
+        versionName '0.12-android'
 
         externalNativeBuild {
             cmake {
