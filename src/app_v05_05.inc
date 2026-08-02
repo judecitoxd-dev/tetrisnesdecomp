@@ -114,9 +114,7 @@ void change_menu_value(AppMenuState *menu, int delta) {
         if (menu->height < 0) menu->height = 0;
         if (menu->height > 5) menu->height = 5;
     } else {
-        menu->level += delta;
-        if (menu->level < 0) menu->level = 0;
-        if (menu->level > 19) menu->level = 19;
+        menu->level = tetris_settings_step_level(menu->level, delta);
     }
 }
 
