@@ -1,3 +1,8 @@
+#include "audio.h"
+
+static void save_settings_quiet(const TetrisSettings *settings,
+                                const char *settings_path);
+
 static void step_type_menu_music(TetrisSettings *settings,
                                  TetrisAudio *audio, int direction,
                                  const char *settings_path) {
