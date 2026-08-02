@@ -1,16 +1,15 @@
 # Estado de decompilación y ports
 
-## Resumen de v0.12
+## Resumen de v0.13
 
-La duodécima fase convierte el renderer APU aislado de v0.11 en el backend de
-audio interactivo del port. Windows, Linux y Android ejecutan ahora el
-controlador 6502 original desde la ROM legal mientras se juega, durante la demo
-y al reproducir una partida.
+La decimotercera fase sincroniza el intérprete 6502 y el APU con el reloj NTSC.
+Cada instrucción oficial aporta sus ciclos base, las ramas y lecturas indexadas
+aplican sus penalizaciones y el APU avanza con esos ciclos en lugar de estimarse
+únicamente desde la cantidad de muestras.
 
-El callback SDL consume audio producido por `$E006`/`$E000`, mantiene las
-escrituras `$4000-$4017` y usa el sintetizador alternativo únicamente cuando la
-ROM no coincide con el dump verificado o el driver falla. Los paquetes OGG del
-usuario siguen teniendo prioridad cuando están configurados.
+El controlador original continúa ejecutándose una vez por fotograma, pero sus
+escrituras afectan ahora temporizadores, envolventes, secuenciador, DMC e IRQ en
+una línea temporal de CPU medible.
 
 ## Progreso estimado
 
@@ -23,66 +22,70 @@ usuario siguen teniendo prioridad cuando están configurados.
 | Modo B | 92% |
 | Integración y empaquetado | 99% |
 | Carga legal de recursos desde ROM | 99% |
-| Fidelidad de reglas y timings principales | 85% |
+| Fidelidad de reglas y timings principales | 86% |
 | Pantallas y animaciones originales/equivalentes | 94% |
-| Audio original interactivo | 92% |
-| Paquetes OGG del usuario en PC | 90% |
-| Renderizado automático del APU original | 78% |
-| Decompilación etiquetada/verificada del PRG 6502 | 39% |
-| Correspondencia reproducible con la ROM | 18% |
+| Audio original interactivo | 95% |
+| Renderizado automático del APU original | 90% |
+| Decompilación etiquetada/verificada del PRG 6502 | 40% |
+| Correspondencia reproducible con la ROM | 25% |
 
-El 78% del APU significa que el driver original ya produce música y efectos
-durante el juego en las tres plataformas. El porcentaje restante corresponde a
-exactitud temporal: ciclos por instrucción, IRQ, secuenciador preciso y robos de
-ciclos del DMC.
+El 90% del APU representa una implementación funcional, interactiva y guiada
+por ciclos. El porcentaje restante exige colocar cada lectura/escritura en su
+ciclo de bus exacto, entregar IRQ al flujo normal de CPU y demostrar igualdad
+de trazas para todas las pistas y efectos.
 
-## Implementado en v0.12
+## Implementado en v0.13
 
-- Backend `ROM APU` dentro del callback SDL mono de 48 kHz.
-- Pistas originales A/B/C mediante los comandos 3, 4 y 5 del driver.
-- Cambio automático a las variantes allegro 6, 7 y 8 cuando el tablero alcanza
-  la zona alta usada por el juego original.
-- Música desactivada mediante el comando `$FF`.
-- Efectos originales de movimiento, rotación, bloqueo, línea, Tetris, subida de
-  nivel, cortina de derrota y final.
-- Eventos enviados a los slots originales en `$06F0-$06F4`.
-- Música controlada por `musicTrack` en `$06F5`.
-- Recarga segura del driver al seleccionar o arrastrar otra ROM.
-- Desactivación automática del backend si el CRC no tiene offsets verificados.
-- OGG como backend opcional y sintetizador original como respaldo.
-- CPU 6502, APU y driver compilados también dentro del APK ARM64/ARMv7.
-- Audio original activo durante partida, demo y verificación de replay.
-- Pruebas unitarias para cada comando musical y efecto conectado.
+- Conteo de ciclos para las instrucciones oficiales soportadas.
+- Penalización de un ciclo por rama tomada y otro por cruce de página.
+- Penalizaciones de cruce de página para lecturas indexadas.
+- Callback de ciclos desde el 6502 hacia el APU.
+- Distribución de aproximadamente 29,780.5 ciclos por fotograma NTSC.
+- Temporizadores de pulso y ruido a la mitad del reloj de CPU.
+- Temporizador de triángulo a reloj completo.
+- Temporizador DMC según la tabla NTSC.
+- Secuenciador APU de cuatro y cinco pasos por ciclos.
+- Quarter frame y half frame para envolventes, longitudes, barridos y contador
+  lineal.
+- Frame IRQ y DMC IRQ visibles en `$4015`.
+- Lecturas DMC con robos de cuatro ciclos contabilizados durante el driver.
+- Mezcla de muestras mientras transcurren los ciclos libres del fotograma.
+- Medición de ciclos totales, ciclos del driver y stalls en las trazas CSV.
+- Implementación portable para GCC, Clang, MSVC y Android NDK.
 
 ## Validación de la fase
 
-- La capa SDL y el puente del driver pasan análisis sintáctico C99 estricto.
-- Las pruebas usan un PRG artificial y no contienen datos de Nintendo.
-- Se comprueba selección de pista, apagado, siete clases de evento y salida no
-  silenciosa.
-- GitHub Actions compila Windows, Linux y Android antes de fusionar la fase.
-- El APK continúa rechazando `.nes`, `.ttr`, `.ogg` y `.wav` incrustados.
+- Prueba de `LDX`, lectura indexada con cruce de página, rama tomada, `NOP` y
+  `RTS`: 18 ciclos.
+- Prueba de secuenciador: decremento de longitud al half frame.
+- Prueba de frame IRQ: activación, lectura por `$4015` y limpieza.
+- Prueba DMC: lectura de muestra, stall de cuatro ciclos, IRQ y limpieza.
+- Fotograma artificial: 798 muestras, 29,780 ciclos y audio no silencioso.
+- El PR debe pasar Windows, Linux y Android antes de fusionarse.
 
 ## Diferencias conocidas
 
-- El controlador se actualiza una vez por fotograma NTSC, pero las instrucciones
-  6502 aún no avanzan el APU por su número real de ciclos.
-- El secuenciador de frames y los barridos se aproximan a nivel de muestra.
-- DMC no roba ciclos al procesador y sus IRQ no están conectadas.
-- Las IRQ de frame tampoco llegan todavía al intérprete 6502.
-- Falta comparar todas las escrituras de cada pista y efecto contra Mesen.
+- Las escrituras de una instrucción se aplican antes de avanzar todos sus ciclos;
+  todavía no se ubican en el ciclo de bus exacto de la instrucción.
+- La demora de tres/cuatro ciclos de `$4017` sigue simplificada.
+- Frame IRQ y DMC IRQ se exponen, pero el driver aislado no ejecuta un handler
+  asíncrono entre llamadas de fotograma.
+- Los stalls DMC se contabilizan durante instrucciones; durante los ciclos
+  ociosos no existe CPU útil que detener.
+- Falta validar automáticamente todas las pistas, variantes allegro y efectos
+  contra Mesen.
 - La demo usa entradas y piezas originales, pero las reglas principales siguen
   ejecutándose en C.
-- Falta completar el movimiento de entrada de la catedral B-Type.
+- Falta completar la entrada/movimiento de la catedral B-Type.
 - No existe una construcción 6502 enlazable o binariamente idéntica.
 
 ## Próxima fase hacia exactitud
 
-1. Añadir conteo de ciclos a cada instrucción y modo de direccionamiento 6502.
-2. Avanzar APU, frame counter, barridos y DMC por ciclos de CPU.
-3. Implementar robos de ciclos y señales IRQ de DMC/frame.
-4. Automatizar la comparación de todas las pistas y efectos contra Mesen.
-5. Corregir la primera escritura APU divergente hasta lograr igualdad de traza.
+1. Añadir microtemporización de bus para lecturas y escrituras APU.
+2. Implementar la demora real de `$4017` y bordes exactos del secuenciador.
+3. Entregar IRQ al intérprete y modelar su entrada de siete ciclos.
+4. Automatizar una matriz de diez pistas, allegro y efectos contra Mesen.
+5. Corregir la primera escritura APU divergente hasta igualdad de traza.
 6. Continuar la comparación de RAM de la demo y corregir su primera divergencia.
 7. Completar la máquina de movimiento de la catedral B-Type.
 8. Ampliar la traducción del PRG y preparar una construcción 6502 enlazable.
