@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.14.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.15.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -34,7 +34,9 @@ add_library(tetris_core STATIC
     src/replay.c
     src/cathedral.c
     src/cpu6502.c
+    src/cpu6502_irq.c
     src/nes_apu.c
+    src/nes_apu_frame_counter.c
     src/rom_audio.c
 )
 target_include_directories(tetris_core PUBLIC src)
@@ -62,7 +64,6 @@ if(TETRIS_BUILD_APP)
             pkg_check_modules(SDL2 QUIET IMPORTED_TARGET sdl2)
         endif()
     endif()
-
     if(NOT TARGET SDL2::SDL2 AND NOT TARGET PkgConfig::SDL2 AND TETRIS_FETCH_SDL2)
         include(FetchContent)
         set(SDL_SHARED OFF CACHE BOOL "" FORCE)
@@ -77,19 +78,11 @@ if(TETRIS_BUILD_APP)
     endif()
 
     add_executable(tetris_pc
-        src/main.c
-        src/app.c
-        src/audio.c
-        src/rom_picker.c
-        src/android_bridge.c
-        src/touch_controls.c
-        src/rom_screens.c
-        src/rom_sprites.c
-        src/rom_endings.c
-        src/rom_concert_animation.c
-        src/rom_cathedral_sprites.c
-        src/rom_type_a.c
-        src/rom_type_a_background.c
+        src/main.c src/app.c src/audio.c src/rom_picker.c
+        src/android_bridge.c src/touch_controls.c
+        src/rom_screens.c src/rom_sprites.c src/rom_endings.c
+        src/rom_concert_animation.c src/rom_cathedral_sprites.c
+        src/rom_type_a.c src/rom_type_a_background.c
     )
     target_link_libraries(tetris_pc PRIVATE tetris_core)
     if(TARGET SDL2::SDL2)
@@ -112,7 +105,6 @@ if(TETRIS_BUILD_APP)
                 pkg_check_modules(SDL2_MIXER QUIET IMPORTED_TARGET SDL2_mixer)
             endif()
         endif()
-
         if(NOT TARGET SDL2_mixer::SDL2_mixer AND
            NOT TARGET SDL2_mixer::SDL2_mixer-static AND
            NOT TARGET PkgConfig::SDL2_MIXER AND
@@ -140,7 +132,6 @@ if(TETRIS_BUILD_APP)
             )
             FetchContent_MakeAvailable(SDL2_mixer)
         endif()
-
         if(TARGET SDL2_mixer::SDL2_mixer-static)
             target_link_libraries(tetris_pc PRIVATE SDL2_mixer::SDL2_mixer-static)
             target_compile_definitions(tetris_pc PRIVATE TETRIS_HAVE_SDL_MIXER=1)
@@ -154,7 +145,6 @@ if(TETRIS_BUILD_APP)
             message(WARNING "SDL2_mixer was not found; OGG audio-pack support is disabled.")
         endif()
     endif()
-
     if(WIN32)
         target_link_libraries(tetris_pc PRIVATE comdlg32)
         set_target_properties(tetris_pc PROPERTIES WIN32_EXECUTABLE OFF)
@@ -168,9 +158,10 @@ if(TETRIS_BUILD_TESTS)
     add_executable(tetris_demo_tests tests/demo_rom_tests.c)
     add_executable(tetris_cathedral_tests tests/cathedral_tests.c)
     add_executable(tetris_apu_tests tests/apu_tests.c)
+    add_executable(tetris_irq_timing_tests tests/irq_timing_tests.c)
     foreach(target IN ITEMS
-            tetris_game_tests tetris_demo_tests
-            tetris_cathedral_tests tetris_apu_tests)
+            tetris_game_tests tetris_demo_tests tetris_cathedral_tests
+            tetris_apu_tests tetris_irq_timing_tests)
         target_link_libraries(${target} PRIVATE tetris_core)
         tetris_strict_c(${target})
     endforeach()
@@ -178,6 +169,7 @@ if(TETRIS_BUILD_TESTS)
     add_test(NAME demo_rom COMMAND tetris_demo_tests)
     add_test(NAME cathedral COMMAND tetris_cathedral_tests)
     add_test(NAME apu COMMAND tetris_apu_tests)
+    add_test(NAME irq_timing COMMAND tetris_irq_timing_tests)
     add_test(NAME apu_render_self_test COMMAND tetris_apu_render --self-test)
     add_test(NAME apu_scenario_self_test COMMAND tetris_apu_scenario --self-test)
     find_package(Python3 COMPONENTS Interpreter QUIET)
@@ -191,35 +183,21 @@ include(GNUInstallDirs)
 if(TETRIS_BUILD_APP)
     install(TARGETS tetris_pc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
-install(TARGETS
-    tetris_replay_verify tetris_demo_verify
-    tetris_apu_render tetris_apu_scenario
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+install(TARGETS tetris_replay_verify tetris_demo_verify
+        tetris_apu_render tetris_apu_scenario
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(PROGRAMS
-    tools/audio_pack.py
-    tools/rom_assets_verify.py
-    tools/type_a_ending_verify.py
-    tools/trace_compare.py
-    tools/apu_matrix.py
-    tools/mesen_trace.lua
-    DESTINATION tools
-)
+    tools/audio_pack.py tools/rom_assets_verify.py
+    tools/type_a_ending_verify.py tools/trace_compare.py
+    tools/apu_matrix.py tools/mesen_trace.lua
+    DESTINATION tools)
 install(FILES README.md DESTINATION .)
 install(FILES
-    docs/PORT_STATUS.md
-    docs/ANDROID_PORT.md
-    docs/ROM_MAP.md
-    docs/ROM_SCREENS.md
-    docs/ROM_DEMO_OAM.md
-    docs/ROM_TYPE_A_ENDING.md
-    docs/TRACE_COMPARISON.md
-    docs/APU_RENDERING.md
-    docs/REPLAY_FORMAT.md
-    docs/AUDIO_PACK.md
-    docs/DECOMP_TOOLS.md
-    DESTINATION docs
-)
+    docs/PORT_STATUS.md docs/ANDROID_PORT.md docs/ROM_MAP.md
+    docs/ROM_SCREENS.md docs/ROM_DEMO_OAM.md docs/ROM_TYPE_A_ENDING.md
+    docs/TRACE_COMPARISON.md docs/APU_RENDERING.md
+    docs/REPLAY_FORMAT.md docs/AUDIO_PACK.md docs/DECOMP_TOOLS.md
+    DESTINATION docs)
 
 set(CPACK_PACKAGE_NAME "tetris-nes-pc-port")
 set(CPACK_PACKAGE_VENDOR "YlPorts")
