@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 jobs:
@@ -13,11 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Self-test ROM-structure tools
+      - name: Self-test ROM-structure and trace tools
         run: |
           python tools/rom_assets_verify.py --self-test
           python tools/type_a_ending_verify.py --self-test
           python tools/cathedral_verify.py --self-test
+          python tools/trace_compare.py --self-test
 
       - uses: actions/setup-java@v4
         with:
@@ -69,10 +70,10 @@ jobs:
             echo "Forbidden ROM/replay/audio payload found in APK" >&2
             exit 1
           fi
-          cp "$APK" Tetris-NES-Port-Android-v0.9-debug.apk
-          sha256sum Tetris-NES-Port-Android-v0.9-debug.apk
+          cp "$APK" Tetris-NES-Port-Android-v0.10-debug.apk
+          sha256sum Tetris-NES-Port-Android-v0.10-debug.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: tetris-nes-port-android-v0.9
-          path: Tetris-NES-Port-Android-v0.9-debug.apk
+          name: tetris-nes-port-android-v0.10
+          path: Tetris-NES-Port-Android-v0.10-debug.apk
