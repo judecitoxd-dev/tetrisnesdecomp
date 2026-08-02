@@ -11,6 +11,7 @@ add_library(main SHARED
     "${ROOT_DIR}/src/rom_picker.c"
     "${ROOT_DIR}/src/android_bridge.c"
     "${ROOT_DIR}/src/touch_controls.c"
+    "${ROOT_DIR}/src/menu_music_cursor.c"
     "${ROOT_DIR}/src/rom_screens.c"
     "${ROOT_DIR}/src/rom_sprites.c"
     "${ROOT_DIR}/src/rom_endings.c"

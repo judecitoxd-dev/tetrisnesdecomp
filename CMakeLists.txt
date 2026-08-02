@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.19.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.20.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -79,7 +79,7 @@ if(TETRIS_BUILD_APP)
 
     add_executable(tetris_pc
         src/main.c src/app.c src/audio.c src/audio_device.c src/rom_picker.c
-        src/android_bridge.c src/touch_controls.c
+        src/android_bridge.c src/touch_controls.c src/menu_music_cursor.c
         src/rom_screens.c src/rom_sprites.c src/rom_endings.c
         src/rom_concert_animation.c src/rom_cathedral_sprites.c
         src/rom_type_a.c src/rom_type_a_background.c
@@ -183,6 +183,8 @@ if(TETRIS_BUILD_TESTS)
     if(Python3_Interpreter_FOUND)
         add_test(NAME apu_matrix_self_test
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/apu_matrix.py self-test)
+        add_test(NAME audio_cache_self_test
+                 COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/build_audio_cache.py --self-test)
     endif()
 endif()
 
@@ -196,15 +198,15 @@ install(TARGETS tetris_replay_verify tetris_demo_verify
 install(PROGRAMS
     tools/audio_pack.py tools/rom_assets_verify.py
     tools/type_a_ending_verify.py tools/trace_compare.py
-    tools/apu_matrix.py tools/mesen_trace.lua
+    tools/apu_matrix.py tools/build_audio_cache.py tools/mesen_trace.lua
     DESTINATION tools)
 install(FILES README.md DESTINATION .)
 install(FILES
     docs/PORT_STATUS.md docs/ANDROID_PORT.md docs/ROM_MAP.md
     docs/ROM_SCREENS.md docs/ROM_DEMO_OAM.md docs/ROM_TYPE_A_ENDING.md
     docs/TRACE_COMPARISON.md docs/APU_RENDERING.md
-    docs/REPLAY_FORMAT.md docs/AUDIO_PACK.md docs/DECOMP_TOOLS.md
-    docs/PLAYABILITY_VERIFICATION.md
+    docs/REPLAY_FORMAT.md docs/AUDIO_PACK.md docs/OGG_CACHE.md
+    docs/DECOMP_TOOLS.md docs/PLAYABILITY_VERIFICATION.md
     DESTINATION docs)
 
 set(CPACK_PACKAGE_NAME "tetris-nes-pc-port")
