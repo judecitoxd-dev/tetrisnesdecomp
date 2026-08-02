@@ -1,18 +1,16 @@
 # Estado de decompilación y ports
 
-## Resumen de v0.19
+## Resumen de v0.20
 
-La fase v0.19 es una reparación de jugabilidad y de correspondencia con el
-renderizador original. No se limita a cambiar posiciones visuales: identifica
-las causas de una columna borrada, el inicio accidental en nivel 10, la
-navegación incompleta del menú musical y los cortes producidos por un callback
-de audio con poco margen.
+La fase v0.20 cambia la estrategia del audio interactivo. El driver 6502/APU se
+conserva como fuente de verdad, pero puede ejecutarse fuera de la partida para
+generar un caché Ogg Vorbis local. Durante el juego, SDL2_mixer reproduce las
+muestras ya preparadas y evita que el callback de audio tenga que emular CPU y
+APU en tiempo real.
 
-La primera columna del tablero desaparecía porque una restauración del fondo de
-estadísticas alcanzaba el tile X=12, exactamente donde empieza el playfield. El
-nivel 10 provenía de ajustes antiguos que guardaban 10–19 aunque el menú visible
-solo contiene 0–9. La navegación de `GAME TYPE` trataba todas las flechas como
-cambio A/B y no reproducía el estado `musicType` del programa 6502.
+También se corrige la falta de respuesta visual en `GAME TYPE`: v0.19 cambiaba
+`music_track`, pero la pantalla exacta no dibujaba el cursor de `musicType`.
+v0.20 añade el segundo cursor en las coordenadas de la rutina 6502 original.
 
 ## Progreso estimado
 
@@ -25,62 +23,69 @@ cambio A/B y no reproducía el estado `musicType` del programa 6502.
 | Modo B | 95% |
 | Integración y empaquetado | 99% |
 | Carga legal de recursos desde ROM | 99% |
-| **Fidelidad de reglas y timings principales** | **89%** |
+| Fidelidad de reglas y timings principales | 89% |
 | Pantallas y animaciones originales/equivalentes | 96% |
-| Audio original interactivo | 93% |
-| Renderizado automático del APU original | 92% |
-| **Decompilación etiquetada/verificada del PRG 6502** | **43%** |
-| **Correspondencia reproducible con la ROM** | **40%** |
+| Audio original interactivo | 94% |
+| Renderizado automático del APU original | 93% |
+| Decompilación etiquetada/verificada del PRG 6502 | 44% |
+| **Correspondencia reproducible con la ROM** | **42%** |
 
-Estos porcentajes son estimaciones de ingeniería, no cobertura automática de
-líneas. Los tres aumentos resaltados se justifican así:
+La cifra que representa mejor «ser 100% igual a la ROM» sigue siendo
+**Correspondencia reproducible con la ROM**. El proyecto está aproximadamente
+en **42%** y falta alrededor de **58%** para identidad funcional, audiovisual y
+de timing respaldada por comparaciones reproducibles.
 
-- Reglas/timings: navegación original de tipo/música, selección normal 0–9,
-  inicio comprobado en nivel 0 y gravedad de 48 fotogramas.
-- PRG 6502: etiquetado y uso verificable de las rutas de menú y direcciones PPU
-  del render original.
-- Correspondencia: constantes compartidas, límites de nametable y pruebas que
-  fallan si una restauración vuelve a invadir el playfield.
+Estos valores son estimaciones de ingeniería, no cobertura automática de
+líneas. Actions no contiene una ROM y no puede validar por sí solo la salida
+visual o auditiva final de una partida humana.
 
-Los porcentajes generales de jugabilidad se mantienen por debajo de 100% hasta
-que los artefactos se prueben de forma interactiva con una ROM legal. GitHub
-Actions no incorpora la ROM y, por tanto, no puede validar por sí solo la imagen
-o el sonido final durante una partida humana.
+## Caché de audio legal
 
-## Reparaciones verificables de v0.19
+`tools/build_audio_cache.py` genera desde la ROM del usuario:
 
-### Límite entre estadísticas y tablero
+- `track_01.ogg` a `track_10.ogg`;
+- tres alias de música que consume el runtime actual;
+- movimiento, rotación, bloqueo, línea, Tetris, subida de nivel, derrota y
+  final completado;
+- una traza CSV por pista y efecto;
+- `audio-cache.json` con SHA-256, CRC, duración, muestras y hashes APU.
 
-- El tablero exacto empieza en tile X=12, Y=6 y mide 10×20 tiles.
-- La restauración antigua cubría X=4..12 e incluía la primera columna.
-- La nueva región termina antes de X=12.
-- `playability_regressions` comprueba esta desigualdad en cada build.
+Los efectos utilizan el nuevo modo `--isolated` de `tetris_apu_scenario`, por lo
+que no contienen MUSIC-1 debajo. El repositorio y los artefactos CI excluyen los
+OGG, WAV, CSV y la ROM.
 
-### Nivel inicial y ajustes antiguos
+## Selección musical verificada
 
-- El selector normal utiliza únicamente niveles 0–9.
-- Ajustes v0.18 con niveles ocultos se migran por el dígito que mostraban:
-  `10 → 0`, `18 → 8`, `19 → 9`.
-- Los replays históricos todavía pueden describir niveles superiores; no se
-  cambia su formato ni su reproducción determinista.
+La rutina original usa `musicType` con valores 0–3:
 
-### Navegación de GAME TYPE / MUSIC TYPE
+- 0: MUSIC-1;
+- 1: MUSIC-2;
+- 2: MUSIC-3;
+- 3: OFF.
 
-- Izquierda/derecha: A-Type o B-Type.
-- Abajo: Music 1 → Music 2 → Music 3 → Off.
-- Arriba: recorrido inverso.
-- Teclado y mando llaman la misma función de transición.
-- Los botones táctiles generan las mismas teclas y heredan esa lógica.
+El cursor se coloca en:
 
-### Audio
+- X NES: `$67`;
+- Y NES: `$8F + musicType × $10`.
 
-El driver original 6502/APU todavía se ejecuta en el callback de SDL. v0.19
-amplía el búfer solicitado de 512 a 2048 muestras en PC y 4096 en Android,
-configurable mediante `TETRIS_AUDIO_BUFFER_SAMPLES`.
+La transición de estado es compartida por teclado, mando y controles táctiles.
+La nueva superposición permite comprobar visualmente que Up/Down modifican la
+fila seleccionada.
 
-Esto reduce el riesgo de underruns, pero no cierra el audio al 100%. Falta mover
-el renderizado a un productor con búfer circular, medir underruns y comparar las
-18 trazas contra capturas reales de Mesen.
+## Correspondencia de pistas
+
+El port mantiene la numeración del driver original, 1–10. Las selecciones del
+menú que usa actualmente el juego corresponden a:
+
+- MUSIC-1: pista 3;
+- MUSIC-2: pista 4;
+- MUSIC-3: pista 5;
+- variantes allegro: pistas 6, 7 y 8.
+
+El generador conserva todas las pistas. El runtime v0.20 todavía carga de forma
+directa los tres alias normales y los ocho efectos; integrar las diez pistas,
+las variantes allegro y los finales mediante el manifiesto es la siguiente
+fase.
 
 ## Direcciones y timings comprobados
 
@@ -90,12 +95,15 @@ el renderizado a un productor con búfer circular, medir underruns y comparar la
 - `LEVEL`: `$22BA`
 - Estadísticas: `$2186`, `$21C6`, `$2206`, `$2246`, `$2286`, `$22C6`, `$2306`
 - Filas de récords: `$2289`, `$22C9`, `$2309`
-- Gravedad de nivel 0: 48 fotogramas NTSC.
-- Frecuencia lógica del port: 60.0988 actualizaciones por segundo.
+- `musicType`: `$00C2`
+- `musicTrack`: `$06F5`
+- Cursor de música: X `$67`, base Y `$8F`, paso `$10`
+- Gravedad de nivel 0: 48 fotogramas NTSC
+- Frecuencia lógica: 60.0988 actualizaciones por segundo
 
 ## Suite reproducible
 
-La suite v0.19 contiene 11 pruebas:
+Cuando Python está disponible, la suite v0.20 contiene 12 pruebas:
 
 1. reglas y estados de juego;
 2. demo desde ROM;
@@ -106,32 +114,36 @@ La suite v0.19 contiene 11 pruebas:
 7. récords y migración;
 8. regresiones de jugabilidad;
 9. autorender APU;
-10. escenarios APU;
-11. matriz APU.
+10. escenarios APU y salida WAV;
+11. matriz APU;
+12. planificación y manifiesto del caché OGG.
 
-La prueba de jugabilidad comprueba explícitamente el límite del tablero, la
-migración del nivel 10, el rango 0–9, el orden musical y el timing de nivel 0.
+La autoprueba del caché confirma diez pistas, ocho efectos, tres alias y 22
+archivos obligatorios sin necesitar una ROM.
 
 ## Diferencias conocidas
 
-- La estabilidad del audio necesita una prueba interactiva prolongada y un
-  productor/ring buffer; ampliar el callback no demuestra ausencia total de
-  cortes.
-- Las escrituras APU siguen aplicándose a granularidad de instrucción y no al
-  ciclo exacto de bus.
+- El caché requiere una ejecución local con ROM y ffmpeg; CI solo valida su
+  planificación y las herramientas.
+- Las pistas OGG tienen duración fija. Falta detectar el punto de bucle exacto
+  del bytecode musical y reproducir introducción/bucle sin corte.
+- Android todavía usa el backend APU; falta integrar SDL2_mixer o un decodificador
+  OGG equivalente en el APK.
+- El cursor musical usa las coordenadas originales, pero su gráfico provisional
+  aún debe sustituirse por `sprite53MusicTypeCursor` decodificado del PRG/CHR.
+- Las escrituras APU se aplican a granularidad de instrucción y no al ciclo de
+  bus exacto.
 - La matriz necesita capturas Mesen generadas localmente para medir igualdad.
-- La demo usa comandos y piezas originales, pero parte de sus reglas se ejecuta
-  en C.
-- Aún no existe una construcción 6502 enlazable o binariamente idéntica.
-- La fidelidad visual final requiere comparar capturas del artefacto con la ROM
-  legal del usuario.
+- La demo usa comandos y piezas originales, pero parte de sus reglas está en C.
+- No existe todavía una construcción 6502 binariamente idéntica.
 
 ## Próxima fase hacia exactitud
 
-1. Ejecutar el artefacto v0.19 con la ROM legal y comparar capturas de partida,
-   nivel, menús, récords y finales.
-2. Sustituir el render APU dentro del callback por productor y búfer circular.
-3. Capturar la matriz Mesen y corregir la primera divergencia de cada familia.
-4. Ampliar las pruebas de input a secuencias completas de menús y partida.
-5. Continuar etiquetando y traduciendo rutinas PRG.
-6. Preparar una construcción 6502 enlazable y perseguir identidad binaria.
+1. Cargar las diez pistas del manifiesto y cambiar a las pistas 6–8 al entrar en
+   allegro.
+2. Detectar automáticamente los puntos de bucle del estado musical 6502.
+3. Decodificar y dibujar `sprite53MusicTypeCursor` directamente desde la ROM.
+4. Integrar el caché OGG generado por el usuario en Android.
+5. Comparar las 18 trazas con Mesen y corregir la primera divergencia.
+6. Continuar etiquetando y traduciendo rutinas PRG.
+7. Preparar una construcción 6502 enlazable y perseguir identidad binaria.
