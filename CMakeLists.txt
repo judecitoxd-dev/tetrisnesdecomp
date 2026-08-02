@@ -79,7 +79,7 @@ if(TETRIS_BUILD_APP)
 
     add_executable(tetris_pc
         src/main.c src/app.c src/audio.c src/audio_device.c src/rom_picker.c
-        src/android_bridge.c src/touch_controls.c
+        src/android_bridge.c src/touch_controls.c src/menu_music_cursor.c
         src/rom_screens.c src/rom_sprites.c src/rom_endings.c
         src/rom_concert_animation.c src/rom_cathedral_sprites.c
         src/rom_type_a.c src/rom_type_a_background.c
