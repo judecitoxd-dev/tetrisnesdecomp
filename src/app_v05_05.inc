@@ -128,6 +128,7 @@ void app_result_begin(AppResultState *result, const TetrisGame *game, int rank) 
     tetris_name_entry_init(&result->name, "PLAYER");
     result->mode = game->mode;
     result->score = game->score;
+    result->lines = game->total_lines;
     result->level = game->start_level;
     result->height = game->start_height;
     result->rank = rank;
