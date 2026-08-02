@@ -11,7 +11,7 @@
 
     window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
     if (settings.fullscreen) window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.6",
+    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.12",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         settings.window_width, settings.window_height, window_flags);
     if (!window) {
@@ -48,8 +48,10 @@
         fprintf(stderr, "Audio disabled: %s\n", SDL_GetError());
         memset(&audio, 0, sizeof(audio));
         audio.music_track = -1;
+        audio.rom_selected_track = -2;
         settings.audio_enabled = false;
     }
+    attach_original_audio(&audio, &rom);
     load_optional_audio_pack(&audio, cli_audio_pack_path);
     tetris_audio_apply_settings(&audio, settings.audio_enabled,
                                 settings.music_track);
@@ -147,6 +149,7 @@
                 }
             }
             if (event.type == SDL_DROPFILE) {
+                tetris_audio_detach_rom(&audio);
                 if (load_candidate(renderer, event.drop.file, &rom, &font,
                                    &settings, settings_path, true)) {
                     if (screen == SCREEN_GAME)
@@ -156,6 +159,7 @@
                     screen = SCREEN_TITLE;
                     clear_held(&left, &right, &down);
                 }
+                attach_original_audio(&audio, &rom);
                 SDL_free(event.drop.file);
             }
 
