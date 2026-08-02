@@ -31,22 +31,31 @@ static void test_high_scores_sort_and_round_trip(void) {
     remove(path);
     tetris_high_scores_init(&scores);
     assert(tetris_high_scores_rank(&scores, TETRIS_MODE_A, 100) == 0);
-    assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A, "AAA", 100, 1, 0));
-    assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A, "BBB", 500, 5, 0));
-    assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A, "CCC", 300, 3, 0));
-    assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A, "DDD", 300, 4, 0));
+    assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A,
+                                     "AAA", 100, 1, 1, 0));
+    assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A,
+                                     "BBB", 500, 5, 5, 0));
+    assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A,
+                                     "CCC", 300, 3, 3, 0));
+    assert(tetris_high_scores_submit(&scores, TETRIS_MODE_A,
+                                     "DDD", 300, 4, 4, 0));
     assert(tetris_high_scores_top(&scores, TETRIS_MODE_A)->score == 500);
+    assert(tetris_high_scores_top(&scores, TETRIS_MODE_A)->lines == 5);
     assert(tetris_high_scores_rank(&scores, TETRIS_MODE_A, 250) == -1);
     assert(strcmp(tetris_high_scores_top(&scores, TETRIS_MODE_A)->name, "BBB---") == 0);
-    assert(tetris_high_scores_submit(&scores, TETRIS_MODE_B, "WIN", 14400, 9, 5));
+    assert(tetris_high_scores_submit(&scores, TETRIS_MODE_B,
+                                     "WIN", 14400, 25, 9, 5));
     assert(tetris_high_scores_save(&scores, path));
     tetris_high_scores_init(&loaded);
     assert(tetris_high_scores_load(&loaded, path));
     assert(loaded.entries[0][0].score == 500);
+    assert(loaded.entries[0][0].lines == 5);
     assert(loaded.entries[0][1].score == 300);
+    assert(loaded.entries[0][1].lines == 3);
     assert(loaded.entries[0][2].score == 300);
-    assert(loaded.entries[0][1].score == 300);
+    assert(loaded.entries[0][2].lines == 4);
     assert(loaded.entries[1][0].score == 14400);
+    assert(loaded.entries[1][0].lines == 25);
     assert(loaded.entries[1][0].height == 5);
     remove(path);
 }
