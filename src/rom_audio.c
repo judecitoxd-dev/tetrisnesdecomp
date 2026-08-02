@@ -9,6 +9,7 @@
 #define MUSIC_TRACK_ADDR 0x06F5u
 #define SOUND_EFFECT_SLOT0_ADDR 0x06F0u
 #define NTSC_FRAME_RATE 60.0988
+#define NTSC_CPU_CLOCK 1789773.0
 #define CALL_INSTRUCTION_LIMIT 200000u
 #define FNV_OFFSET UINT64_C(1469598103934665603)
 #define FNV_PRIME UINT64_C(1099511628211)
@@ -58,6 +59,20 @@ static void mapped_write(void *userdata, uint16_t address, uint8_t value) {
     }
 }
 
+static void mapped_cycles(void *userdata, unsigned cycles) {
+    TetrisRomAudio *audio = (TetrisRomAudio *)userdata;
+    uint32_t stalls;
+    nes_apu_advance_cycles(&audio->apu, cycles);
+    do {
+        stalls = nes_apu_consume_stall_cycles(&audio->apu);
+        if (stalls) {
+            audio->last_stall_cycles += stalls;
+            audio->cpu.cycles += stalls;
+            nes_apu_advance_cycles(&audio->apu, stalls);
+        }
+    } while (stalls != 0);
+}
+
 static bool init_common(TetrisRomAudio *audio,
                         const uint8_t *prg, size_t prg_size,
                         char *error, size_t error_size) {
@@ -74,9 +89,10 @@ static bool init_common(TetrisRomAudio *audio,
     audio->prg = prg;
     audio->prg_size = prg_size;
     audio->apu_write_hash = FNV_OFFSET;
-    cpu6502_init(&audio->cpu, mapped_read, mapped_write, audio);
     nes_apu_init(&audio->apu, TETRIS_ROM_AUDIO_SAMPLE_RATE,
                  mapped_read, audio);
+    cpu6502_init(&audio->cpu, mapped_read, mapped_write, audio);
+    cpu6502_set_cycle_callback(&audio->cpu, mapped_cycles);
     if (!cpu6502_call(&audio->cpu, INIT_AUDIO_ENTRY,
                       CALL_INSTRUCTION_LIMIT, error,
                       (unsigned)error_size)) {
@@ -151,6 +167,11 @@ bool tetris_rom_audio_run_frame(TetrisRomAudio *audio,
                                 char *error, size_t error_size) {
     const double exact_samples =
         (double)TETRIS_ROM_AUDIO_SAMPLE_RATE / NTSC_FRAME_RATE;
+    const double exact_cycles = NTSC_CPU_CLOCK / NTSC_FRAME_RATE;
+    const uint64_t before_cycles = audio ? audio->cpu.cycles : 0;
+    uint32_t frame_cycles;
+    uint32_t driver_cycles;
+    uint32_t idle_cycles;
     size_t count;
     if (written) *written = 0;
     if (!audio || !audio->initialized || !samples) {
@@ -159,11 +180,19 @@ bool tetris_rom_audio_run_frame(TetrisRomAudio *audio,
     }
     audio->frame_write_count = 0;
     audio->frame_writes_overflow = false;
+    audio->last_stall_cycles = 0;
     if (!cpu6502_call(&audio->cpu, UPDATE_AUDIO_ENTRY,
                       CALL_INSTRUCTION_LIMIT, error,
                       (unsigned)error_size)) {
         return false;
     }
+    driver_cycles = (uint32_t)(audio->cpu.cycles - before_cycles);
+    audio->cycle_fraction += exact_cycles;
+    frame_cycles = (uint32_t)audio->cycle_fraction;
+    audio->cycle_fraction -= (double)frame_cycles;
+    if (frame_cycles < driver_cycles) frame_cycles = driver_cycles;
+    idle_cycles = frame_cycles - driver_cycles;
+
     audio->sample_fraction += exact_samples;
     count = (size_t)audio->sample_fraction;
     audio->sample_fraction -= (double)count;
@@ -171,7 +200,11 @@ bool tetris_rom_audio_run_frame(TetrisRomAudio *audio,
         set_error(error, error_size, "audio frame buffer is too small");
         return false;
     }
-    nes_apu_render(&audio->apu, samples, count);
+    nes_apu_render_cycles(&audio->apu, samples, count, idle_cycles);
+    (void)nes_apu_consume_stall_cycles(&audio->apu);
+    audio->last_frame_cpu_cycles = frame_cycles;
+    audio->last_driver_cycles = driver_cycles;
+    audio->rendered_cpu_cycles += frame_cycles;
     ++audio->rendered_frames;
     if (written) *written = count;
     if (error && error_size) error[0] = '\0';
@@ -187,26 +220,16 @@ void tetris_rom_audio_set_sound_effect(TetrisRomAudio *audio,
 void tetris_rom_audio_apply_events(TetrisRomAudio *audio, uint32_t events) {
     uint8_t pulse_effect = 0;
     if (!audio || !audio->initialized || events == 0) return;
-
     if (events & TETRIS_EVENT_GAME_OVER)
         tetris_rom_audio_set_sound_effect(audio, 0, 2);
-
-    if (events & TETRIS_EVENT_TETRIS) {
-        pulse_effect = 4;
-    } else if (events & TETRIS_EVENT_LEVEL_UP) {
-        pulse_effect = 6;
-    } else if (events & TETRIS_EVENT_LINE) {
-        pulse_effect = 10;
-    } else if (events & TETRIS_EVENT_LOCK) {
-        pulse_effect = 7;
-    } else if (events & TETRIS_EVENT_ROTATE) {
-        pulse_effect = 5;
-    } else if (events & TETRIS_EVENT_MOVE) {
-        pulse_effect = 3;
-    }
+    if (events & TETRIS_EVENT_TETRIS) pulse_effect = 4;
+    else if (events & TETRIS_EVENT_LEVEL_UP) pulse_effect = 6;
+    else if (events & TETRIS_EVENT_LINE) pulse_effect = 10;
+    else if (events & TETRIS_EVENT_LOCK) pulse_effect = 7;
+    else if (events & TETRIS_EVENT_ROTATE) pulse_effect = 5;
+    else if (events & TETRIS_EVENT_MOVE) pulse_effect = 3;
     if (pulse_effect)
         tetris_rom_audio_set_sound_effect(audio, 1, pulse_effect);
-
     if (events & TETRIS_EVENT_COMPLETE)
         audio->ram[MUSIC_TRACK_ADDR] = 2;
 }
