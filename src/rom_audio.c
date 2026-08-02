@@ -21,7 +21,11 @@ static void set_error(char *error, size_t error_size, const char *message) {
 static uint8_t mapped_read(void *userdata, uint16_t address) {
     TetrisRomAudio *audio = (TetrisRomAudio *)userdata;
     if (address < 0x2000u) return audio->ram[address & 0x07FFu];
-    if (address == 0x4015u) return nes_apu_read_status(&audio->apu);
+    if (address == 0x4015u) {
+        const uint8_t result = nes_apu_read_status(&audio->apu);
+        if (!nes_apu_irq_pending(&audio->apu)) cpu6502_clear_irq(&audio->cpu);
+        return result;
+    }
     if (address >= 0x8000u && audio->prg && audio->prg_size == 0x8000u)
         return audio->prg[address - 0x8000u];
     return 0;
@@ -55,22 +59,41 @@ static void mapped_write(void *userdata, uint16_t address, uint8_t value) {
     }
     if (address >= 0x4000u && address <= 0x4017u) {
         hash_apu_write(audio, address, value);
-        nes_apu_write(&audio->apu, address, value);
+        if (address == 0x4017u)
+            nes_apu_schedule_frame_counter(&audio->apu, value);
+        else
+            nes_apu_write(&audio->apu, address, value);
+        if (!nes_apu_irq_pending(&audio->apu)) cpu6502_clear_irq(&audio->cpu);
     }
+}
+
+static void clock_one_cpu_cycle(TetrisRomAudio *audio) {
+    uint32_t stalls;
+    nes_apu_clock_frame_counter_delay(&audio->apu);
+    nes_apu_advance_cycles(&audio->apu, 1u);
+    if (nes_apu_irq_pending(&audio->apu))
+        cpu6502_request_irq(&audio->cpu);
+    else
+        cpu6502_clear_irq(&audio->cpu);
+    do {
+        stalls = nes_apu_consume_stall_cycles(&audio->apu);
+        if (stalls) {
+            uint32_t index;
+            audio->last_stall_cycles += stalls;
+            audio->cpu.cycles += stalls;
+            for (index = 0; index < stalls; ++index) {
+                nes_apu_clock_frame_counter_delay(&audio->apu);
+                nes_apu_advance_cycles(&audio->apu, 1u);
+            }
+        }
+    } while (stalls != 0);
 }
 
 static void mapped_cycles(void *userdata, unsigned cycles) {
     TetrisRomAudio *audio = (TetrisRomAudio *)userdata;
-    uint32_t stalls;
-    nes_apu_advance_cycles(&audio->apu, cycles);
-    do {
-        stalls = nes_apu_consume_stall_cycles(&audio->apu);
-        if (stalls) {
-            audio->last_stall_cycles += stalls;
-            audio->cpu.cycles += stalls;
-            nes_apu_advance_cycles(&audio->apu, stalls);
-        }
-    } while (stalls != 0);
+    unsigned index;
+    for (index = 0; index < cycles; ++index)
+        clock_one_cpu_cycle(audio);
 }
 
 static bool init_common(TetrisRomAudio *audio,
