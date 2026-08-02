@@ -1,15 +1,15 @@
 # Estado de decompilación y ports
 
-## Resumen de v0.13
+## Resumen de v0.14
 
-La decimotercera fase sincroniza el intérprete 6502 y el APU con el reloj NTSC.
-Cada instrucción oficial aporta sus ciclos base, las ramas y lecturas indexadas
-aplican sus penalizaciones y el APU avanza con esos ciclos en lugar de estimarse
-únicamente desde la cantidad de muestras.
+La decimocuarta fase cierra dos pendientes de verificación: la entrada móvil de
+la catedral B-Type y la ejecución sistemática de todo el contenido APU ya
+identificado.
 
-El controlador original continúa ejecutándose una vez por fotograma, pero sus
-escrituras afectan ahora temporizadores, envolventes, secuenciador, DMC e IRQ en
-una línea temporal de CPU medible.
+La catedral usa ahora una máquina incremental que refleja literalmente los
+contadores `ending`, `ending_customVars`, `ending_currentSprite` y `$00CD` del
+6502. La herramienta `apu_matrix.py` genera o compara diez pistas y ocho
+escenarios de efectos sin incluir ROM, música ni trazas propietarias.
 
 ## Progreso estimado
 
@@ -19,73 +19,77 @@ una línea temporal de CPU medible.
 | Port Android jugable | 97% |
 | Controles, tablero y puntuación | 99% |
 | Modo A | 96% |
-| Modo B | 92% |
+| Modo B | 96% |
 | Integración y empaquetado | 99% |
 | Carga legal de recursos desde ROM | 99% |
 | Fidelidad de reglas y timings principales | 86% |
-| Pantallas y animaciones originales/equivalentes | 94% |
+| Pantallas y animaciones originales/equivalentes | 97% |
 | Audio original interactivo | 95% |
-| Renderizado automático del APU original | 90% |
-| Decompilación etiquetada/verificada del PRG 6502 | 40% |
-| Correspondencia reproducible con la ROM | 25% |
+| Renderizado automático del APU original | 92% |
+| Decompilación etiquetada/verificada del PRG 6502 | 41% |
+| Correspondencia reproducible con la ROM | 34% |
 
-El 90% del APU representa una implementación funcional, interactiva y guiada
-por ciclos. El porcentaje restante exige colocar cada lectura/escritura en su
-ciclo de bus exacto, entregar IRQ al flujo normal de CPU y demostrar igualdad
-de trazas para todas las pistas y efectos.
+El aumento de correspondencia significa que ya existe una matriz completa de
+casos verificables. No significa que se hayan incorporado al repositorio
+capturas de referencia ni que todos los casos coincidan todavía con Mesen.
 
-## Implementado en v0.13
+## Catedral B-Type completada
 
-- Conteo de ciclos para las instrucciones oficiales soportadas.
-- Penalización de un ciclo por rama tomada y otro por cruce de página.
-- Penalizaciones de cruce de página para lecturas indexadas.
-- Callback de ciclos desde el 6502 hacia el APU.
-- Distribución de aproximadamente 29,780.5 ciclos por fotograma NTSC.
-- Temporizadores de pulso y ruido a la mitad del reloj de CPU.
-- Temporizador de triángulo a reloj completo.
-- Temporizador DMC según la tabla NTSC.
-- Secuenciador APU de cuatro y cinco pasos por ciclos.
-- Quarter frame y half frame para envolventes, longitudes, barridos y contador
-  lineal.
-- Frame IRQ y DMC IRQ visibles en `$4015`.
-- Lecturas DMC con robos de cuatro ciclos contabilizados durante el driver.
-- Mezcla de muestras mientras transcurren los ciclos libres del fotograma.
-- Medición de ciclos totales, ciclos del driver y stalls en las trazas CSV.
-- Implementación portable para GCC, Clang, MSVC y Android NDK.
+- Estado incremental para diez niveles y seis cantidades de sprites.
+- Velocidad de animación y demora de movimiento desde las tablas originales.
+- Alternancia exacta entre los dos metasprites de cada nivel.
+- Posición inicial, sentinel, vector X, disparadores y coordenadas Y desde PRG.
+- Orden 6502 respetado: seleccionar sprite, incrementar demora, dibujar posición
+  anterior, mover y activar el siguiente objeto.
+- Activación en cascada dentro del mismo fotograma cuando corresponde.
+- Compatibilidad con el renderer de acceso aleatorio ya utilizado por SDL.
+- Prueba exhaustiva de 43,200 estados: 10 niveles × 6 alturas × 720 fotogramas.
+
+## Matriz APU completa
+
+`tools/apu_matrix.py` define 18 casos:
+
+- pistas originales 1 a 10;
+- movimiento;
+- rotación;
+- bloqueo;
+- línea;
+- Tetris;
+- subida de nivel;
+- derrota;
+- final completado.
+
+La orden `capture` ejecuta `tetris_apu_render` y `tetris_apu_scenario`, crea las
+trazas y guarda un manifiesto JSON con hashes, cantidad de fotogramas, ciclos y
+fotogramas con escrituras. La orden `compare` localiza el primer caso,
+fotograma y columna divergente contra una matriz de referencia generada por el
+usuario.
 
 ## Validación de la fase
 
-- Prueba de `LDX`, lectura indexada con cruce de página, rama tomada, `NOP` y
-  `RTS`: 18 ciclos.
-- Prueba de secuenciador: decremento de longitud al half frame.
-- Prueba de frame IRQ: activación, lectura por `$4015` y limpieza.
-- Prueba DMC: lectura de muestra, stall de cuatro ciclos, IRQ y limpieza.
-- Fotograma artificial: 798 muestras, 29,780 ciclos y audio no silencioso.
-- El PR debe pasar Windows, Linux y Android antes de fusionarse.
+- Autoprueba de matriz con casos iguales y divergentes.
+- Autoprueba de los ocho escenarios de efectos.
+- Prueba exhaustiva de la máquina de catedral.
+- Compilación estricta del nuevo ejecutable de escenarios en MSVC y GCC/Clang.
+- Windows, Linux y Android deben terminar en verde antes de fusionar.
+- El APK rechaza ROM, replay, OGG, WAV y CSV incrustados.
 
 ## Diferencias conocidas
 
-- Las escrituras de una instrucción se aplican antes de avanzar todos sus ciclos;
-  todavía no se ubican en el ciclo de bus exacto de la instrucción.
-- La demora de tres/cuatro ciclos de `$4017` sigue simplificada.
-- Frame IRQ y DMC IRQ se exponen, pero el driver aislado no ejecuta un handler
-  asíncrono entre llamadas de fotograma.
-- Los stalls DMC se contabilizan durante instrucciones; durante los ciclos
-  ociosos no existe CPU útil que detener.
-- Falta validar automáticamente todas las pistas, variantes allegro y efectos
-  contra Mesen.
-- La demo usa entradas y piezas originales, pero las reglas principales siguen
-  ejecutándose en C.
-- Falta completar la entrada/movimiento de la catedral B-Type.
-- No existe una construcción 6502 enlazable o binariamente idéntica.
+- Las escrituras APU siguen aplicándose a granularidad de instrucción y no al
+  ciclo de bus exacto.
+- La demora real de `$4017` y la entrega asíncrona de IRQ siguen simplificadas.
+- La matriz necesita capturas Mesen generadas localmente para medir igualdad.
+- La demo usa tablas originales, pero sus reglas principales se ejecutan en C.
+- Aún no existe una construcción 6502 enlazable o binariamente idéntica.
 
 ## Próxima fase hacia exactitud
 
-1. Añadir microtemporización de bus para lecturas y escrituras APU.
-2. Implementar la demora real de `$4017` y bordes exactos del secuenciador.
-3. Entregar IRQ al intérprete y modelar su entrada de siete ciclos.
-4. Automatizar una matriz de diez pistas, allegro y efectos contra Mesen.
-5. Corregir la primera escritura APU divergente hasta igualdad de traza.
-6. Continuar la comparación de RAM de la demo y corregir su primera divergencia.
-7. Completar la máquina de movimiento de la catedral B-Type.
-8. Ampliar la traducción del PRG y preparar una construcción 6502 enlazable.
+1. Añadir microtemporización de lecturas y escrituras APU dentro de cada opcode.
+2. Implementar la demora exacta de `$4017` y la entrada IRQ de siete ciclos.
+3. Ejecutar la matriz contra Mesen y corregir la primera divergencia de cada
+   familia de pistas/efectos.
+4. Continuar la comparación de RAM de la demo y corregir su primera divergencia.
+5. Etiquetar y traducir más rutinas PRG.
+6. Preparar una construcción 6502 enlazable y después perseguir identidad
+   binaria.
