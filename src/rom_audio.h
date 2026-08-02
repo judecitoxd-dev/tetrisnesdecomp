@@ -45,12 +45,14 @@ bool tetris_rom_audio_init_prg(TetrisRomAudio *audio,
 void tetris_rom_audio_reset(TetrisRomAudio *audio);
 bool tetris_rom_audio_select_track(TetrisRomAudio *audio, int track,
                                    char *error, size_t error_size);
+void tetris_rom_audio_stop_music(TetrisRomAudio *audio);
 bool tetris_rom_audio_run_frame(TetrisRomAudio *audio,
                                 float *samples, size_t capacity,
                                 size_t *written,
                                 char *error, size_t error_size);
 void tetris_rom_audio_set_sound_effect(TetrisRomAudio *audio,
                                        int slot, uint8_t effect);
+void tetris_rom_audio_apply_events(TetrisRomAudio *audio, uint32_t events);
 uint8_t tetris_rom_audio_ram(const TetrisRomAudio *audio, uint16_t address);
 
 #endif
