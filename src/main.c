@@ -1,3 +1,4 @@
+#include "touch_controls.h"
 #include "main_v05_00.inc"
 #include "main_v05_01.inc"
 #include "main_v05_02.inc"

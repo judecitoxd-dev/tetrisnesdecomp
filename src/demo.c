@@ -3,6 +3,17 @@
 #include <limits.h>
 #include <string.h>
 
+#define DEMO_BUTTONS_PRG_OFFSET 0x5d00u
+#define DEMO_BUTTONS_SIZE       0x0200u
+#define DEMO_PIECES_PRG_OFFSET  0x5f00u
+#define DEMO_PIECES_SIZE        0x0100u
+
+#define NES_BUTTON_A     0x80u
+#define NES_BUTTON_B     0x40u
+#define NES_BUTTON_DOWN  0x04u
+#define NES_BUTTON_LEFT  0x02u
+#define NES_BUTTON_RIGHT 0x01u
+
 static bool placement_collides(const uint8_t *board, TetrisPiece piece,
                                int rotation, int px, int py) {
     int block;
@@ -115,18 +126,112 @@ static void plan_piece(TetrisDemoController *demo, const TetrisGame *game) {
     demo->has_plan = best_score != INT_MIN;
 }
 
+static TetrisPiece demo_piece_from_byte(uint8_t value) {
+    const unsigned index = (unsigned)((value >> 4) & 7u);
+    return index == 7u ? PIECE_T : (TetrisPiece)index;
+}
+
+static void apply_initial_rom_pieces(TetrisDemoController *demo,
+                                     TetrisGame *game) {
+    if (!demo || !game || !demo->piece_data) return;
+    game->active = demo_piece_from_byte(demo->piece_data[0]);
+    game->next = demo_piece_from_byte(demo->piece_data[1]);
+    game->rotation = tetris_spawn_rotation(game->active);
+    game->x = 5;
+    game->y = 0;
+    game->fall_counter = 0;
+    game->das_counter = 0;
+    game->das_direction = 0;
+    game->soft_drop_counter = 0;
+    game->soft_drop_points = 0;
+    memset(game->piece_count, 0, sizeof(game->piece_count));
+    game->piece_count[game->active] = 1;
+    demo->piece_index = 2;
+    demo->observed_spawn_count = game->spawn_count;
+}
+
 void tetris_demo_reset(TetrisDemoController *demo) {
     if (!demo) return;
     memset(demo, 0, sizeof(*demo));
     demo->observed_spawn_count = 0xffu;
 }
 
+bool tetris_demo_reset_from_rom(TetrisDemoController *demo,
+                                TetrisGame *game, const NesRom *rom) {
+    tetris_demo_reset(demo);
+    if (!demo || !game || !rom || !rom->exact_supported_dump ||
+        !rom->prg || rom->prg_size < DEMO_PIECES_PRG_OFFSET + DEMO_PIECES_SIZE) {
+        return false;
+    }
+    demo->button_data = rom->prg + DEMO_BUTTONS_PRG_OFFSET;
+    demo->piece_data = rom->prg + DEMO_PIECES_PRG_OFFSET;
+    demo->rom_script = true;
+    apply_initial_rom_pieces(demo, game);
+    return true;
+}
+
+void tetris_demo_sync_after_tick(TetrisDemoController *demo,
+                                 TetrisGame *game) {
+    if (!demo || !game || !demo->rom_script || demo->finished) return;
+    if (demo->observed_spawn_count == game->spawn_count) return;
+    demo->observed_spawn_count = game->spawn_count;
+    if (demo->piece_index >= DEMO_PIECES_SIZE) {
+        demo->finished = true;
+        return;
+    }
+    game->next = demo_piece_from_byte(demo->piece_data[demo->piece_index++]);
+}
+
+bool tetris_demo_is_finished(const TetrisDemoController *demo) {
+    return demo && demo->finished;
+}
+
+bool tetris_demo_uses_rom_script(const TetrisDemoController *demo) {
+    return demo && demo->rom_script;
+}
+
+static TetrisInput next_rom_input(TetrisDemoController *demo,
+                                  TetrisGame *game) {
+    TetrisInput input;
+    uint8_t newly_pressed = 0;
+    memset(&input, 0, sizeof(input));
+
+    if (demo->finished) return input;
+    if (demo->repeats != 0u) {
+        demo->repeats = (uint8_t)(demo->repeats - 1u);
+    } else {
+        uint8_t next_buttons;
+        if (demo->button_index + 1u >= DEMO_BUTTONS_SIZE) {
+            demo->finished = true;
+            game->phase = TETRIS_PHASE_GAME_OVER;
+            game->game_over = true;
+            return input;
+        }
+        next_buttons = demo->button_data[demo->button_index++];
+        newly_pressed = (uint8_t)((demo->held_buttons ^ next_buttons) &
+                                  next_buttons);
+        demo->held_buttons = next_buttons;
+        demo->repeats = demo->button_data[demo->button_index++];
+    }
+
+    input.left = (demo->held_buttons & NES_BUTTON_LEFT) != 0u;
+    input.right = (demo->held_buttons & NES_BUTTON_RIGHT) != 0u;
+    input.down = (demo->held_buttons & NES_BUTTON_DOWN) != 0u;
+    input.rotate_cw_pressed = (newly_pressed & NES_BUTTON_A) != 0u;
+    input.rotate_ccw_pressed = (newly_pressed & NES_BUTTON_B) != 0u;
+    return input;
+}
+
 TetrisInput tetris_demo_next_input(TetrisDemoController *demo,
-                                   const TetrisGame *game) {
+                                   TetrisGame *game) {
     TetrisInput input;
     memset(&input, 0, sizeof(input));
-    if (!demo || !game || game->paused ||
-        game->phase != TETRIS_PHASE_ACTIVE) return input;
+    if (!demo || !game) return input;
+    if (demo->rom_script) {
+        tetris_demo_sync_after_tick(demo, game);
+        return next_rom_input(demo, game);
+    }
+    if (game->paused || game->phase != TETRIS_PHASE_ACTIVE) return input;
 
     if (!demo->has_plan || demo->observed_spawn_count != game->spawn_count) {
         plan_piece(demo, game);

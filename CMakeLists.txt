@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.8.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.9.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -24,6 +24,7 @@ add_library(tetris_core STATIC
     src/demo.c
     src/settings.c
     src/replay.c
+    src/cathedral.c
 )
 target_include_directories(tetris_core PUBLIC src)
 if(MSVC)
@@ -38,6 +39,14 @@ if(MSVC)
     target_compile_options(tetris_replay_verify PRIVATE /W4)
 else()
     target_compile_options(tetris_replay_verify PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+add_executable(tetris_demo_verify tools/demo_verify.c)
+target_link_libraries(tetris_demo_verify PRIVATE tetris_core)
+if(MSVC)
+    target_compile_options(tetris_demo_verify PRIVATE /W4)
+else()
+    target_compile_options(tetris_demo_verify PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 if(TETRIS_BUILD_APP)
@@ -70,6 +79,12 @@ if(TETRIS_BUILD_APP)
         src/android_bridge.c
         src/touch_controls.c
         src/rom_screens.c
+        src/rom_sprites.c
+        src/rom_endings.c
+        src/rom_concert_animation.c
+        src/rom_cathedral_sprites.c
+        src/rom_type_a.c
+        src/rom_type_a_background.c
     )
     target_link_libraries(tetris_pc PRIVATE tetris_core)
     if(TARGET SDL2::SDL2)
@@ -156,18 +171,46 @@ if(TETRIS_BUILD_TESTS)
         target_compile_options(tetris_game_tests PRIVATE -Wall -Wextra -Wpedantic)
     endif()
     add_test(NAME gameplay COMMAND tetris_game_tests)
+
+    add_executable(tetris_demo_tests tests/demo_rom_tests.c)
+    target_link_libraries(tetris_demo_tests PRIVATE tetris_core)
+    if(MSVC)
+        target_compile_options(tetris_demo_tests PRIVATE /W4)
+    else()
+        target_compile_options(tetris_demo_tests PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+    add_test(NAME demo_rom COMMAND tetris_demo_tests)
+
+    add_executable(tetris_cathedral_tests tests/cathedral_tests.c)
+    target_link_libraries(tetris_cathedral_tests PRIVATE tetris_core)
+    if(MSVC)
+        target_compile_options(tetris_cathedral_tests PRIVATE /W4)
+    else()
+        target_compile_options(tetris_cathedral_tests PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+    add_test(NAME cathedral COMMAND tetris_cathedral_tests)
 endif()
 
 include(GNUInstallDirs)
 if(TETRIS_BUILD_APP)
     install(TARGETS tetris_pc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
-install(TARGETS tetris_replay_verify RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(PROGRAMS tools/audio_pack.py DESTINATION tools)
+install(TARGETS tetris_replay_verify tetris_demo_verify
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS
+    tools/audio_pack.py
+    tools/rom_assets_verify.py
+    tools/type_a_ending_verify.py
+    DESTINATION tools
+)
 install(FILES README.md DESTINATION .)
 install(FILES
     docs/PORT_STATUS.md
+    docs/ANDROID_PORT.md
     docs/ROM_MAP.md
+    docs/ROM_SCREENS.md
+    docs/ROM_DEMO_OAM.md
+    docs/ROM_TYPE_A_ENDING.md
     docs/REPLAY_FORMAT.md
     docs/AUDIO_PACK.md
     docs/DECOMP_TOOLS.md

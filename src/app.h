@@ -6,6 +6,9 @@
 #include "highscores.h"
 #include "name_entry.h"
 #include "rom.h"
+#include "rom_cathedral_sprites.h"
+#include "rom_endings.h"
+#include "rom_type_a.h"
 #include "settings.h"
 
 #include <SDL.h>
@@ -50,6 +53,7 @@ typedef struct AppResultState {
     int height;
     int rank;
     bool completed;
+    Uint32 ending_started_ms;
 } AppResultState;
 
 typedef struct PendingInput {

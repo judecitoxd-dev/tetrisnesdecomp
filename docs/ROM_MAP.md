@@ -37,6 +37,7 @@ completa deberá seguir el estado real del mapper.
 | Contenido | Offset PRG | Dirección CPU | Tamaño |
 |---|---:|---:|---:|
 | Gravedad NTSC | `0x098E` | `$898E` | 30 bytes |
+| Tabla de punteros OAM | `0x0C6C` | `$8C6C` | 90 punteros |
 | Columnas de borrado | `0x17FE` | `$97FE` | 10 bytes |
 | Paletas por nivel | `0x184C` | `$984C` | 40 bytes |
 | Orientaciones/aparición | `0x194E` | `$994E` | 27 bytes confirmados |
@@ -44,6 +45,43 @@ completa deberá seguir el estado real del mapper.
 
 `src/rom.c` lee la tabla de paletas desde la ROM legal. Las demás tablas permiten contrastar
 constantes traducidas al núcleo y pueden inspeccionarse con `tools/rom_tables.py`.
+
+## Streams PPU y parches de finales
+
+| Recurso | Inicio PRG | Fin comprobado | Banco CHR |
+|---|---:|---:|---:|
+| Paleta de finales | `0x2D43` | `0x2D67` | — |
+| Castillo B-Type | `0x49A6` | `0x4E07` | 1 |
+| Final B-Type normal | `0x4E07` | `0x5268` | 2 |
+| Final A-Type | `0x5268` | `0x56C9` | 2 |
+
+Parches directos `patchToPpu`:
+
+| Recurso | Inicio | Fin |
+|---|---:|---:|
+| Concierto altura 0 | `0x2834` | `0x284A` |
+| Concierto altura 1 | `0x284A` | `0x2862` |
+| Concierto altura 2 | `0x2862` | `0x287A` |
+| Concierto altura 3 | `0x287A` | `0x2896` |
+| Concierto altura 4 | `0x2896` | `0x28A8` |
+| Final A-Type ≥120,000 | `0x28CC` | `0x2925` |
+
+## Demo NTSC
+
+| Recurso | Offset PRG | Tamaño usado |
+|---|---:|---:|
+| Botones y duración | `0x5D00` | 512 bytes |
+| Secuencia de piezas | `0x5F00` | 40 bytes consumidos actualmente |
+
+## Metasprites del final A-Type
+
+| Umbral | Cuerpo | Chorros | X inicial | Y inicial |
+|---:|---:|---:|---:|---:|
+| 30k | `0x3E` | `0x3F`, `0x40` | `0x54` | `0xBF` |
+| 50k | `0x41` | `0x42`, `0x43` | `0x54` | `0xBF` |
+| 70k | `0x44` | `0x45`, `0x46` | `0x50` | `0xBF` |
+| 100k | `0x47` | `0x48`, `0x49` | `0x48` | `0xBF` |
+| 120k | `0x4A` | `0x23`, `0x24` | `0xA0` | `0xC7` |
 
 ## Rutinas etiquetadas con alta confianza
 
@@ -79,5 +117,6 @@ comparar el estado completo por fotograma para todas las combinaciones de nivel,
 - Las direcciones CPU dependen del banco MMC1 activo.
 - El recorrido agresivo puede confundir datos con instrucciones.
 - Una etiqueta indica una hipótesis o identificación; no implica que la rutina ya esté traducida.
+- Los offsets de streams y metasprites solo se activan para el CRC comprobado.
 - La correspondencia binaria requiere un ensamblado enlazable y control exacto del layout, aún no
   implementados.

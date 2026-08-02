@@ -11,15 +11,27 @@
 /* PRG-relative offsets in the verified Tetris (USA) dump, CRC32 D16EA396. */
 #define PRG_GAME_PALETTE       0x2cf3u
 #define PRG_MENU_PALETTE       0x2d2bu
+#define PRG_ENDING_PALETTE     0x2d43u
 #define PRG_TYPE_MENU          0x367au
 #define PRG_LEVEL_MENU         0x3adbu
 #define PRG_GAME_NAMETABLE     0x3f3cu
 #define PRG_ENTER_HIGH_SCORE   0x439du
 #define PRG_HIGH_SCORES_PATCH  0x47feu
 #define PRG_HEIGHT_MENU_PATCH  0x495du
+#define PRG_B_ENDING_CASTLE    0x49a6u
+#define PRG_B_ENDING_NORMAL    0x4e07u
 
-#define CHR_TITLE_MENU 0u
-#define CHR_GAME       3u
+/* patchToPpu tables applied cumulatively for concert heights 0 through 4. */
+#define PRG_CONCERT_PATCH_H0   0x2834u
+#define PRG_CONCERT_PATCH_H1   0x284au
+#define PRG_CONCERT_PATCH_H2   0x2862u
+#define PRG_CONCERT_PATCH_H3   0x287au
+#define PRG_CONCERT_PATCH_H4   0x2896u
+
+#define CHR_TITLE_MENU   0u
+#define CHR_TYPEB_ENDING 1u
+#define CHR_TYPEA_ENDING 2u
+#define CHR_GAME         3u
 
 static SDL_Texture *g_screens[TETRIS_ROM_SCREEN_COUNT];
 
@@ -90,34 +102,42 @@ static bool apply_ppu_stream(const uint8_t *stream, size_t stream_size,
     return false;
 }
 
-static SDL_Texture *build_screen(SDL_Renderer *renderer, const NesRom *rom,
-                                 size_t nametable_offset,
-                                 size_t palette_offset, unsigned chr_bank,
-                                 size_t patch_offset) {
-    uint8_t nametable[1024];
-    uint8_t palette[32];
+/* Direct patch format used by patchToPpu: address, values, FE/new address, FD/end. */
+static bool apply_patch_stream(const uint8_t *stream, size_t stream_size,
+                               uint8_t nametable[1024]) {
+    size_t position = 0;
+    uint16_t address;
+    if (!stream || stream_size < 3u) return false;
+    address = (uint16_t)(((uint16_t)stream[position] << 8) |
+                         stream[position + 1u]);
+    position += 2u;
+    while (position < stream_size) {
+        const uint8_t value = stream[position++];
+        if (value == 0xfdu) return true;
+        if (value == 0xfeu) {
+            if (position + 2u > stream_size) return false;
+            address = (uint16_t)(((uint16_t)stream[position] << 8) |
+                                 stream[position + 1u]);
+            position += 2u;
+            continue;
+        }
+        if (address >= 0x2000u && address < 0x2400u)
+            nametable[address - 0x2000u] = value;
+        address = (uint16_t)(address + 1u);
+    }
+    return false;
+}
+
+static SDL_Texture *create_screen_texture(SDL_Renderer *renderer,
+                                          const NesRom *rom,
+                                          const uint8_t nametable[1024],
+                                          const uint8_t palette[32],
+                                          unsigned chr_bank) {
     uint32_t *pixels;
     SDL_Texture *texture;
     const size_t chr_base = (size_t)chr_bank * CHR_BANK_SIZE;
-    if (!renderer || !rom || !rom->exact_supported_dump) return NULL;
-    if (nametable_offset >= rom->prg_size || palette_offset >= rom->prg_size)
-        return NULL;
-    if (chr_base + CHR_BANK_SIZE > rom->chr_size) return NULL;
-    memset(nametable, 0xff, sizeof(nametable));
-    memset(palette, 0x0f, sizeof(palette));
-    if (!apply_ppu_stream(rom->prg + palette_offset,
-                          rom->prg_size - palette_offset,
-                          nametable, palette)) return NULL;
-    if (!apply_ppu_stream(rom->prg + nametable_offset,
-                          rom->prg_size - nametable_offset,
-                          nametable, palette)) return NULL;
-    if (patch_offset != SIZE_MAX) {
-        if (patch_offset >= rom->prg_size ||
-            !apply_ppu_stream(rom->prg + patch_offset,
-                              rom->prg_size - patch_offset,
-                              nametable, palette)) return NULL;
-    }
-
+    if (!renderer || !rom || !rom->chr ||
+        chr_base + CHR_BANK_SIZE > rom->chr_size) return NULL;
     pixels = (uint32_t *)malloc((size_t)NES_SCREEN_W * NES_SCREEN_H *
                                 sizeof(uint32_t));
     if (!pixels) return NULL;
@@ -157,6 +177,63 @@ static SDL_Texture *build_screen(SDL_Renderer *renderer, const NesRom *rom,
     return texture;
 }
 
+static bool load_screen_state(const NesRom *rom, size_t nametable_offset,
+                              size_t palette_offset, size_t patch_offset,
+                              uint8_t nametable[1024], uint8_t palette[32]) {
+    if (!rom || !rom->exact_supported_dump || !rom->prg ||
+        nametable_offset >= rom->prg_size || palette_offset >= rom->prg_size)
+        return false;
+    memset(nametable, 0xff, 1024u);
+    memset(palette, 0x0f, 32u);
+    if (!apply_ppu_stream(rom->prg + palette_offset,
+                          rom->prg_size - palette_offset,
+                          nametable, palette)) return false;
+    if (!apply_ppu_stream(rom->prg + nametable_offset,
+                          rom->prg_size - nametable_offset,
+                          nametable, palette)) return false;
+    if (patch_offset != SIZE_MAX) {
+        if (patch_offset >= rom->prg_size ||
+            !apply_ppu_stream(rom->prg + patch_offset,
+                              rom->prg_size - patch_offset,
+                              nametable, palette)) return false;
+    }
+    return true;
+}
+
+static SDL_Texture *build_screen(SDL_Renderer *renderer, const NesRom *rom,
+                                 size_t nametable_offset,
+                                 size_t palette_offset, unsigned chr_bank,
+                                 size_t patch_offset) {
+    uint8_t nametable[1024];
+    uint8_t palette[32];
+    if (!load_screen_state(rom, nametable_offset, palette_offset, patch_offset,
+                           nametable, palette)) return NULL;
+    return create_screen_texture(renderer, rom, nametable, palette, chr_bank);
+}
+
+static SDL_Texture *build_castle_screen(SDL_Renderer *renderer,
+                                        const NesRom *rom, int height) {
+    static const size_t patches[5] = {
+        PRG_CONCERT_PATCH_H0, PRG_CONCERT_PATCH_H1,
+        PRG_CONCERT_PATCH_H2, PRG_CONCERT_PATCH_H3,
+        PRG_CONCERT_PATCH_H4
+    };
+    uint8_t nametable[1024];
+    uint8_t palette[32];
+    if (height < 0) height = 0;
+    if (height > 5) height = 5;
+    if (!load_screen_state(rom, PRG_B_ENDING_CASTLE, PRG_ENDING_PALETTE,
+                           SIZE_MAX, nametable, palette)) return NULL;
+    for (int patch = height; patch < 5; ++patch) {
+        const size_t offset = patches[patch];
+        if (offset >= rom->prg_size ||
+            !apply_patch_stream(rom->prg + offset,
+                                rom->prg_size - offset, nametable)) return NULL;
+    }
+    return create_screen_texture(renderer, rom, nametable, palette,
+                                 CHR_TYPEB_ENDING);
+}
+
 void tetris_rom_screens_free(void) {
     for (int index = 0; index < TETRIS_ROM_SCREEN_COUNT; ++index) {
         if (g_screens[index]) {
@@ -191,6 +268,13 @@ bool tetris_rom_screens_load(SDL_Renderer *renderer, const NesRom *rom) {
     screens[TETRIS_ROM_SCREEN_HIGH_SCORES] =
         build_screen(renderer, rom, PRG_ENTER_HIGH_SCORE, PRG_MENU_PALETTE,
                      CHR_TITLE_MENU, PRG_HIGH_SCORES_PATCH);
+    screens[TETRIS_ROM_SCREEN_B_ENDING_NORMAL] =
+        build_screen(renderer, rom, PRG_B_ENDING_NORMAL, PRG_ENDING_PALETTE,
+                     CHR_TYPEA_ENDING, SIZE_MAX);
+    for (int height = 0; height <= 5; ++height) {
+        screens[TETRIS_ROM_SCREEN_B_ENDING_CASTLE_H0 + height] =
+            build_castle_screen(renderer, rom, height);
+    }
     for (int index = 0; index < TETRIS_ROM_SCREEN_COUNT; ++index)
         if (screens[index]) any = true;
     tetris_rom_screens_free();

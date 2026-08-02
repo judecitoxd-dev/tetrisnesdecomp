@@ -2,7 +2,9 @@ name: Build Android port
 
 on:
   push:
+    branches: [main]
   pull_request:
+    types: [opened, reopened]
   workflow_dispatch:
 
 jobs:
@@ -10,6 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Self-test ROM-structure tools
+        run: |
+          python tools/rom_assets_verify.py --self-test
+          python tools/type_a_ending_verify.py --self-test
+          python tools/cathedral_verify.py --self-test
 
       - uses: actions/setup-java@v4
         with:
@@ -61,10 +69,10 @@ jobs:
             echo "Forbidden ROM/replay/audio payload found in APK" >&2
             exit 1
           fi
-          cp "$APK" Tetris-NES-Port-Android-v0.8-debug.apk
-          sha256sum Tetris-NES-Port-Android-v0.8-debug.apk
+          cp "$APK" Tetris-NES-Port-Android-v0.9-debug.apk
+          sha256sum Tetris-NES-Port-Android-v0.9-debug.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: tetris-nes-port-android-v0.8
-          path: Tetris-NES-Port-Android-v0.8-debug.apk
+          name: tetris-nes-port-android-v0.9
+          path: Tetris-NES-Port-Android-v0.9-debug.apk

@@ -54,10 +54,16 @@
                     else if (key_to_name_character(key, &name_character))
                         tetris_name_entry_type(&result.name, name_character);
                 } else if (screen == SCREEN_ENDING) {
-                    if (key == SDLK_h) screen = SCREEN_RECORDS;
-                    else if (key == SDLK_RETURN || key == SDLK_SPACE ||
-                             key == SDLK_r || key == SDLK_BACKSPACE)
-                        screen = SCREEN_TITLE;
+                    if (key == SDLK_h) {
+                        screen = SCREEN_RECORDS;
+                    } else if (key == SDLK_RETURN || key == SDLK_SPACE ||
+                               key == SDLK_r || key == SDLK_BACKSPACE) {
+                        if (result.mode == TETRIS_MODE_A &&
+                            !result.completed && result.rank >= 0)
+                            screen = SCREEN_NAME_ENTRY;
+                        else
+                            screen = SCREEN_TITLE;
+                    }
                 } else if (screen == SCREEN_TYPE_SELECT) {
                     if (key == SDLK_LEFT || key == SDLK_RIGHT ||
                         key == SDLK_UP || key == SDLK_DOWN)
