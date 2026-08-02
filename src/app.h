@@ -49,6 +49,7 @@ typedef struct AppResultState {
     TetrisNameEntry name;
     TetrisMode mode;
     int score;
+    int lines;
     int level;
     int height;
     int rank;
