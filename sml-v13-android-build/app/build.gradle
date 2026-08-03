@@ -1,0 +1,36 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.ylports.smlnative'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.ylports.smlnative'
+        minSdk 23
+        targetSdk 35
+        versionCode 13
+        versionName '13.0'
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+            jniLibs.srcDirs = ['src/main/jniLibs']
+            res.srcDirs = ['src/main/res']
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable false
+        }
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+}
