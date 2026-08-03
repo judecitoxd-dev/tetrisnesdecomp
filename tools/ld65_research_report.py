@@ -49,8 +49,7 @@ def interval_union_size(intervals: Iterable[tuple[int, int]]) -> int:
 
 
 def parse_labels(path: Path) -> dict[str, object]:
-    names: list[str] = []
-    addresses: list[int] = []
+    name_to_addresses: dict[str, set[int]] = {}
     for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
         parts = raw.split()
         if len(parts) < 3:
@@ -60,20 +59,35 @@ def parse_labels(path: Path) -> dict[str, object]:
         except ValueError:
             continue
         name = parts[2].lstrip(".")
-        names.append(name)
-        addresses.append(address)
-    unique_names = sorted(set(names))
+        name_to_addresses.setdefault(name, set()).add(address)
+    unique_names = sorted(name_to_addresses)
     semantic = [name for name in unique_names if not GENERIC_LABEL.match(name)]
     generic = [name for name in unique_names if GENERIC_LABEL.match(name)]
-    prg_addresses = [address for address in addresses if 0x8000 <= address <= 0xFFFF]
+    prg_addresses = {
+        address
+        for addresses in name_to_addresses.values()
+        for address in addresses
+        if 0x8000 <= address <= 0xFFFF
+    }
+    generic_items = [
+        {
+            "name": name,
+            "addresses": [f"0x{address:04X}" for address in sorted(name_to_addresses[name])],
+            "in_prg_window": any(
+                0x8000 <= address <= 0xFFFF for address in name_to_addresses[name]
+            ),
+        }
+        for name in generic
+    ]
     return {
         "labels_total": len(unique_names),
         "labels_semantic": len(semantic),
         "labels_generic": len(generic),
-        "labels_in_prg_window": len(set(prg_addresses)),
+        "labels_in_prg_window": len(prg_addresses),
         "semantic_label_ratio_percent": round(
             len(semantic) * 100.0 / len(unique_names), 4
         ) if unique_names else 0.0,
+        "generic_label_items": generic_items,
     }
 
 
@@ -159,7 +173,7 @@ def build_report(labels: Path, debug: Path, revision: str) -> dict[str, object]:
     exact_layout = debug_report["prg_segment_bytes"] == 32768
     complete_mapping = debug_report["mapped_prg_source_bytes"] == 32768
     return {
-        "schema": 1,
+        "schema": 2,
         "source_revision": revision,
         "labels": label_report,
         "debug": debug_report,
@@ -197,6 +211,10 @@ def self_test() -> int:
         report = build_report(labels, debug, "self-test")
         if report["source_partition_percent"] != 100:
             print("ld65_research_report self-test failed", file=sys.stderr)
+            return 1
+        items = report["labels"]["generic_label_items"]
+        if items != [{"name": "L8010", "addresses": ["0x8010"], "in_prg_window": True}]:
+            print("ld65 generic-label inventory self-test failed", file=sys.stderr)
             return 1
     print("ld65_research_report self-test: OK")
     return 0
