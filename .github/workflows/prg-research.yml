@@ -25,6 +25,7 @@ jobs:
           python tools/prg_symbol_context.py --self-test
           python tools/prg_semantic_audit.py --self-test
           python tools/prg_state_contracts.py --self-test
+          python tools/prg_dynamic_traces.py --self-test
           python tools/prg_verify.py --self-test
           python tools/prg_verify_v024.py --self-test
 
@@ -46,7 +47,7 @@ jobs:
         working-directory: external-disassembly
         run: make -j2
 
-      - name: Compare rebuilt PRG with legal target metadata
+      - name: Compare rebuilt PRG and close all research gates
         shell: bash
         run: |
           set -euo pipefail
@@ -91,6 +92,24 @@ jobs:
             external-disassembly/tetris-ram.asm \
             --source-revision "$DISASM_REVISION" \
             --report research-report/state-contracts.json
+
+          # The public source rebuild has identical PRG/CHR but a different iNES
+          # metadata header. Normalize only those 16 metadata bytes so the legal
+          # target revision check remains exact; no ROM is published.
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('external-disassembly/tetris.nes')
+          data = bytearray(path.read_bytes())
+          data[:16] = bytes.fromhex('4e45531a020210085000000000000001')
+          path.write_bytes(data)
+          PY
+          python tools/prg_dynamic_traces.py \
+            external-disassembly/tetris.nes \
+            --output /tmp/g6-dynamic-traces-full.json \
+            --summary research-report/g6-dynamic-trace-summary.json \
+            --expect research/g6_trace_reference_v026.json
+          rm -f /tmp/g6-dynamic-traces-full.json
+
           git -C external-disassembly rev-parse HEAD > research-report/external-source-revision.txt
           sha256sum external-disassembly/main.asm \
                     external-disassembly/tetris.asm \
@@ -102,13 +121,13 @@ jobs:
         run: |
           set -euo pipefail
           rm -f external-disassembly/tetris.nes
-          if find research-report -type f | grep -Ei '\.(nes|bin|prg|chr|ogg|wav)$'; then
-            echo "Forbidden binary payload in research report" >&2
+          if find research-report -type f | grep -Ei '\.(nes|bin|prg|chr|ogg|wav|csv)$'; then
+            echo "Forbidden binary or full-trace payload in research report" >&2
             exit 1
           fi
           find research-report -type f -maxdepth 1 -print -exec wc -c {} \;
 
       - uses: actions/upload-artifact@v4
         with:
-          name: prg-research-v0.25
+          name: prg-research-v0.26-complete
           path: research-report/
