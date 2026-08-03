@@ -1,0 +1,41 @@
+# label	semantic_name	kind	subsystem	evidence
+LAA9E	decode_ppu_stream_record	basic_block	ppu_stream	main.asm:5368; reads destination and record control bytes from the packed PPU stream.
+LAAB5	apply_ppu_stream_increment_mode	basic_block	ppu_stream	main.asm:5381; updates PPUCTRL increment mode from record flags.
+LAAC2	decode_ppu_stream_length_flags	basic_block	ppu_stream	main.asm:5389; restores flags and derives record length carry.
+LAAC7	compute_ppu_stream_record_length	basic_block	ppu_stream	main.asm:5393; rotates flag/length bits and transfers count to X.
+LAACA	advance_literal_ppu_stream_source	basic_block	ppu_stream	main.asm:5396; advances source for literal rather than repeated records.
+LAACD	copy_ppu_stream_record_bytes	loop_entry	ppu_stream	main.asm:5398; writes record bytes to PPUDATA.
+LAAE6	advance_packed_ppu_stream_pointer	basic_block	ppu_stream	main.asm:5409; adds consumed source length to tmp1/tmp2.
+LAAFC	handle_ppu_stream_return_marker	basic_block	ppu_stream	main.asm:5424; handles $60 marker by restoring the parent stream address.
+LAB0A	handle_ppu_stream_jump_marker	basic_block	ppu_stream	main.asm:5432; handles $4C marker by switching tmp1/tmp2 to another stream.
+LABD1	poll_controller_until_stable_raw	loop_entry	controller	main.asm:5556; repeats raw reads until both controller bytes are stable.
+LABEA	poll_controller_until_stable_with_expansion	loop_entry	controller	main.asm:5568; repeats reads after merging expansion-port input.
+LAC0D	diff_four_controller_bytes_loop	loop_entry	controller	main.asm:5585; computes newly pressed bits across four mirrored controller bytes.
+LAC40	select_ppu_fill_page_count	basic_block	ppu	main.asm:5612; selects four pages for nametable addresses or caller page count otherwise.
+LAC44	fill_ppu_pages_loop	loop_entry	ppu	main.asm:5614; writes the fill byte to PPUDATA for the requested pages.
+LAC61	fill_ppu_attribute_table_loop	loop_entry	ppu	main.asm:5628; writes 64 attribute bytes.
+LAC67	restore_ppu_fill_register_and_return	return_block	ppu	main.asm:5631; restores X and returns.
+LE006	initialize_audio_trampoline	trampoline	apu	main.asm:5858; jumps to LE1D8 from the audio entry area.
+LE1D8	initialize_apu_and_sound_slots	routine_entry	apu	main.asm:6107; enables channels, seeds sound RNG and clears slot 2 state.
+LE253	clear_music_inhibits_and_effect_state	routine_entry	apu	main.asm:6173; clears channel inhibits, noise staging and reset flags.
+LE265	clear_sound_effect_slots_loop	loop_entry	apu	main.asm:6180; clears six soundEffectSlot playing bytes.
+LE33B	test_noninterruptible_slot1_effect	routine_entry	sound_effects	main.asm:6312; returns Z for protected slot-1 effect IDs 4, 6, 9 or 10.
+LE34E	return_from_slot1_priority_test	return_block	sound_effects	main.asm:6321; preserves comparison flags for callers.
+LE417	initialize_slot1_effect_trampoline	trampoline	sound_effects	main.asm:6437; common jump to initSoundEffectShared.
+LE437	store_slot1_effect_phase	basic_block	sound_effects	main.asm:6455; stores the tertiary phase counter.
+LE43A	return_from_slot1_line_effect	return_block	sound_effects	main.asm:6456; shared return for line/tetris effects.
+LE442	update_slot1_line_effect_pitch_and_volume	basic_block	sound_effects	main.asm:6462; copies channel data and indexes pitch/volume sequences.
+LE46C	stop_completed_slot1_line_effect	trampoline	sound_effects	main.asm:6480; jumps to soundEffectSlot1Playing_stop.
+LE46F	advance_slot1_line_effect_step	basic_block	sound_effects	main.asm:6482; increments secondary effect counter.
+LE472	return_from_slot1_effect_update	return_block	sound_effects	main.asm:6483; shared return.
+LE493	decay_menu_screen_select_pitch	basic_block	sound_effects	main.asm:6502; subtracts a sixteenth of the timer and writes SQ1_LO.
+LE4AC	write_square1_high_timer	basic_block	sound_effects	main.asm:6514; writes A to SQ1_HI.
+LE4AF	return_from_square1_effect	return_block	sound_effects	main.asm:6515; shared return.
+LE4E9	finish_level_up_effect	trampoline	sound_effects	main.asm:6535; jumps to slot-1 stop when the period table reaches zero.
+LE51B	configure_dmc_buzz_sample	basic_block	sound_effects	main.asm:6556; writes DMC length/start/frequency and restarts DMC.
+LE613	commit_special_music_pitch_offset	basic_block	music	main.asm:6680; removes the saved offset and jumps to the common low-period update.
+LEA76	music_volume_envelope_00	table	music_envelopes	main.asm:7323; entry 0 referenced by musicChanVolControlTable.
+LEA82	music_volume_envelope_01	table	music_envelopes	main.asm:7324; entry 1 referenced by musicChanVolControlTable.
+LEA8B	music_volume_envelope_02	table	music_envelopes	main.asm:7325; entry 2 referenced by musicChanVolControlTable.
+LEA91	music_volume_envelope_03	table	music_envelopes	main.asm:7326; entry 3 referenced by musicChanVolControlTable.
+LEA9A	music_volume_envelope_04	table	music_envelopes	main.asm:7327; entry 4 referenced by musicChanVolControlTable.
