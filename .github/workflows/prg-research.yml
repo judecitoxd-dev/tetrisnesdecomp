@@ -64,6 +64,7 @@ jobs:
             external-disassembly/tetris.asm \
             external-disassembly/tetris-ram.asm \
             --labels external-disassembly/tetris.lbl \
+            --computed-jumps research/prg_computed_jumps.json \
             --source-revision "$DISASM_REVISION" \
             --report research-report/control-flow-audit.json
           git -C external-disassembly rev-parse HEAD > research-report/external-source-revision.txt
