@@ -12,9 +12,9 @@ To honour the JVM settings for this build a single-use Daemon process will be fo
 Daemon will be stopped at the end of the build 
 > Task :app:preBuild UP-TO-DATE
 > Task :app:preDebugBuild UP-TO-DATE
-> Task :app:checkDebugAarMetadata
 > Task :app:javaPreCompileDebug
 > Task :app:generateDebugResValues
+> Task :app:checkDebugAarMetadata
 > Task :app:mapDebugSourceSetPaths
 > Task :app:generateDebugResources
 > Task :app:packageDebugResources
@@ -31,9 +31,9 @@ The AGP Upgrade Assistant can remove the attribute from the AndroidManifest.xml 
 > Task :app:processDebugManifest
 > Task :app:extractProguardFiles
 > Task :app:mergeDebugJniLibFolders
+> Task :app:mergeDebugArtProfile
 > Task :app:processDebugManifestForPackage
 > Task :app:mergeDebugNativeLibs
-> Task :app:mergeDebugArtProfile
 
 > Task :app:stripDebugDebugSymbols
 Unable to strip the following libraries, packaging them as they are: libmain.so.
@@ -45,33 +45,33 @@ Unable to strip the following libraries, packaging them as they are: libmain.so.
 > Task :app:extractDebugNativeSymbolTables
 > Task :app:dexBuilderDebug
 > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
-> Task :app:checkDebugDuplicateClasses
 > Task :app:mergeDebugStartupProfile
-> Task :app:mergeDebugGlobalSynthetics
-> Task :app:mergeExtDexDebug
+> Task :app:checkDebugDuplicateClasses
 > Task :app:mergeDebugShaders
+> Task :app:mergeExtDexDebug
+> Task :app:mergeDebugGlobalSynthetics
 > Task :app:compileDebugShaders NO-SOURCE
 > Task :app:generateDebugAssets UP-TO-DATE
 > Task :app:mergeDebugAssets
 > Task :app:compressDebugAssets
-> Task :app:extractDebugVersionControlInfo
-> Task :app:processDebugJavaRes NO-SOURCE
 > Task :app:mergeDexDebug
+> Task :app:extractDebugVersionControlInfo
 > Task :app:compileDebugArtProfile
-> Task :app:mergeDebugJavaResource
+> Task :app:processDebugJavaRes NO-SOURCE
 > Task :app:collectDebugDependencies
+> Task :app:mergeDebugJavaResource
 > Task :app:sdkDebugDependencyData
-> Task :app:optimizeDebugResources
 > Task :app:validateSigningDebug
 > Task :app:writeDebugAppMetadata
 > Task :app:writeDebugSigningConfigVersions
+> Task :app:optimizeDebugResources
 > Task :app:packageDebug
 > Task :app:createDebugApkListingFileRedirect
 > Task :app:lintVitalAnalyzeDebug
 > Task :app:lintVitalReportDebug
 > Task :app:lintVitalDebug
 > Task :app:assembleDebug
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/official_build-1785759207449.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/official_build-1785759441114.json
 
-BUILD SUCCESSFUL in 33s
+BUILD SUCCESSFUL in 34s
 45 actionable tasks: 45 executed
