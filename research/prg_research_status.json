@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "runtime_frozen": true,
   "runtime_version": "v0.23",
   "research_phase": "v0.25",
@@ -25,28 +25,40 @@
       "evidence": "ld65 maps all 32768 PRG bytes to source spans"
     },
     "G3_semantic_symbols": {
-      "percent": 91.6168,
-      "status": "in_progress",
-      "semantic_labels": 1071,
-      "generic_labels": 98,
-      "total_labels": 1169,
-      "pass_condition": "replace or classify every remaining generic label and audit functional meaning"
+      "percent": 100,
+      "status": "passed",
+      "existing_semantic_labels": 1071,
+      "additional_generic_labels_classified": 114,
+      "additional_aliases_unique": 114,
+      "evidence": "semantic-symbol-audit.json passes with no missing, extra, duplicate or invalid entries"
     },
     "G4_control_flow": {
-      "percent": 35,
-      "status": "in_progress",
-      "pass_condition": "all direct, indirect and table-driven control-flow edges classified"
+      "percent": 100,
+      "status": "passed",
+      "direct_edges_resolved": 1028,
+      "direct_edges_total": 1028,
+      "address_table_references_resolved": 368,
+      "address_table_references_total": 368,
+      "computed_jumps_classified": 2,
+      "computed_jumps_total": 2,
+      "evidence": "control-flow-audit.json gate_passed=true"
     },
     "G5_state_contracts": {
-      "percent": 25,
-      "status": "in_progress",
-      "pass_condition": "RAM/PPU/APU inputs and outputs documented per subsystem"
+      "percent": 100,
+      "status": "passed",
+      "contracts_generated": 302,
+      "routines_with_instructions": 302,
+      "instructions_classified": 4963,
+      "hardware_touching_routines": 55,
+      "indirect_memory_routines": 27,
+      "evidence": "state-contracts.json covers every global source routine/basic block with instructions"
     },
     "G6_dynamic_trace_families": {
       "percent": 0,
       "completed": 0,
       "total": 18,
-      "status": "pending_reference_captures"
+      "status": "pending_local_reference_captures",
+      "pass_condition": "all 18 families have legal-ROM reference traces, deterministic hashes and comparison recipes"
     },
     "G7_reproducible_toolchain": {
       "percent": 100,
@@ -54,7 +66,8 @@
       "evidence": "source commit, source hashes, build workflow and report format are pinned"
     }
   },
-  "research_readiness_percent": 64.5167,
+  "research_readiness_percent": 85.7143,
   "runtime_correspondence_percent": 50,
-  "note": "Runtime correspondence remains frozen until every research gate reaches 100%."
+  "runtime_files_changed": 0,
+  "note": "Runtime correspondence remains frozen until G6 reaches 18/18 and every research gate is 100%."
 }
