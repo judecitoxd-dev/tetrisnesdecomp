@@ -3,13 +3,19 @@
 
 The repository never contains the generated music, effects, WAV files or ROM.
 The existing 6502/APU renderer produces PCM locally and ffmpeg encodes it as
-Ogg Vorbis.  The PC port automatically looks for the resulting directory in
+Ogg Vorbis. The PC port automatically looks for the resulting directory in
 its SDL preference path, beside the executable, or through --audio-pack.
+
+Music is rendered long enough to observe two complete cycles of the original
+ROM driver. The generated APU trace is then used to locate the exact frame and
+PCM-sample boundaries of the introduction and loop. Looping OGG files receive
+LOOPSTART and LOOPEND Vorbis comments understood by SDL_mixer.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import os
@@ -21,7 +27,13 @@ import sys
 import tempfile
 from typing import Iterable
 
-SCHEMA = "tetris-nes-rom-audio-cache-v1"
+SCHEMA = "tetris-nes-rom-audio-cache-v2"
+NTSC_CPU_CLOCK = 1_789_773
+AUDIO_SAMPLE_RATE = 48_000
+LOOP_WINDOW_FRAMES = 120
+MIN_LOOP_PERIOD_FRAMES = 120
+STABLE_TAIL_FRAMES = 120
+IGNORED_LOOP_WRITE_ADDRESSES = {0x4000, 0x4004, 0x400C, 0x4017}
 TRACKS = tuple(range(1, 11))
 EFFECTS = (
     ("move", "move.ogg"),
@@ -34,7 +46,7 @@ EFFECTS = (
     ("complete", "complete.ogg"),
 )
 # The port's three user-selectable songs correspond to original driver tracks
-# 3, 4 and 5.  All ten tracks are still retained as track_01..track_10.
+# 3, 4 and 5. All ten tracks are still retained as track_01..track_10.
 PLAYABLE_ALIASES = {
     "music_1.ogg": "track_03.ogg",
     "music_2.ogg": "track_04.ogg",
@@ -49,7 +61,14 @@ def default_output_dir() -> Path:
         root = Path(os.environ.get("APPDATA", home / "AppData" / "Roaming"))
         return root / "YlPorts" / "TetrisNESPC" / "audio"
     if system == "Darwin":
-        return home / "Library" / "Application Support" / "YlPorts" / "TetrisNESPC" / "audio"
+        return (
+            home
+            / "Library"
+            / "Application Support"
+            / "YlPorts"
+            / "TetrisNESPC"
+            / "audio"
+        )
     root = Path(os.environ.get("XDG_DATA_HOME", home / ".local" / "share"))
     return root / "YlPorts" / "TetrisNESPC" / "audio"
 
@@ -103,31 +122,62 @@ def run(command: Iterable[os.PathLike[str] | str]) -> str:
     return completed.stdout
 
 
-def encode_ogg(ffmpeg: Path, wav: Path, output: Path, quality: int) -> None:
-    output.parent.mkdir(parents=True, exist_ok=True)
-    run(
-        (
-            ffmpeg,
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-i",
-            wav,
-            "-vn",
-            "-map_metadata",
-            "-1",
-            "-ac",
-            "1",
-            "-ar",
-            "48000",
-            "-c:a",
-            "libvorbis",
-            "-q:a",
-            str(quality),
-            output,
+def encode_ogg(
+    ffmpeg: Path,
+    wav: Path,
+    output: Path,
+    quality: int,
+    *,
+    end_sample: int,
+    loop_start_sample: int | None = None,
+    loop_end_sample: int | None = None,
+    title: str | None = None,
+) -> None:
+    if end_sample <= 0:
+        raise RuntimeError(f"Duración PCM inválida para {output.name}: {end_sample}")
+    if (loop_start_sample is None) != (loop_end_sample is None):
+        raise RuntimeError("LOOPSTART y LOOPEND deben proporcionarse juntos")
+    if loop_start_sample is not None and not (
+        0 <= loop_start_sample < loop_end_sample <= end_sample
+    ):
+        raise RuntimeError(
+            f"Puntos de bucle inválidos para {output.name}: "
+            f"{loop_start_sample}..{loop_end_sample} de {end_sample}"
         )
-    )
+
+    command: list[os.PathLike[str] | str] = [
+        ffmpeg,
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        wav,
+        "-vn",
+        "-map_metadata",
+        "-1",
+        "-af",
+        f"atrim=end_sample={end_sample},asetpts=PTS-STARTPTS",
+        "-ac",
+        "1",
+        "-ar",
+        str(AUDIO_SAMPLE_RATE),
+        "-c:a",
+        "libvorbis",
+        "-q:a",
+        str(quality),
+    ]
+    if title:
+        command.extend(("-metadata", f"TITLE={title}"))
+    if loop_start_sample is not None and loop_end_sample is not None:
+        # SDL_mixer 2.6+ reads these Vorbis comments as exact decoded-sample
+        # positions and seeks to LOOPSTART when LOOPEND is reached.
+        command.extend(("-metadata", f"LOOPSTART={loop_start_sample}"))
+        command.extend(("-metadata", f"LOOPEND={loop_end_sample}"))
+    command.append(output)
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    run(command)
     if not output.is_file() or output.stat().st_size < 128:
         raise RuntimeError(f"ffmpeg no creó un OGG válido: {output}")
 
@@ -141,6 +191,103 @@ def parse_key_values(text: str) -> dict[str, str]:
         if key and key.replace("_", "").isalnum():
             result[key] = value
     return result
+
+
+def normalize_loop_writes(serialized: str) -> str:
+    kept: list[str] = []
+    for raw_write in serialized.split("|"):
+        if not raw_write or "=" not in raw_write:
+            continue
+        address_text, _ = raw_write.split("=", 1)
+        try:
+            address = int(address_text, 16)
+        except ValueError:
+            continue
+        # The volume/envelope registers vary as a consequence of the current
+        # note and hide the repeated bytecode sequence. The remaining writes
+        # preserve note, instrument, sweep, pitch, noise and DMC events.
+        if address not in IGNORED_LOOP_WRITE_ADDRESSES:
+            kept.append(raw_write)
+    return "|".join(kept)
+
+
+def samples_before_frame(rows: list[dict[str, str]], frame: int) -> int:
+    if frame < 0 or frame > len(rows):
+        raise RuntimeError(f"Índice de frame fuera de rango: {frame}")
+    cycles = sum(int(row["cpu_cycles"]) for row in rows[:frame])
+    return cycles * AUDIO_SAMPLE_RATE // NTSC_CPU_CLOCK
+
+
+def analyze_music_trace(trace: Path) -> dict[str, int | bool]:
+    with trace.open(newline="", encoding="utf-8") as source:
+        rows = list(csv.DictReader(source))
+    if len(rows) < STABLE_TAIL_FRAMES * 2:
+        raise RuntimeError(
+            f"Traza demasiado corta para detectar bucles exactos: {trace}"
+        )
+    required = {"cpu_cycles", "apu_writes"}
+    if not rows or not required.issubset(rows[0]):
+        raise RuntimeError(f"Formato de traza incompatible: {trace}")
+
+    signatures = [normalize_loop_writes(row["apu_writes"]) for row in rows]
+
+    # Tracks 1 and 2 are one-shot. Once their script has ended, only the
+    # ignored frame-counter/volume maintenance remains, producing a stable
+    # normalized tail. Trim that silence instead of inventing a loop.
+    stable_start = len(signatures) - 1
+    while stable_start > 0 and signatures[stable_start - 1] == signatures[-1]:
+        stable_start -= 1
+    if len(signatures) - stable_start >= STABLE_TAIL_FRAMES:
+        end_sample = samples_before_frame(rows, stable_start)
+        return {
+            "loops": False,
+            "end_frame": stable_start,
+            "end_sample": end_sample,
+        }
+
+    seen: dict[tuple[str, ...], list[int]] = {}
+    candidates: list[tuple[int, int]] = []
+    count = len(signatures)
+    for index in range(0, count - LOOP_WINDOW_FRAMES + 1):
+        key = tuple(signatures[index:index + LOOP_WINDOW_FRAMES])
+        previous = seen.get(key)
+        if previous:
+            for start in previous:
+                period = index - start
+                if period < MIN_LOOP_PERIOD_FRAMES or period & 1:
+                    continue
+                if index + period > count:
+                    continue
+                # Require two complete, identical periods. This rejects a
+                # repeated phrase unless the bytecode-generated event stream
+                # truly cycles from the same frame boundary.
+                if signatures[start:index] == signatures[index:index + period]:
+                    candidates.append((start, period))
+            previous.append(index)
+        else:
+            seen[key] = [index]
+
+    if not candidates:
+        raise RuntimeError(
+            f"No se encontró un ciclo verificable en {trace}. "
+            "Aumenta --music-seconds."
+        )
+
+    start_frame, period_frames = min(candidates)
+    end_frame = start_frame + period_frames
+    loop_start_sample = samples_before_frame(rows, start_frame)
+    loop_end_sample = samples_before_frame(rows, end_frame)
+    if loop_end_sample <= loop_start_sample:
+        raise RuntimeError(f"Bucle PCM vacío detectado en {trace}")
+    return {
+        "loops": True,
+        "loop_start_frame": start_frame,
+        "loop_end_frame": end_frame,
+        "loop_frames": period_frames,
+        "loop_start_sample": loop_start_sample,
+        "loop_end_sample": loop_end_sample,
+        "end_sample": loop_end_sample,
+    }
 
 
 def sha256_file(path: Path) -> str:
@@ -168,7 +315,62 @@ def self_test() -> int:
         {f"track_{track:02d}.ogg" for track in TRACKS}
     )
     assert default_output_dir().name == "audio"
-    print("audio cache self-test: OK tracks=10 effects=8 aliases=3 files=22")
+    assert normalize_loop_writes(
+        "4017=C0|4000=F1|4002=34|4003=08|400C=10|400E=03"
+    ) == "4002=34|4003=08|400E=03"
+
+    with tempfile.TemporaryDirectory(prefix="tetris-loop-self-test-") as directory:
+        root = Path(directory)
+        looping = root / "loop.csv"
+        period = [
+            f"4002={index & 0xFF:02X}|4003={(index >> 8) & 0xFF:02X}"
+            for index in range(140)
+        ]
+        signatures = [f"4006={index:02X}" for index in range(10)]
+        signatures.extend(period * 3)
+        with looping.open("w", newline="", encoding="utf-8") as output:
+            writer = csv.writer(output)
+            writer.writerow(
+                (
+                    "frame",
+                    "cpu_cycles",
+                    "driver_cycles",
+                    "dmc_stall_cycles",
+                    "irq",
+                    "apu_writes",
+                )
+            )
+            for frame, writes in enumerate(signatures):
+                writer.writerow((frame, 29780 + (frame & 1), 1000, 0, 0, writes))
+        loop = analyze_music_trace(looping)
+        assert loop["loops"] is True
+        assert loop["loop_start_frame"] == 10
+        assert loop["loop_frames"] == 140
+
+        one_shot = root / "one-shot.csv"
+        signatures = [f"4002={index:02X}" for index in range(10)] + [""] * 240
+        with one_shot.open("w", newline="", encoding="utf-8") as output:
+            writer = csv.writer(output)
+            writer.writerow(
+                (
+                    "frame",
+                    "cpu_cycles",
+                    "driver_cycles",
+                    "dmc_stall_cycles",
+                    "irq",
+                    "apu_writes",
+                )
+            )
+            for frame, writes in enumerate(signatures):
+                writer.writerow((frame, 29780 + (frame & 1), 1000, 0, 0, writes))
+        ending = analyze_music_trace(one_shot)
+        assert ending["loops"] is False
+        assert ending["end_frame"] == 10
+
+    print(
+        "audio cache self-test: OK tracks=10 effects=8 aliases=3 "
+        "files=22 loop-tags=sample-exact"
+    )
     return 0
 
 
@@ -222,19 +424,41 @@ def build(args: argparse.Namespace) -> int:
             values = parse_key_values(result)
             if not rom_crc32:
                 rom_crc32 = values.get("ROM_CRC32", "")
-            encode_ogg(ffmpeg, wav, ogg, args.quality)
+            loop = analyze_music_trace(trace)
+            loop_start = int(loop["loop_start_sample"]) if loop["loops"] else None
+            loop_end = int(loop["loop_end_sample"]) if loop["loops"] else None
+            end_sample = int(loop["end_sample"])
+            encode_ogg(
+                ffmpeg,
+                wav,
+                ogg,
+                args.quality,
+                end_sample=end_sample,
+                loop_start_sample=loop_start,
+                loop_end_sample=loop_end,
+                title=f"Tetris NES driver track {track:02d}",
+            )
             if args.keep_wav:
                 shutil.copy2(wav, output / wav.name)
-            track_records.append(
-                {
-                    "driver_track": track,
-                    "file": ogg.name,
-                    "trace": trace.name,
-                    "seconds_requested": args.music_seconds,
-                    "samples": int(values.get("SAMPLES", "0")),
-                    "apu_write_hash": values.get("APU_WRITE_HASH", ""),
-                }
-            )
+            record: dict[str, object] = {
+                "driver_track": track,
+                "file": ogg.name,
+                "trace": trace.name,
+                "seconds_requested": args.music_seconds,
+                "rendered_samples": int(values.get("SAMPLES", "0")),
+                "encoded_samples": end_sample,
+                "apu_write_hash": values.get("APU_WRITE_HASH", ""),
+                "loops": bool(loop["loops"]),
+            }
+            if loop["loops"]:
+                record["loop_start_frame"] = int(loop["loop_start_frame"])
+                record["loop_end_frame"] = int(loop["loop_end_frame"])
+                record["loop_frames"] = int(loop["loop_frames"])
+                record["loop_start_sample"] = loop_start
+                record["loop_end_sample"] = loop_end
+            else:
+                record["one_shot_end_frame"] = int(loop["end_frame"])
+            track_records.append(record)
 
         for scenario, filename in EFFECTS:
             stem = Path(filename).stem
@@ -253,7 +477,14 @@ def build(args: argparse.Namespace) -> int:
                 )
             )
             values = parse_key_values(result)
-            encode_ogg(ffmpeg, wav, ogg, args.quality)
+            encode_ogg(
+                ffmpeg,
+                wav,
+                ogg,
+                args.quality,
+                end_sample=int(values.get("SAMPLES", "0")),
+                title=f"Tetris NES effect: {scenario}",
+            )
             if args.keep_wav:
                 shutil.copy2(wav, output / wav.name)
             effect_records.append(
@@ -271,7 +502,7 @@ def build(args: argparse.Namespace) -> int:
 
     manifest = {
         "schema": SCHEMA,
-        "generator_version": "0.20",
+        "generator_version": "0.28",
         "rom": {
             "filename": rom.name,
             "sha256": rom_sha256,
@@ -280,7 +511,7 @@ def build(args: argparse.Namespace) -> int:
         "format": {
             "container": "ogg",
             "codec": "vorbis",
-            "sample_rate": 48000,
+            "sample_rate": AUDIO_SAMPLE_RATE,
             "channels": 1,
             "quality": args.quality,
         },
@@ -289,8 +520,9 @@ def build(args: argparse.Namespace) -> int:
         "playable_aliases": PLAYABLE_ALIASES,
         "notes": [
             "Generated locally from the user's legal ROM; never commit this directory.",
-            "The current runtime uses music_1.ogg through music_3.ogg and all eight effect files.",
-            "track_01.ogg through track_10.ogg are retained for continued ROM correspondence work.",
+            "Tracks 3-10 carry LOOPSTART/LOOPEND Vorbis comments derived from repeated ROM-driver event cycles.",
+            "Tracks 1 and 2 are one-shot and are trimmed at the first stable post-script frame.",
+            "SDL_mixer 2.6+ honors the embedded sample-exact loop points automatically.",
         ],
     }
     manifest_path.write_text(
@@ -305,13 +537,19 @@ def build(args: argparse.Namespace) -> int:
     print("Pistas originales: 10")
     print("Efectos aislados: 8")
     print(f"ROM SHA-256: {rom_sha256}")
-    print("El port lo cargará automáticamente si está en su carpeta de preferencias/audio.")
+    print(
+        "El port lo cargará automáticamente si está en su carpeta "
+        "de preferencias/audio."
+    )
     return 0
 
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
-        description="Renderiza las pistas y efectos originales de la ROM legal a un caché OGG local."
+        description=(
+            "Renderiza las pistas y efectos originales de la ROM legal a un "
+            "caché OGG local con puntos de bucle exactos."
+        )
     )
     result.add_argument("--self-test", action="store_true")
     result.add_argument("--rom", type=Path)
@@ -332,8 +570,10 @@ def main() -> int:
         return self_test()
     if args.rom is None:
         parser().error("--rom es obligatorio salvo con --self-test")
-    if not 10 <= args.music_seconds <= 3600:
-        parser().error("--music-seconds debe estar entre 10 y 3600")
+    if not 120 <= args.music_seconds <= 3600:
+        parser().error(
+            "--music-seconds debe estar entre 120 y 3600 para detectar dos ciclos"
+        )
     if not 30 <= args.effect_frames <= 36000:
         parser().error("--effect-frames debe estar entre 30 y 36000")
     if not 0 <= args.quality <= 10:
