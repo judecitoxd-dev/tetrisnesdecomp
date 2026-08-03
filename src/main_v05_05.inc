@@ -22,9 +22,14 @@
                     if (button == SDL_CONTROLLER_BUTTON_START) {
                         if (game.phase == TETRIS_PHASE_GAME_OVER ||
                             game.phase == TETRIS_PHASE_COMPLETE) {
-                            pending.restart = true;
-                            result_handled = false;
-                        } else pending.pause = true;
+                            finish_replay_recording(&recording, &game,
+                                                    last_replay_path,
+                                                    &recording_active);
+                            screen = SCREEN_LEVEL_SELECT;
+                            clear_held(&left, &right, &down);
+                        } else {
+                            pending.pause = true;
+                        }
                     }
                     if (button == SDL_CONTROLLER_BUTTON_BACK) {
                         finish_replay_recording(&recording, &game,
