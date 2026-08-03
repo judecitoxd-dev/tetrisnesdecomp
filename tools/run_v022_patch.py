@@ -2,6 +2,8 @@
 from pathlib import Path
 import runpy
 
+# This small launcher fixes the one-time replacement order, then applies the
+# complete v0.22 audio continuity and platform layout patch.
 root = Path(__file__).resolve().parents[1]
 patcher = root / "tools" / "apply_v022_layout_audio_patch.py"
 text = patcher.read_text(encoding="utf-8")
