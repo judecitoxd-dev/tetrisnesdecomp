@@ -21,6 +21,7 @@ jobs:
         run: |
           python tools/external_prg_equivalence.py --self-test
           python tools/ld65_research_report.py --self-test
+          python tools/prg_control_flow_audit.py --self-test
           python tools/prg_verify.py --self-test
           python tools/prg_verify_v024.py --self-test
 
@@ -58,6 +59,13 @@ jobs:
             external-disassembly/tetris.dbg \
             --source-revision "$DISASM_REVISION" \
             --report research-report/ld65-source-map.json
+          python tools/prg_control_flow_audit.py \
+            external-disassembly/main.asm \
+            external-disassembly/tetris.asm \
+            external-disassembly/tetris-ram.asm \
+            --labels external-disassembly/tetris.lbl \
+            --source-revision "$DISASM_REVISION" \
+            --report research-report/control-flow-audit.json
           git -C external-disassembly rev-parse HEAD > research-report/external-source-revision.txt
           sha256sum external-disassembly/main.asm \
                     external-disassembly/tetris.asm \
