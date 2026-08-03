@@ -1,0 +1,73 @@
+{
+  "schema": 2,
+  "runtime_frozen": true,
+  "runtime_version": "v0.23",
+  "research_phase": "v0.25",
+  "target_prg": {
+    "size": 32768,
+    "crc32": "943DFBBE",
+    "sha256": "a2de35dfa7333b0458762a1485fb612b6bdc9b5a15269f0fcf5a6be67c0d89de"
+  },
+  "external_source": {
+    "repository": "CelestialAmber/TetrisNESDisasm",
+    "revision": "94581c0306fa0009fe11fde48222875549d15b8b",
+    "main_asm_sha256": "7dde9fb41caf2d93f6bd8d951eae5cd8d2c2ab916c926751ef4fba21ca26719f"
+  },
+  "gates": {
+    "G1_binary_prg_reconstruction": {
+      "percent": 100,
+      "status": "passed",
+      "evidence": "rebuilt 32768-byte PRG SHA-256 matches target exactly"
+    },
+    "G2_complete_prg_partition": {
+      "percent": 100,
+      "status": "passed",
+      "evidence": "ld65 maps all 32768 PRG bytes to source spans"
+    },
+    "G3_semantic_symbols": {
+      "percent": 100,
+      "status": "passed",
+      "existing_semantic_labels": 1071,
+      "additional_generic_labels_classified": 114,
+      "additional_aliases_unique": 114,
+      "evidence": "semantic-symbol-audit.json passes with no missing, extra, duplicate or invalid entries"
+    },
+    "G4_control_flow": {
+      "percent": 100,
+      "status": "passed",
+      "direct_edges_resolved": 1028,
+      "direct_edges_total": 1028,
+      "address_table_references_resolved": 368,
+      "address_table_references_total": 368,
+      "computed_jumps_classified": 2,
+      "computed_jumps_total": 2,
+      "evidence": "control-flow-audit.json gate_passed=true"
+    },
+    "G5_state_contracts": {
+      "percent": 100,
+      "status": "passed",
+      "contracts_generated": 302,
+      "routines_with_instructions": 302,
+      "instructions_classified": 4963,
+      "hardware_touching_routines": 55,
+      "indirect_memory_routines": 27,
+      "evidence": "state-contracts.json covers every global source routine/basic block with instructions"
+    },
+    "G6_dynamic_trace_families": {
+      "percent": 0,
+      "completed": 0,
+      "total": 18,
+      "status": "pending_local_reference_captures",
+      "pass_condition": "all 18 families have legal-ROM reference traces, deterministic hashes and comparison recipes"
+    },
+    "G7_reproducible_toolchain": {
+      "percent": 100,
+      "status": "passed",
+      "evidence": "source commit, source hashes, build workflow and report format are pinned"
+    }
+  },
+  "research_readiness_percent": 85.7143,
+  "runtime_correspondence_percent": 50,
+  "runtime_files_changed": 0,
+  "note": "Runtime correspondence remains frozen until G6 reaches 18/18 and every research gate is 100%."
+}

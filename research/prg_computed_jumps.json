@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "source_revision": "94581c0306fa0009fe11fde48222875549d15b8b",
+  "sites": [
+    {
+      "source": "switch_s_plus_2a",
+      "operand": "tmp1",
+      "classification": "return-address indexed jump-table dispatcher",
+      "selector": "A",
+      "mechanism": "The routine indexes a table located after the call site, places the selected address in tmp1/tmp2 and jumps indirectly through tmp1.",
+      "targets_source": "caller-adjacent .addr table",
+      "status": "semantically classified"
+    },
+    {
+      "source": "updateSoundEffectSlotShared::@computeAndExecute",
+      "operand": "AUDIOTMP3",
+      "classification": "sound-effect method pointer dispatcher",
+      "selector": "currentAudioSlot and sound-effect state",
+      "mechanism": "The audio dispatcher loads an init or playing-method pointer into AUDIOTMP3/AUDIOTMP4 and invokes it through an indirect jump.",
+      "targets_source": "sound-effect dispatch pointer tables",
+      "status": "semantically classified"
+    }
+  ]
+}

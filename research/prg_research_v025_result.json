@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "source_revision": "94581c0306fa0009fe11fde48222875549d15b8b",
+  "target": {
+    "rom_sha256": "ddb876c302cfd4ee19fabff8e3ede0b6801ded70c49980d1682a32d352953082",
+    "prg_sha256": "a2de35dfa7333b0458762a1485fb612b6bdc9b5a15269f0fcf5a6be67c0d89de",
+    "chr_sha256": "23789834e66947081aa5d34efe092beb69a91273abc62089a8bb7c00f67ff751"
+  },
+  "rebuilt": {
+    "rom_sha256": "acab10f2dbad4d4ef5d56b31cd4cea208bb6e2e2c5dba5eb339d711ec04e3535",
+    "prg_sha256": "a2de35dfa7333b0458762a1485fb612b6bdc9b5a15269f0fcf5a6be67c0d89de",
+    "chr_sha256": "23789834e66947081aa5d34efe092beb69a91273abc62089a8bb7c00f67ff751"
+  },
+  "equivalence": {
+    "full_rom_match": false,
+    "prg_match": true,
+    "chr_match": true,
+    "difference_scope": "16-byte iNES header only",
+    "binary_prg_reconstruction_percent": 100
+  },
+  "ld65": {
+    "prg_segment_bytes": 32768,
+    "mapped_prg_source_bytes": 32768,
+    "source_partition_percent": 100,
+    "labels_total": 1169,
+    "labels_semantic": 1071,
+    "labels_generic": 98,
+    "labels_in_prg_window": 953,
+    "semantic_label_ratio_percent": 91.6168,
+    "source_files": 30,
+    "line_records": 8304,
+    "symbol_records": 1464
+  },
+  "source_file_hashes": {
+    "main.asm": "7dde9fb41caf2d93f6bd8d951eae5cd8d2c2ab916c926751ef4fba21ca26719f",
+    "tetris.asm": "f3a9a3ce247803ef55c4c0461cdbf22c62c23d7eb95bb8b749f3e2b4237035de",
+    "tetris-ram.asm": "f555ade72efbedeca3784de02ac9caba612dccde3f69a34947f6c8a5943a90cb"
+  },
+  "runtime_files_changed": 0,
+  "legal_note": "Only hashes, counts and metadata are stored. No ROM, PRG, CHR or generated binary is committed."
+}

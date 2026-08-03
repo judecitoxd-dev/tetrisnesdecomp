@@ -1,0 +1,35 @@
+# label	semantic_name	kind	subsystem	evidence
+LEAA2	music_volume_envelope_05	table	music_envelopes	main.asm:7328; entry 5 referenced by musicChanVolControlTable.
+LEAA5	music_volume_envelope_06	table	music_envelopes	main.asm:7329; entry 6 referenced by musicChanVolControlTable.
+LEAA8	music_volume_envelope_07	table	music_envelopes	main.asm:7330; entry 7 referenced by musicChanVolControlTable.
+LEAAC	music_volume_envelope_08	table	music_envelopes	main.asm:7331; entry 8 referenced by musicChanVolControlTable.
+LEABA	music_volume_envelope_09	table	music_envelopes	main.asm:7332; entry 9 referenced by musicChanVolControlTable.
+LEAC7	music_volume_envelope_10	table	music_envelopes	main.asm:7333; entry 10 referenced by musicChanVolControlTable.
+LEAD4	music_volume_envelope_11	table	music_envelopes	main.asm:7334; entry 11 referenced by musicChanVolControlTable.
+LEADE	music_volume_envelope_12	table	music_envelopes	main.asm:7335; entry 12 referenced by musicChanVolControlTable.
+LEAE8	music_volume_envelope_13	table	music_envelopes	main.asm:7336; entry 13 referenced by musicChanVolControlTable.
+LEAF2	music_volume_envelope_14	table	music_envelopes	main.asm:7337; entry 14 referenced by musicChanVolControlTable.
+LEAF7	music_volume_envelope_15	table	music_envelopes	main.asm:7338; entry 15 referenced by musicChanVolControlTable.
+LEAFC	music_volume_envelope_16	table	music_envelopes	main.asm:7339; entry 16 referenced by musicChanVolControlTable.
+LEB01	music_volume_envelope_17	table	music_envelopes	main.asm:7340; entry 17 referenced by musicChanVolControlTable.
+LEB05	music_volume_envelope_18	table	music_envelopes	main.asm:7341; entry 18 referenced by musicChanVolControlTable.
+LEB0A	music_volume_envelope_19	table	music_envelopes	main.asm:7342; entry 19 referenced by musicChanVolControlTable.
+LEB0D	music_volume_envelope_20	table	music_envelopes	main.asm:7343; entry 20 referenced by musicChanVolControlTable.
+LEB10	music_volume_envelope_21	table	music_envelopes	main.asm:7344; entry 21 referenced by musicChanVolControlTable.
+LFFFF	absolute_minus_one_sentinel	linker_or_absolute_symbol	toolchain	ld65 label at $FFFF; represents the absolute -1/$FFFF sentinel rather than executable code.
+unreferenced_buttonMirror	unused_controller_button_mirror	ram_variable	controller	main.asm:162; unused four-byte mirror base used by the alternate controller diff routine.
+unreferenced_code2	unused_game_over_sfx_slot_override	unused_code	sound_effects	main.asm:6264; sets currentAudioSlot=2 before falling into game-over curtain effect init.
+unreferenced_data1	unused_variant_prg_blob_between_ending_and_audio	unused_data	unknown_data	main.asm:5833; conditionally included PAL/NWC/NTSC blob in its own unreferenced segment.
+unreferenced_data2	unused_signed_sprite_offset_ramp	unused_table	sprites	main.asm:1856; bytes run from $00 down through negative offsets and up to $13.
+unreferenced_data3	unused_audio_variant_blob	unused_data	apu	main.asm:5989; NWC code-like bytes or FF/00 fill followed by four audio bytes.
+unreferenced_data4	unused_prg_blob_4_start	unused_data	unknown_data	ld65 symbol at $F9EB; start of the configured unreferenced_data4 PRG segment.
+unreferenced_data5	unused_prg_blob_5_start	unused_data	unknown_data	ld65 symbol at $FF30; unreferenced bytes in the final PRG region.
+unreferenced_data6	unused_type_a_ending_padding_byte	unused_data	type_a_ending	main.asm:5162; single $FC byte between ending PPU patch data and endingAnimationA.
+unreferenced_data7	unused_high_score_padding	unused_data	high_scores	main.asm:4104; four zero bytes between character mapping and byteToBcdTable.
+unreferenced_framesPerDropTable	unused_gravity_levels_30_31	unused_table	gravity	main.asm:1614; two additional $01 gravity entries after the used 0-29 table.
+unreferenced_func1	unused_stable_controller_read_without_expansion	unused_routine	controller	main.asm:5554; begins alternate stable raw controller sampling.
+unreferenced_orientationToSpriteTable	unused_alternate_orientation_to_sprite_table	unused_table	sprites	main.asm:1852; alternate sprite indices with different offsets, documented in source.
+unreferenced_patchToPpu0	unused_type_b_ending_ppu_patch_0	unused_table	type_b_ending	main.asm:5141; packed PPU patch using the documented FE/FD command format.
+unreferenced_patchToPpu1	unused_type_b_ending_ppu_patch_1	unused_table	type_b_ending	main.asm:5145; second packed unused PPU patch.
+unreferenced_soundRng	unused_audio_lfsr_step	unused_routine	apu	main.asm:5963; two-byte right-shifting LFSR using bits from $EB/$EC.
+unreferenced_soundRngTmp	unused_audio_lfsr_feedback_bit	ram_variable	apu	main.asm:233; temporary feedback bit at $06FF for unreferenced_soundRng.

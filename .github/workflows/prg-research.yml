@@ -1,0 +1,114 @@
+name: PRG research source reconstruction
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild-prg:
+    runs-on: ubuntu-latest
+    env:
+      DISASM_REPO: https://github.com/CelestialAmber/TetrisNESDisasm.git
+      DISASM_REVISION: 94581c0306fa0009fe11fde48222875549d15b8b
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Self-test research tools
+        run: |
+          python tools/external_prg_equivalence.py --self-test
+          python tools/ld65_research_report.py --self-test
+          python tools/prg_control_flow_audit.py --self-test
+          python tools/prg_symbol_context.py --self-test
+          python tools/prg_semantic_audit.py --self-test
+          python tools/prg_state_contracts.py --self-test
+          python tools/prg_verify.py --self-test
+          python tools/prg_verify_v024.py --self-test
+
+      - name: Install deterministic build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git make python3 python3-pil
+
+      - name: Fetch pinned public 6502 disassembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --recurse-submodules "$DISASM_REPO" external-disassembly
+          git -C external-disassembly checkout "$DISASM_REVISION"
+          git -C external-disassembly submodule update --init --recursive
+          test "$(git -C external-disassembly rev-parse HEAD)" = "$DISASM_REVISION"
+
+      - name: Rebuild external source
+        working-directory: external-disassembly
+        run: make -j2
+
+      - name: Compare rebuilt PRG with legal target metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research-report
+          python tools/external_prg_equivalence.py \
+            external-disassembly/tetris.nes \
+            --manifest tools/tetris_prg_manifest.json \
+            --source-revision "$DISASM_REVISION" \
+            --report research-report/external-prg-equivalence.json \
+            --allow-prg-mismatch
+          python tools/ld65_research_report.py \
+            external-disassembly/tetris.lbl \
+            external-disassembly/tetris.dbg \
+            --source-revision "$DISASM_REVISION" \
+            --report research-report/ld65-source-map.json
+          python tools/prg_control_flow_audit.py \
+            external-disassembly/main.asm \
+            external-disassembly/tetris.asm \
+            external-disassembly/tetris-ram.asm \
+            --labels external-disassembly/tetris.lbl \
+            --computed-jumps research/prg_computed_jumps.json \
+            --source-revision "$DISASM_REVISION" \
+            --report research-report/control-flow-audit.json
+          python tools/prg_symbol_context.py \
+            external-disassembly/tetris.lbl \
+            external-disassembly/main.asm \
+            external-disassembly/tetris.asm \
+            external-disassembly/tetris-ram.asm \
+            --control-flow research-report/control-flow-audit.json \
+            --source-revision "$DISASM_REVISION" \
+            --report research-report/generic-symbol-context.json
+          python tools/prg_semantic_audit.py \
+            research-report/generic-symbol-context.json \
+            research/semantic_symbols_v025/01_gameplay_endings.tsv \
+            research/semantic_symbols_v025/02_ppu_controller_audio.tsv \
+            research/semantic_symbols_v025/03_envelopes_unused.tsv \
+            --source-revision "$DISASM_REVISION" \
+            --report research-report/semantic-symbol-audit.json
+          python tools/prg_state_contracts.py \
+            external-disassembly/main.asm \
+            external-disassembly/tetris.asm \
+            external-disassembly/tetris-ram.asm \
+            --source-revision "$DISASM_REVISION" \
+            --report research-report/state-contracts.json
+          git -C external-disassembly rev-parse HEAD > research-report/external-source-revision.txt
+          sha256sum external-disassembly/main.asm \
+                    external-disassembly/tetris.asm \
+                    external-disassembly/tetris-ram.asm \
+                    > research-report/external-source-files.sha256
+
+      - name: Enforce no proprietary payload in report
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f external-disassembly/tetris.nes
+          if find research-report -type f | grep -Ei '\.(nes|bin|prg|chr|ogg|wav)$'; then
+            echo "Forbidden binary payload in research report" >&2
+            exit 1
+          fi
+          find research-report -type f -maxdepth 1 -print -exec wc -c {} \;
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prg-research-v0.25
+          path: research-report/
