@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.22.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.23.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -165,11 +165,12 @@ if(TETRIS_BUILD_TESTS)
     add_executable(tetris_highscores_tests tests/highscores_tests.c)
     add_executable(tetris_playability_tests tests/playability_regression_tests.c)
     add_executable(tetris_audio_ring_tests tests/audio_ring_tests.c)
+    add_executable(tetris_timing_fidelity_tests tests/timing_fidelity_tests.c)
     foreach(target IN ITEMS
             tetris_game_tests tetris_demo_tests tetris_cathedral_tests
             tetris_apu_tests tetris_irq_timing_tests tetris_call_frame_tests
             tetris_highscores_tests tetris_playability_tests
-            tetris_audio_ring_tests)
+            tetris_audio_ring_tests tetris_timing_fidelity_tests)
         target_link_libraries(${target} PRIVATE tetris_core)
         tetris_strict_c(${target})
     endforeach()
@@ -182,6 +183,7 @@ if(TETRIS_BUILD_TESTS)
     add_test(NAME highscores COMMAND tetris_highscores_tests)
     add_test(NAME playability_regressions COMMAND tetris_playability_tests)
     add_test(NAME audio_ring COMMAND tetris_audio_ring_tests)
+    add_test(NAME timing_fidelity COMMAND tetris_timing_fidelity_tests)
     add_test(NAME apu_render_self_test COMMAND tetris_apu_render --self-test)
     add_test(NAME apu_scenario_self_test COMMAND tetris_apu_scenario --self-test)
     find_package(Python3 COMPONENTS Interpreter QUIET)
@@ -190,6 +192,8 @@ if(TETRIS_BUILD_TESTS)
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/apu_matrix.py self-test)
         add_test(NAME audio_cache_self_test
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/build_audio_cache.py --self-test)
+        add_test(NAME prg_verifier_self_test
+                 COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/prg_verify.py --self-test)
     endif()
 endif()
 
@@ -203,15 +207,17 @@ install(TARGETS tetris_replay_verify tetris_demo_verify
 install(PROGRAMS
     tools/audio_pack.py tools/rom_assets_verify.py
     tools/type_a_ending_verify.py tools/trace_compare.py
-    tools/apu_matrix.py tools/build_audio_cache.py tools/mesen_trace.lua
+    tools/apu_matrix.py tools/build_audio_cache.py tools/prg_verify.py tools/mesen_trace.lua
     DESTINATION tools)
 install(FILES README.md DESTINATION .)
+install(FILES tools/tetris_prg_manifest.json DESTINATION tools)
 install(FILES
     docs/PORT_STATUS.md docs/ANDROID_PORT.md docs/ROM_MAP.md
     docs/ROM_SCREENS.md docs/ROM_DEMO_OAM.md docs/ROM_TYPE_A_ENDING.md
     docs/TRACE_COMPARISON.md docs/APU_RENDERING.md
     docs/REPLAY_FORMAT.md docs/AUDIO_PACK.md docs/OGG_CACHE.md
     docs/DECOMP_TOOLS.md docs/PLAYABILITY_VERIFICATION.md
+    docs/PRG_VERIFICATION.md
     DESTINATION docs)
 
 set(CPACK_PACKAGE_NAME "tetris-nes-pc-port")

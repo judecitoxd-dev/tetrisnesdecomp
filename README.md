@@ -1,6 +1,6 @@
 # Tetris NES — ports nativos para PC y Android
 
-Versión **0.22** de una reimplementación portable de **Tetris (USA) para NES**
+Versión **0.23** de una reimplementación portable de **Tetris (USA) para NES**
 en C99. El repositorio no distribuye la ROM, gráficos, música ni datos
 extraídos; cada usuario proporciona su copia legal.
 
@@ -31,8 +31,8 @@ extraídos; cada usuario proporciona su copia legal.
 - Teclado, gamepad y controles táctiles.
 - Windows, Linux, Android ARM64 y ARMv7 sobre el mismo núcleo.
 
-La **correspondencia reproducible con la ROM** se estima en **46%**. Falta
-aproximadamente **54%** para identidad funcional, audiovisual y de timing
+La **correspondencia reproducible con la ROM** se estima en **50%**. Falta
+aproximadamente **50%** para identidad funcional, audiovisual y de timing
 respaldada por comparaciones. Es una estimación de ingeniería, no identidad
 binaria ni cobertura automática.
 
@@ -146,6 +146,21 @@ OGG, WAV ni trazas.
 - `docs/ROM_SCREENS.md`
 - `docs/ROM_MAP.md`
 - `docs/ANDROID_PORT.md`
+
+
+## Cambios de v0.23
+
+- La ROM legal puede verificarse contra 53 entradas de rutina, 9 tablas y 14
+  aristas directas del PRG mediante `tools/prg_verify.py`.
+- El mapa 6502 incorpora estados de juego, controles, Modo B, selección de
+  piezas, líneas, puntuación, música y finalización.
+- El DAS horizontal conserva su carga a través de ARE y borrado de líneas.
+- DOWN ya no descarga el DAS; RIGHT conserva la prioridad original y una
+  colisión lateral carga el contador a 16.
+- Borrado de líneas y cortina usan el frame global en lugar de un temporizador
+  relativo a la fase.
+- La suite añade regresiones específicas de reglas/timing y el autoverificador
+  del manifiesto PRG.
 
 ## Legalidad
 

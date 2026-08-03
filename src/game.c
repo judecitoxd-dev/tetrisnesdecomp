@@ -175,8 +175,7 @@ static void spawn_piece(TetrisGame *game) {
     game->x = 5;
     game->y = 0;
     game->fall_counter = 0;
-    game->das_counter = 0;
-    game->das_direction = 0;
+    /* The cartridge preserves horizontal DAS charge through ARE and clears. */
     game->soft_drop_counter = 0;
     game->soft_drop_points = 0;
     game->phase = TETRIS_PHASE_ACTIVE;
@@ -422,30 +421,42 @@ void tetris_hard_drop(TetrisGame *game) {
     lock_piece(game);
 }
 
+static uint8_t horizontal_input_mask(const TetrisInput *input) {
+    uint8_t mask = 0u;
+    if (!input) return 0u;
+    if (input->left) mask |= 1u;
+    if (input->right) mask |= 2u;
+    return mask;
+}
+
 static void update_horizontal(TetrisGame *game, const TetrisInput *input) {
-    int direction = 0;
-    if (input->down) {
+    const uint8_t held = horizontal_input_mask(input);
+    const uint8_t newly_pressed = (uint8_t)(held & ~game->horizontal_buttons);
+    int direction;
+
+    /* Original shift_tetrimino returns without discharging DAS while DOWN is held. */
+    if (input->down) return;
+
+    /* The original checks RIGHT first, so RIGHT wins when both are held. */
+    if ((held & 2u) != 0u) direction = 1;
+    else if ((held & 1u) != 0u) direction = -1;
+    else {
         game->das_direction = 0;
-        game->das_counter = 0;
         return;
     }
-    if (input->left != input->right) direction = input->left ? -1 : 1;
-    if (direction == 0) {
-        game->das_direction = 0;
+    game->das_direction = direction;
+
+    if (newly_pressed != 0u) {
         game->das_counter = 0;
-        return;
-    }
-    if (game->das_direction != direction) {
-        game->das_direction = direction;
-        game->das_counter = 0;
-        (void)tetris_try_move(game, direction, 0);
-        return;
+    } else {
+        ++game->das_counter;
+        if (game->das_counter < 16) return;
+        game->das_counter = 10;
     }
 
-    ++game->das_counter;
-    if (game->das_counter >= 16) {
-        game->das_counter = 10;
-        if (!tetris_try_move(game, direction, 0)) game->das_counter = 16;
+    if (!tetris_try_move(game, direction, 0)) {
+        /* DAS_RESET=$10 on NTSC after a wall collision. */
+        game->das_counter = 16;
     }
 }
 
@@ -490,9 +501,13 @@ static void tick_active(TetrisGame *game, const TetrisInput *input) {
 
 static void tick_line_clear(TetrisGame *game) {
     ++game->phase_timer;
-    game->clear_step = game->phase_timer / 4;
-    if (game->clear_step > 4) game->clear_step = 4;
-    if (game->phase_timer >= 20) finish_line_clear(game);
+    /* The PPU animation is keyed to the global NMI frame counter, not phase age. */
+    if ((game->frame & 3) != 0) return;
+    if (game->clear_step < 4) {
+        ++game->clear_step;
+        return;
+    }
+    finish_line_clear(game);
 }
 
 static void tick_entry_delay(TetrisGame *game) {
@@ -502,7 +517,7 @@ static void tick_entry_delay(TetrisGame *game) {
 
 static void tick_game_over_curtain(TetrisGame *game) {
     ++game->phase_timer;
-    if ((game->phase_timer & 3) == 0 && game->curtain_rows < TETRIS_BOARD_H) {
+    if ((game->frame & 3) == 0 && game->curtain_rows < TETRIS_BOARD_H) {
         ++game->curtain_rows;
     }
     if (game->curtain_rows >= TETRIS_BOARD_H) {
@@ -513,6 +528,7 @@ static void tick_game_over_curtain(TetrisGame *game) {
 }
 
 void tetris_tick(TetrisGame *game, const TetrisInput *input) {
+    const uint8_t held_horizontal = horizontal_input_mask(input);
     if (input->restart_pressed &&
         (game->phase == TETRIS_PHASE_GAME_OVER ||
          game->phase == TETRIS_PHASE_COMPLETE)) {
@@ -520,6 +536,7 @@ void tetris_tick(TetrisGame *game, const TetrisInput *input) {
                               (uint32_t)game->frame ^ 0xa511e9b3u;
         tetris_init_mode(game, seed, game->start_level,
                          game->mode, game->start_height);
+        game->horizontal_buttons = held_horizontal;
         return;
     }
     if (input->toggle_next_pressed &&
@@ -537,7 +554,10 @@ void tetris_tick(TetrisGame *game, const TetrisInput *input) {
     /* The original RNG advances from NMI even while play is paused. */
     advance_rng(game);
     if (game->paused || game->phase == TETRIS_PHASE_GAME_OVER ||
-        game->phase == TETRIS_PHASE_COMPLETE) return;
+        game->phase == TETRIS_PHASE_COMPLETE) {
+        game->horizontal_buttons = held_horizontal;
+        return;
+    }
 
     ++game->frame;
     switch (game->phase) {
@@ -549,6 +569,7 @@ void tetris_tick(TetrisGame *game, const TetrisInput *input) {
         case TETRIS_PHASE_COMPLETE:
             break;
     }
+    game->horizontal_buttons = held_horizontal;
 }
 
 bool tetris_cell_hidden(const TetrisGame *game, int x, int y) {

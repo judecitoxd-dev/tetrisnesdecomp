@@ -80,6 +80,7 @@ typedef struct TetrisGame {
     int fall_counter;
     int das_counter;
     int das_direction;
+    uint8_t horizontal_buttons;
     int soft_drop_counter;
     int soft_drop_points;
 

@@ -6,7 +6,7 @@
     "0x898E": "ntsc_gravity_table",
     "0x97FE": "line_clear_columns",
     "0x984C": "level_palette_table",
-    "0x994E": "orientation_lookup_table",
+    "0x994E": "spawn_table",
     "0x9CA5": "score_values_bcd",
     "0x948B": "check_piece_collision",
     "0x977F": "animate_line_clear",
@@ -17,13 +17,62 @@
     "0xAB47": "advance_rng_lfsr",
     "0xAB5E": "perform_oam_dma",
     "0xAB69": "read_controller_ports",
-    "0xAB8B": "merge_controller_reads"
+    "0xAB8B": "merge_controller_reads",
+    "0x8161": "dispatch_game_mode",
+    "0x8173": "process_player1",
+    "0x8186": "process_player2",
+    "0x819B": "dispatch_game_mode_state",
+    "0x81B2": "dispatch_player1_play_state",
+    "0x81CF": "player1_active_controls",
+    "0x81D9": "dispatch_player2_play_state",
+    "0x81F6": "player2_active_controls",
+    "0x86DC": "game_state_init",
+    "0x8776": "make_player1_active",
+    "0x8792": "make_player2_active",
+    "0x87AE": "save_player1_state",
+    "0x87C8": "save_player2_state",
+    "0x87DC": "init_type_b_playfield_gate",
+    "0x87E3": "init_type_b_playfield",
+    "0x87FC": "fill_type_b_row",
+    "0x8824": "force_type_b_blank",
+    "0x884A": "copy_type_b_playfield",
+    "0x8875": "finish_type_b_init",
+    "0x88AB": "rotate_tetrimino",
+    "0x8914": "drop_tetrimino",
+    "0x89AE": "shift_tetrimino",
+    "0x8A0A": "stage_current_piece_sprite",
+    "0x8A9C": "orientation_table",
+    "0x988E": "spawn_next_piece",
+    "0x993B": "tetrimino_type_from_orientation",
+    "0x9956": "spawn_orientation_from_orientation",
+    "0x9969": "increment_piece_stat",
+    "0x99A2": "lock_tetrimino",
+    "0x9A11": "update_game_over_curtain",
+    "0x9A6B": "check_completed_rows",
+    "0x9B03": "receive_garbage",
+    "0x9B53": "garbage_lines_by_clear_count",
+    "0x9B58": "update_lines_and_statistics",
+    "0x9CBF": "handle_game_over",
+    "0x9D17": "update_music_speed",
+    "0x9D51": "poll_controller_buttons",
+    "0x9DE8": "advance_demo_stream",
+    "0x9DF6": "start_demo",
+    "0x9E07": "set_music_track",
+    "0x9E16": "check_reset_combo",
+    "0x9E27": "vblank_then_state2",
+    "0x9E2F": "unassign_orientation",
+    "0x9E37": "increment_play_state"
   },
   "data_ranges": [
     {
       "start": "0x898E",
       "length": 30,
       "name": "ntsc_gravity_table"
+    },
+    {
+      "start": "0x8A9C",
+      "length": 228,
+      "name": "orientation_table"
     },
     {
       "start": "0x97FE",
@@ -36,9 +85,24 @@
       "name": "level_palette_table"
     },
     {
+      "start": "0x993B",
+      "length": 19,
+      "name": "tetrimino_type_from_orientation"
+    },
+    {
       "start": "0x994E",
-      "length": 27,
-      "name": "orientation_lookup_table"
+      "length": 8,
+      "name": "spawn_table"
+    },
+    {
+      "start": "0x9956",
+      "length": 19,
+      "name": "spawn_orientation_from_orientation"
+    },
+    {
+      "start": "0x9B53",
+      "length": 5,
+      "name": "garbage_lines_by_clear_count"
     },
     {
       "start": "0x9CA5",

@@ -120,3 +120,20 @@ comparar el estado completo por fotograma para todas las combinaciones de nivel,
 - Los offsets de streams y metasprites solo se activan para el CRC comprobado.
 - La correspondencia binaria requiere un ensamblado enlazable y control exacto del layout, aún no
   implementados.
+
+## Verificación ampliada v0.23
+
+El manifiesto verifica 53 entradas de rutina. Entre las nuevas familias están:
+
+- `$8161-$81FC`: dispatch de modo, estado y controles de ambos jugadores;
+- `$86DC-$8875`: inicialización y generación completa del campo B-Type;
+- `$88AB/$8914/$89AE`: rotación, caída y desplazamiento/DAS;
+- `$988E-$9969`: aparición, selección aleatoria y estadísticas de piezas;
+- `$99A2-$9B58`: bloqueo, cortina, filas completas, basura, líneas y score;
+- `$9CBF-$9E37`: derrota, allegro, mando, demo y estados auxiliares.
+
+La antigua región combinada de `$994E` se divide ahora en tres tablas:
+`tetrimino_type_from_orientation` (`$993B`, 19 bytes), `spawn_table`
+(`$994E`, 8 bytes) y `spawn_orientation_from_orientation` (`$9956`, 19 bytes).
+También se verifica `orientation_table` (`$8A9C`, 228 bytes) y
+`garbage_lines_by_clear_count` (`$9B53`, 5 bytes).
