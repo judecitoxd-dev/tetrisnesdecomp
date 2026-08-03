@@ -7,38 +7,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   android:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: v0.22-continuous-apu-sampling
-
-      - name: Update obsolete 4:3 settings expectation
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('tests/game_tests_v05_01.inc')
-          text = path.read_text(encoding='utf-8')
-          old = '    assert(loaded.window_width == 1234 && loaded.window_height == 777);'
-          new = ('    assert(loaded.window_width == 1036 && loaded.window_height == 777);\n'
-                 '    assert(loaded.window_width * 3 == loaded.window_height * 4);')
-          if old in text:
-              path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          PY
-          if ! git diff --quiet -- tests/game_tests_v05_01.inc; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add tests/game_tests_v05_01.inc
-            git commit -m "tests: verify normalized PC 4:3 window size"
-            git push origin HEAD:v0.22-continuous-apu-sampling
-          fi
 
       - name: Self-test ROM, audio and Android layout tools
         run: |
