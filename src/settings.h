@@ -31,6 +31,7 @@ typedef struct TetrisSettings {
 
 void tetris_settings_init(TetrisSettings *settings);
 void tetris_settings_sanitize(TetrisSettings *settings);
+void tetris_settings_fit_window_4_3(int *width, int *height);
 bool tetris_settings_load(TetrisSettings *settings, const char *path);
 bool tetris_settings_save(const TetrisSettings *settings, const char *path);
 void tetris_settings_set_rom_path(TetrisSettings *settings, const char *path);

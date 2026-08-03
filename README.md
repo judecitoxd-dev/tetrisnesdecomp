@@ -1,6 +1,6 @@
 # Tetris NES — ports nativos para PC y Android
 
-Versión **0.21** de una reimplementación portable de **Tetris (USA) para NES**
+Versión **0.22** de una reimplementación portable de **Tetris (USA) para NES**
 en C99. El repositorio no distribuye la ROM, gráficos, música ni datos
 extraídos; cada usuario proporciona su copia legal.
 
@@ -132,3 +132,14 @@ OGG, WAV ni trazas.
 
 El proyecto contiene código original, herramientas y documentación. No contiene
 ROM, PRG/CHR extraído, música de Nintendo, capturas de RAM ni audio renderizado.
+
+
+## Cambios de v0.22
+
+- Los efectos del APU ya no descartan la música que estaba preparada en el
+  ring buffer; mover o rotar una pieza no debe acelerar ni cortar la canción.
+- El muestreo del APU ocurre durante todos los ciclos 6502, incluidos los
+  ciclos del driver y los stalls DMC.
+- PC conserva una ventana 4:3 exacta.
+- Android usa orientación vertical con el juego arriba y controles grandes de
+  estilo consola portátil abajo. Este diseño no se aplica al port de PC.

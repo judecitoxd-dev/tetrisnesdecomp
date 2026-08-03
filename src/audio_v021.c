@@ -579,7 +579,7 @@ void tetris_audio_play_events(TetrisAudio *audio, uint32_t events) {
 #endif
     if (audio->rom_apu_active &&
         !SDL_AtomicGet(&audio->rom_producer_failed)) {
-        request_rom_control(audio, events, true);
+        request_rom_control(audio, events, false);
         return;
     }
     if (!audio->device) return;

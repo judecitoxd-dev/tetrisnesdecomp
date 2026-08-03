@@ -17,6 +17,11 @@
 
 #define LOGICAL_W 640
 #define LOGICAL_H 480
+#ifdef __ANDROID__
+#define DISPLAY_LOGICAL_H 1280
+#else
+#define DISPLAY_LOGICAL_H LOGICAL_H
+#endif
 #define CELL 20
 #define BOARD_X 220
 #define BOARD_Y 40

@@ -306,9 +306,10 @@ replace_once(
     "versionName '0.21-android'",
     "versionName '0.22-android'",
 )
-replace_all(".github/workflows/build.yml", "v0.21", "v0.22")
 replace_all(".github/workflows/build.yml", "v0.21.0", "v0.22.0")
-replace_all(".github/workflows/android.yml", "v0.21", "v0.22")
+replace_all(".github/workflows/build.yml", "v0.21", "v0.22")
+if "v0.21" in read(".github/workflows/android.yml"):
+    replace_all(".github/workflows/android.yml", "v0.21", "v0.22")
 
 # Permanent source-level regression check used by both workflows.
 layout_test = '''#!/usr/bin/env python3
