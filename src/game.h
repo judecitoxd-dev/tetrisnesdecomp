@@ -27,6 +27,10 @@ typedef enum TetrisMode {
 
 typedef enum TetrisPhase {
     TETRIS_PHASE_ACTIVE = 0,
+    /* NES playState 2: collision was detected on the preceding update. */
+    TETRIS_PHASE_LOCK_PENDING,
+    /* NES playState 3: inspect one of four candidate rows per update. */
+    TETRIS_PHASE_ROW_CHECK,
     TETRIS_PHASE_LINE_CLEAR,
     TETRIS_PHASE_ENTRY_DELAY,
     TETRIS_PHASE_GAME_OVER_CURTAIN,

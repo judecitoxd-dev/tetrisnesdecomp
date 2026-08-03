@@ -278,21 +278,12 @@ bool tetris_try_rotate(TetrisGame *game, int direction) {
     return false;
 }
 
-static int find_completed_rows(TetrisGame *game) {
-    int count = 0;
-    for (int y = TETRIS_BOARD_H - 1;
-         y >= 0 && count < TETRIS_MAX_CLEAR_ROWS; --y) {
-        bool full = true;
-        for (int x = 0; x < TETRIS_BOARD_W; ++x) {
-            if (game->board[y][x] == 0) {
-                full = false;
-                break;
-            }
-        }
-        if (full) game->clear_rows[count++] = y;
+static bool row_is_complete(const TetrisGame *game, int row) {
+    if (row < 0 || row >= TETRIS_BOARD_H) return false;
+    for (int x = 0; x < TETRIS_BOARD_W; ++x) {
+        if (game->board[row][x] == 0) return false;
     }
-    for (int i = count; i < TETRIS_MAX_CLEAR_ROWS; ++i) game->clear_rows[i] = -1;
-    return count;
+    return true;
 }
 
 static void collapse_completed_rows(TetrisGame *game) {
@@ -376,6 +367,12 @@ static void finish_line_clear(TetrisGame *game) {
     begin_entry_delay(game);
 }
 
+static void begin_lock_pending(TetrisGame *game) {
+    game->phase = TETRIS_PHASE_LOCK_PENDING;
+    game->phase_timer = 0;
+    game->fall_counter = 0;
+}
+
 static void lock_piece(TetrisGame *game) {
     bool above_top = false;
     int bottom = INT_MIN;
@@ -402,14 +399,16 @@ static void lock_piece(TetrisGame *game) {
         return;
     }
 
-    game->clear_count = find_completed_rows(game);
-    if (game->clear_count > 0) {
-        game->phase = TETRIS_PHASE_LINE_CLEAR;
-        game->phase_timer = 0;
-        game->clear_step = 0;
-    } else {
-        begin_entry_delay(game);
-    }
+    /*
+     * The cartridge does not scan every row in the locking update. It enters
+     * playState 3 and checks exactly four candidate rows on four subsequent
+     * player-state updates. clear_step doubles as that row-check index here.
+     */
+    game->clear_count = 0;
+    game->clear_step = 0;
+    for (int i = 0; i < TETRIS_MAX_CLEAR_ROWS; ++i) game->clear_rows[i] = -1;
+    game->phase = TETRIS_PHASE_ROW_CHECK;
+    game->phase_timer = 0;
 }
 
 void tetris_hard_drop(TetrisGame *game) {
@@ -479,7 +478,7 @@ static void tick_active(TetrisGame *game, const TetrisInput *input) {
                 ++game->y;
                 ++game->soft_drop_points;
             } else {
-                lock_piece(game);
+                begin_lock_pending(game);
             }
         }
         return;
@@ -494,8 +493,36 @@ static void tick_active(TetrisGame *game, const TetrisInput *input) {
                       game->x, game->y + 1)) {
             ++game->y;
         } else {
-            lock_piece(game);
+            begin_lock_pending(game);
         }
+    }
+}
+
+static void tick_lock_pending(TetrisGame *game) {
+    /* One player-state update after collision, matching playState 2. */
+    lock_piece(game);
+}
+
+static void tick_row_check(TetrisGame *game) {
+    int first_row = game->y - 2;
+    int row;
+    if (first_row < 0) first_row = 0;
+    row = first_row + game->clear_step;
+
+    if (row_is_complete(game, row) &&
+        game->clear_count < TETRIS_MAX_CLEAR_ROWS) {
+        game->clear_rows[game->clear_count++] = row;
+    }
+
+    ++game->clear_step;
+    if (game->clear_step < 4) return;
+
+    if (game->clear_count > 0) {
+        game->phase = TETRIS_PHASE_LINE_CLEAR;
+        game->phase_timer = 0;
+        game->clear_step = 0;
+    } else {
+        begin_entry_delay(game);
     }
 }
 
@@ -562,6 +589,8 @@ void tetris_tick(TetrisGame *game, const TetrisInput *input) {
     ++game->frame;
     switch (game->phase) {
         case TETRIS_PHASE_ACTIVE: tick_active(game, input); break;
+        case TETRIS_PHASE_LOCK_PENDING: tick_lock_pending(game); break;
+        case TETRIS_PHASE_ROW_CHECK: tick_row_check(game); break;
         case TETRIS_PHASE_LINE_CLEAR: tick_line_clear(game); break;
         case TETRIS_PHASE_ENTRY_DELAY: tick_entry_delay(game); break;
         case TETRIS_PHASE_GAME_OVER_CURTAIN: tick_game_over_curtain(game); break;

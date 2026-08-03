@@ -39,6 +39,16 @@ static void prepare_single_line(TetrisGame *game) {
     game->phase = TETRIS_PHASE_ACTIVE;
 }
 
+static int occupied_cells(const TetrisGame *game) {
+    int total = 0;
+    int y;
+    int x;
+    for (y = 0; y < TETRIS_BOARD_H; ++y)
+        for (x = 0; x < TETRIS_BOARD_W; ++x)
+            if (game->board[y][x] != 0) ++total;
+    return total;
+}
+
 static void test_down_preserves_horizontal_das(void) {
     TetrisGame game;
     TetrisInput input = {0};
@@ -98,6 +108,43 @@ static void test_das_survives_entry_delay_and_spawn(void) {
     CHECK(game.horizontal_buttons == 2u);
 }
 
+static void test_collision_defers_lock_one_update(void) {
+    TetrisGame game;
+    TetrisInput empty = {0};
+    tetris_init(&game, 0x1989u, 0);
+    prepare_active_o(&game, 5, 18);
+    game.fall_counter = tetris_gravity_frames(game.level) - 1;
+    CHECK(occupied_cells(&game) == 0);
+    tetris_tick(&game, &empty);
+    CHECK(game.phase == TETRIS_PHASE_LOCK_PENDING);
+    CHECK(occupied_cells(&game) == 0);
+    tetris_tick(&game, &empty);
+    CHECK(game.phase == TETRIS_PHASE_ROW_CHECK);
+    CHECK(occupied_cells(&game) == 4);
+    CHECK(game.clear_step == 0);
+}
+
+static void test_four_row_checks_are_separate_updates(void) {
+    TetrisGame game;
+    TetrisInput empty = {0};
+    tetris_init(&game, 0x1989u, 0);
+    prepare_single_line(&game);
+    tetris_hard_drop(&game);
+    CHECK(game.phase == TETRIS_PHASE_ROW_CHECK);
+    CHECK(game.clear_count == 0);
+    tetris_tick(&game, &empty);
+    CHECK(game.phase == TETRIS_PHASE_ROW_CHECK);
+    CHECK(game.clear_step == 1 && game.clear_count == 0);
+    tetris_tick(&game, &empty);
+    CHECK(game.clear_step == 2 && game.clear_count == 0);
+    tetris_tick(&game, &empty);
+    CHECK(game.clear_step == 3 && game.clear_count == 1);
+    CHECK(game.lines == 0 && game.score == 0);
+    tetris_tick(&game, &empty);
+    CHECK(game.phase == TETRIS_PHASE_LINE_CLEAR);
+    CHECK(game.clear_step == 0 && game.clear_count == 1);
+}
+
 static void test_line_clear_uses_global_frame_alignment(void) {
     TetrisGame game;
     TetrisInput empty = {0};
@@ -105,14 +152,18 @@ static void test_line_clear_uses_global_frame_alignment(void) {
     game.frame = 1;
     prepare_single_line(&game);
     tetris_hard_drop(&game);
+    CHECK(game.phase == TETRIS_PHASE_ROW_CHECK);
+    tick_with(&game, empty, 4);
+    CHECK(game.frame == 5);
     CHECK(game.phase == TETRIS_PHASE_LINE_CLEAR);
     tick_with(&game, empty, 18);
-    CHECK(game.frame == 19);
+    CHECK(game.frame == 23);
     CHECK(game.phase == TETRIS_PHASE_LINE_CLEAR);
+    CHECK(game.lines == 0 && game.score == 0);
     tick_with(&game, empty, 1);
-    CHECK(game.frame == 20);
+    CHECK(game.frame == 24);
     CHECK(game.phase == TETRIS_PHASE_ENTRY_DELAY);
-    CHECK(game.lines == 1);
+    CHECK(game.lines == 1 && game.score == 40);
 }
 
 static void test_curtain_uses_global_frame_alignment(void) {
@@ -136,8 +187,10 @@ int main(void) {
     test_blocked_press_charges_das_to_reset();
     test_right_has_priority_when_both_are_held();
     test_das_survives_entry_delay_and_spawn();
+    test_collision_defers_lock_one_update();
+    test_four_row_checks_are_separate_updates();
     test_line_clear_uses_global_frame_alignment();
     test_curtain_uses_global_frame_alignment();
-    puts("NES DAS and global-frame timing tests passed.");
+    puts("NES lock, row-check, DAS and global-frame timing tests passed.");
     return 0;
 }
