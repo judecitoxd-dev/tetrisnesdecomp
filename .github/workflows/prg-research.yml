@@ -24,6 +24,7 @@ jobs:
           python tools/prg_control_flow_audit.py --self-test
           python tools/prg_symbol_context.py --self-test
           python tools/prg_semantic_audit.py --self-test
+          python tools/prg_state_contracts.py --self-test
           python tools/prg_verify.py --self-test
           python tools/prg_verify_v024.py --self-test
 
@@ -84,6 +85,12 @@ jobs:
             research/semantic_symbols_v025/03_envelopes_unused.tsv \
             --source-revision "$DISASM_REVISION" \
             --report research-report/semantic-symbol-audit.json
+          python tools/prg_state_contracts.py \
+            external-disassembly/main.asm \
+            external-disassembly/tetris.asm \
+            external-disassembly/tetris-ram.asm \
+            --source-revision "$DISASM_REVISION" \
+            --report research-report/state-contracts.json
           git -C external-disassembly rev-parse HEAD > research-report/external-source-revision.txt
           sha256sum external-disassembly/main.asm \
                     external-disassembly/tetris.asm \
