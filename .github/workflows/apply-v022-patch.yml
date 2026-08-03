@@ -1,0 +1,30 @@
+name: Apply v0.22 audio and layout patch
+
+on:
+  push:
+    branches: [v0.22-continuous-apu-sampling]
+    paths:
+      - tools/apply_v022_layout_audio_patch.py
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v0.22-continuous-apu-sampling
+      - name: Apply source patch
+        run: python tools/apply_v022_layout_audio_patch.py
+      - name: Commit patched sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "v0.22: fix audio continuity and add Android handheld layout"
+          git push origin HEAD:v0.22-continuous-apu-sampling
