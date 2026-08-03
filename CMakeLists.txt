@@ -81,7 +81,7 @@ if(TETRIS_BUILD_APP)
     add_executable(tetris_pc
         src/main.c src/app.c src/audio_v021.c src/audio_device.c
         src/rom_picker.c src/android_bridge.c src/touch_controls.c
-        src/menu_music_cursor.c src/level_score_table_fix.c
+        src/menu_music_cursor.c src/level_score_table_fix.c src/songs.c
         src/rom_screens.c src/rom_sprites.c src/rom_endings.c
         src/rom_concert_animation.c src/rom_cathedral_sprites.c
         src/rom_type_a.c src/rom_type_a_background.c
@@ -199,11 +199,11 @@ endif()
 
 include(GNUInstallDirs)
 if(TETRIS_BUILD_APP)
+    # The distributable package contains exactly one executable. The verifier
+    # and renderer programs remain build/CI tools, but are not installed.
     install(TARGETS tetris_pc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(DIRECTORY songs DESTINATION .)
 endif()
-install(TARGETS tetris_replay_verify tetris_demo_verify
-        tetris_apu_render tetris_apu_scenario
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(PROGRAMS
     tools/audio_pack.py tools/rom_assets_verify.py
     tools/type_a_ending_verify.py tools/trace_compare.py
