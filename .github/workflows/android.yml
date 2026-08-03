@@ -61,7 +61,7 @@ jobs:
         with:
           gradle-version: '8.0.2'
 
-      - name: Build debug APK v0.23 portrait handheld
+      - name: Build debug APK v0.27 portrait handheld
         working-directory: android
         run: gradle --no-daemon :app:assembleDebug
 
@@ -75,10 +75,10 @@ jobs:
             echo "Forbidden ROM/replay/audio/trace payload found in APK" >&2
             exit 1
           fi
-          cp "$APK" Tetris-NES-Port-Android-v0.23-debug.apk
-          sha256sum Tetris-NES-Port-Android-v0.23-debug.apk
+          cp "$APK" Tetris-NES-Port-Android-v0.27-debug.apk
+          sha256sum Tetris-NES-Port-Android-v0.27-debug.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: tetris-nes-port-android-v0.23
-          path: Tetris-NES-Port-Android-v0.23-debug.apk
+          name: tetris-nes-port-android-v0.27
+          path: Tetris-NES-Port-Android-v0.27-debug.apk

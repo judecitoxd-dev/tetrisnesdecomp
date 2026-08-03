@@ -27,17 +27,17 @@ consola portátil debajo.
 | Modo B | 95% |
 | Integración y empaquetado | 99% |
 | Carga legal de recursos desde ROM | 99% |
-| Fidelidad de reglas y timings principales | 92% |
+| Fidelidad de reglas y timings principales | 94% |
 | Pantallas y animaciones originales/equivalentes | 97% |
 | Audio original interactivo | 97% |
 | Renderizado automático del APU original | 95% |
-| Decompilación etiquetada/verificada del PRG 6502 | 60% |
-| **Correspondencia reproducible con la ROM** | **56%** |
+| Investigación y preparación del PRG 6502 | 100% |
+| **Correspondencia funcional del runtime con la ROM** | **50%** |
 
-La cifra central es **Correspondencia reproducible con la ROM**: 56% terminado
-y aproximadamente 44% pendiente para identidad funcional, audiovisual y de
-timing. Los porcentajes son estimaciones de ingeniería, no cobertura automática
-ni una afirmación de identidad binaria.
+La investigación y preparación del PRG ya está cerrada al 100%, pero la cifra
+central del ejecutable es **Correspondencia funcional del runtime con la ROM**:
+50%. Los porcentajes son estimaciones conservadoras de ingeniería, no una
+afirmación de identidad audiovisual o binaria.
 
 El punto adicional de correspondencia refleja una condición reproducible: los
 eventos de juego ya no descartan muestras musicales y todos los ciclos físicos
@@ -146,8 +146,8 @@ verificación de fuente adicional:
   exactos del bytecode musical.
 - Las escrituras APU se aplican a granularidad de instrucción, no al ciclo
   exacto de bus.
-- Las 18 trazas requieren capturas Mesen reales para corregir la primera
-  divergencia de cada familia.
+- Las 18 familias dinámicas de investigación ya son reproducibles; falta
+  comparar automáticamente el estado completo del runtime en cada fotograma.
 - Parte de las reglas y pantallas sigue implementada en C.
 - Todavía no existe una construcción 6502 enlazable y binariamente idéntica.
 
@@ -201,3 +201,36 @@ respaldada por firmas, tablas y relaciones semánticas reproducibles. El 56% de
 correspondencia tampoco afirma identidad audiovisual: aún faltan trazas reales
 de ejecución, comparación de RAM/PPU/APU por frame y una recompilación 6502
 binariamente idéntica.
+
+
+## Cambios reales de reglas y timing en v0.27
+
+La primera aplicación de la investigación al runtime corrige el pipeline que
+ocurre cuando una pieza toca el suelo. Antes, el port bloqueaba la pieza,
+buscaba todas las filas y elegía la siguiente fase dentro del mismo cuadro.
+
+La ROM usa estados separados:
+
+1. el control activo detecta la colisión vertical;
+2. el siguiente estado bloquea los cuatro minos;
+3. cuatro actualizaciones independientes inspeccionan las cuatro filas candidatas;
+4. la animación de línea continúa alineada al contador global cada cuatro frames;
+5. líneas, nivel y puntuación se aplican después de la animación;
+6. después comienza la espera de aparición.
+
+v0.27 añade `LOCK_PENDING` y `ROW_CHECK` al núcleo C. Las pruebas demuestran que
+el tablero no cambia en el cuadro de colisión, que el bloqueo sucede en la
+actualización siguiente, que solo se inspecciona una fila por actualización y
+que la puntuación permanece sin cambios hasta terminar la animación.
+
+Por esta corrección demostrable, la fidelidad de reglas y timings sube de 92% a
+**94%**. No sube más porque todavía quedan diferencias conocidas:
+
+- el colapso interno de RAM de una fila se realiza al final de la animación en
+  el port, mientras la ROM lo realiza durante la comprobación de filas y deja
+  la imagen antigua temporalmente en PPU;
+- la aparición aún usa una tabla ARE equivalente en lugar de quedar bloqueada
+  por el progreso exacto de copia VRAM;
+- hard drop sigue siendo una extensión opcional del port y no una regla NES;
+- falta comparar estados completos RAM/PPU/APU por fotograma contra las 18
+  referencias dinámicas.

@@ -30,11 +30,11 @@ require("#define DISPLAY_LOGICAL_H 1280" in text("src/app.h"),
 require("#define TOUCH_LOGICAL_H 1280" in text("src/touch_controls.c"),
         "Android touch canvas is missing")
 main = text("src/main_v05_02.inc")
-require("Tetris NES PC Port v0.23" in main,
+require("Tetris NES PC Port v0.27" in main,
         "visible desktop version is stale")
 require("SDL_RenderSetLogicalSize(renderer, LOGICAL_W, DISPLAY_LOGICAL_H);" in main,
         "platform display height is not used")
 settings = text("src/settings.c")
 require("tetris_settings_fit_window_4_3" in settings,
         "PC 4:3 normalization is missing")
-print("v0.23 audio/layout source tests: OK")
+print("v0.27 audio/layout source tests: OK")

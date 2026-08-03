@@ -80,6 +80,9 @@ static void test_line_clear_animation_and_score(void) {
     tetris_init(&game, 42u, 0);
     prepare_single_line(&game);
     tetris_hard_drop(&game);
+    assert(game.phase == TETRIS_PHASE_ROW_CHECK);
+    assert(game.clear_count == 0);
+    tick_empty(&game, 4);
     assert(game.phase == TETRIS_PHASE_LINE_CLEAR);
     assert(game.clear_count == 1);
     assert(game.lines == 0);
@@ -100,7 +103,7 @@ static void test_exact_level_transition_behavior(void) {
     game.total_lines = 129;
     prepare_single_line(&game);
     tetris_hard_drop(&game);
-    tick_empty(&game, 20);
+    tick_empty(&game, 24);
     assert(game.lines == 130);
     assert(game.level == 19);
     assert(game.score == 800);
@@ -116,6 +119,8 @@ static void test_entry_delay_spawns_later(void) {
     game.y = 18;
     game.phase = TETRIS_PHASE_ACTIVE;
     tetris_hard_drop(&game);
+    assert(game.phase == TETRIS_PHASE_ROW_CHECK);
+    tick_empty(&game, 4);
     assert(game.phase == TETRIS_PHASE_ENTRY_DELAY);
     {
         const int delay = game.phase_timer;
@@ -190,7 +195,7 @@ static void test_type_b_level_fixed_and_completion_bonus(void) {
     game.total_lines = 24;
     prepare_single_line(&game);
     tetris_hard_drop(&game);
-    tick_empty(&game, 20);
+    tick_empty(&game, 24);
     assert(game.lines == 0);
     assert(game.total_lines == 25);
     assert(game.level == 9);
