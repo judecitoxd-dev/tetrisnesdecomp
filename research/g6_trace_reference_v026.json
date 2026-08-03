@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "rom_crc32": "D16EA396",
+  "prg_sha256": "a2de35dfa7333b0458762a1485fb612b6bdc9b5a15269f0fcf5a6be67c0d89de",
+  "families_completed": 18,
+  "families_total": 18,
+  "trace_hashes": {
+    "rotation_valid": "29fd625ca7ee10b8029bce842bbf232c2b872eb9ce7c142620c23741b7d06a6c",
+    "gravity_drop": "37824f3c98f99195c6379a3868d744cc865955178b242cb1c751549e40493c1f",
+    "das_shift_right": "eb5073e8d42ca7609c9c32493c80c44bce7a87173f22a8f5b6c41b5fcee5c977",
+    "collision_blocked": "bf9758f2fbec63e9bba62acd40789f6cc13693bc74d50dfa43815bb9ab4dd01b",
+    "spawn_piece": "4510d931b63fa388e7c827a992a215b7ef3524d3f58063ed3cba2aa0bbfc2f4d",
+    "select_demo_piece": "85ecbc1905bd870fb0f9d4ec7d5b3a1d00fd21ef8336dc0d3ebcd45eaf580fcd",
+    "random_piece": "8743f282fdef6c2f404d688eea25afb2f79008da77cc871b96090b7a2518abdb",
+    "piece_statistics": "5ca4b173c15fae9c8d6074d2d948cb70d9799e208c2ce638a007b5ede5ad3816",
+    "lock_piece": "cd0c4aa1d44dea9486affd4a882d88421cdaa18e4ac69beab91c1528deb3b158",
+    "game_over_curtain": "9ae5b37f26dd08ce182f09ba77ab263c9355346a96e5470f128a3aadf259b178",
+    "completed_row": "8df693073fcf7fde7bc73dca6e5e17916dc78c03e6ee7349b976c7305c44d7d1",
+    "garbage_receive": "dc3fe62c981a36204ae9c6ae29aa682b9f76215f9edacf07d3b8a88aad18fa6b",
+    "score_and_level": "258cdbb85d25635abd196f9d4d401e4b8da5e2ef41e2562a09bd6b4f42abba2d",
+    "lock_height": "cdfaf60c0b813b9764b9937d5040f348ad314e81677a67db41ed9d545525846e",
+    "allegro_switch": "865e9e7b1a5aa7802a36f7aa637f65269889ce87b798c81a06e3a5ae68952106",
+    "demo_pointer_advance": "dcad3339917c49f2223db5fb036b28a1ea3ab59dc98813b95cb8720d7a07fef5",
+    "music_track_select": "29885407a548dfff11f37cbaccd750b2aee1c20a3c8b5628ecabc5432bed0908",
+    "rng_lfsr": "d97e0304dc852d02ff72cba68a357026b76312382b9df2599825c16a75b05f87"
+  },
+  "aggregate_sha256": "d44aa967522aca04f672bd2ba455a1274d8f9118f66601f08369e070ea9c4840"
+}
