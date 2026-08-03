@@ -202,7 +202,7 @@ if(TETRIS_BUILD_APP)
     # The distributable package contains exactly one executable. The verifier
     # and renderer programs remain build/CI tools, but are not installed.
     install(TARGETS tetris_pc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(DIRECTORY songs DESTINATION .)
+    install(DIRECTORY songs DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 install(PROGRAMS
     tools/audio_pack.py tools/rom_assets_verify.py
