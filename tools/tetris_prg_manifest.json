@@ -18,93 +18,535 @@
     "irq": "0x804A"
   },
   "routine_signatures": [
-    {"name":"nmi_entry","address":"0x8005","length":16,"sha256":"4cce2eceae8298edf16507dccd61989a71566d641ddef4d70727230dad864017"},
-    {"name":"irq_entry","address":"0x804A","length":1,"sha256":"c3641f8544d7c02f3580b07c0f9887f0c6a27ff5ab1d4a3e29caf197cfc299ae"},
-    {"name":"dispatch_game_mode","address":"0x8161","length":16,"sha256":"9ee7835c351daf10b9615c76500a1f89498134e7cb522c3a57a544c7c1415541"},
-    {"name":"process_player1","address":"0x8173","length":16,"sha256":"2b865726fc20bda16a7d1f0e7d50df071ca4e9a1716e00487665f7c988b26d3a"},
-    {"name":"process_player2","address":"0x8186","length":16,"sha256":"c87b369d42e02cd57569225396669abf768913511f1295cb60e8dd75dcf06a32"},
-    {"name":"dispatch_game_mode_state","address":"0x819B","length":16,"sha256":"1f833bced1f14765fa93d87edb5ac8db8ae4711e82d60232ebce922209fd922d"},
-    {"name":"dispatch_player1_play_state","address":"0x81B2","length":16,"sha256":"ed110ab76c6a2096c694cd4d60f5ed7a4b158da64cbe1ee4a26c275bd83b73cc"},
-    {"name":"player1_active_controls","address":"0x81CF","length":10,"sha256":"a4e8200c4856051d50375ab88dcd4036eb28340fe1a1dadf475ec12e58b376c0"},
-    {"name":"dispatch_player2_play_state","address":"0x81D9","length":16,"sha256":"c3ab31400ff10a42ff947a409d17aec38fda4dd5db3615f920bf787d2b2368c6"},
-    {"name":"player2_active_controls","address":"0x81F6","length":10,"sha256":"a4e8200c4856051d50375ab88dcd4036eb28340fe1a1dadf475ec12e58b376c0"},
-    {"name":"game_state_init","address":"0x86DC","length":16,"sha256":"e020a7771b1c65ba08b96572f8229afe5a71458f1f9c13dd3be34f245d00a479"},
-    {"name":"make_player1_active","address":"0x8776","length":16,"sha256":"97be62a682aee0d0c65a45e8ca310a22e79638203f48a8d0471e14acba16d614"},
-    {"name":"make_player2_active","address":"0x8792","length":16,"sha256":"95ce5ddc0f227b286c7fc0f833afc17238310c393ebf91a42a94c59380660ec8"},
-    {"name":"save_player1_state","address":"0x87AE","length":16,"sha256":"ff0eeb88cb5c17fe79eb57286cdd278d65f7c84a63472ce1933a2e0c7154b20e"},
-    {"name":"save_player2_state","address":"0x87C8","length":16,"sha256":"c065fa2d1323510ccf87e7044abe7c919e5542744ac079111520887a03f35af4"},
-    {"name":"init_type_b_playfield_gate","address":"0x87DC","length":8,"sha256":"652bf6cc9ca925dc6004f3b6fc810d0749252a0ca7e498ffedfa4789dbe7680c"},
-    {"name":"init_type_b_playfield","address":"0x87E3","length":16,"sha256":"cd9ca039385fa93e85d706432c6844cdad844deee5940368999f713c92e763b7"},
-    {"name":"fill_type_b_row","address":"0x87FC","length":16,"sha256":"4de1b63250e62c344a6014f8275991b4237116ec34b08be96998d2cd241b28d4"},
-    {"name":"force_type_b_blank","address":"0x8824","length":16,"sha256":"b368eece6a59359257ce59d61cecfb40564ff6c4826d54fef9f2febc5c00f6d8"},
-    {"name":"copy_type_b_playfield","address":"0x884A","length":16,"sha256":"767f593829ca07b09881b0fe472ec15be80bb3026beb30a1558123891c53c672"},
-    {"name":"finish_type_b_init","address":"0x8875","length":12,"sha256":"8076b41c4eea85e92188bf8bfa7f013e663c7bc85e72d0bc626cf1b38ea37a44"},
-    {"name":"rotate_tetrimino","address":"0x88AB","length":16,"sha256":"a3ca54acbd19f86d8fb402811676108de33e6fe4b58327ecb34df3dfcc0a3052"},
-    {"name":"drop_tetrimino","address":"0x8914","length":16,"sha256":"8d905f896d627a12c353fdfb5f25a099fb21fba02f81874ca7a49417d3802f79"},
-    {"name":"shift_tetrimino","address":"0x89AE","length":16,"sha256":"8a560e8d3d73a89a1a7f409759ae963c7aaa846d8f3cb9ded49b33ec65029187"},
-    {"name":"stage_current_piece_sprite","address":"0x8A0A","length":16,"sha256":"e8e58234f657cf52b01039ab6d6a383444cce0f11b7388d39b04c74a36412c24"},
-    {"name":"check_piece_collision","address":"0x948B","length":16,"sha256":"a66eb71f960e0134e10a3be65d8e36d5b20b789fa41dde3d0c4a88f870998228"},
-    {"name":"animate_line_clear","address":"0x977F","length":16,"sha256":"b19c549118300ddc489113cfa9f6a6d70ba7e28c6575f69bc24d62750cab616d"},
-    {"name":"upload_level_palette","address":"0x9808","length":16,"sha256":"d83475ee1156ce288925265d7e42b8fc8332c5bfd7ae294813838db6ecf11da4"},
-    {"name":"spawn_next_piece","address":"0x988E","length":16,"sha256":"3a0ffac2c3c84873208b31c951be3840c41ad092045f5ea4c165adfe11127748"},
-    {"name":"select_next_piece","address":"0x98EB","length":16,"sha256":"af60c16a63661f7e6750c9f88f5e71340de3a4a560c41958187cf3c425061bc2"},
-    {"name":"select_random_piece","address":"0x9907","length":16,"sha256":"8799ce392c708c39089f6eb4a8c20bc8b6d8ad7318917bd1abe56a87f7117fe8"},
-    {"name":"increment_piece_stat","address":"0x9969","length":16,"sha256":"47faacb0f06331c412a8db560dbd9e85ad6d976d3b00e0cc93e3a9d65722da4e"},
-    {"name":"lock_tetrimino","address":"0x99A2","length":16,"sha256":"0cb6331d8cc2d0c41a468a07d1f41c7104fa3b5a72da9063a5de0d869b375a92"},
-    {"name":"update_game_over_curtain","address":"0x9A11","length":16,"sha256":"1dd0b4457e45eaff6840e5af67eadf5b1a19646cbf49bb8f4cc09bcba4e3080f"},
-    {"name":"check_completed_rows","address":"0x9A6B","length":16,"sha256":"98788c76990778081ec472fcb0d7c72895608ba239c78ca281bb634b82c82ab2"},
-    {"name":"receive_garbage","address":"0x9B03","length":16,"sha256":"68eec53cd98f239bb15419221cd0755da7748860a76227ecac142f947613a44c"},
-    {"name":"update_lines_and_statistics","address":"0x9B58","length":16,"sha256":"2cf77567c5acb9ec84d52fdd4db608bd6f1cd7bb0a49f12ef6fb24c70abf56e1"},
-    {"name":"record_lock_height","address":"0x9CAF","length":16,"sha256":"f3d22915ed7ba68b62fd084e813d65b7ad64f30ac2839411ed99b65729147879"},
-    {"name":"handle_game_over","address":"0x9CBF","length":16,"sha256":"0cf44cd219e53ed559e4e353028d93b56933a2a5f3a9c101581d59382f9a7e37"},
-    {"name":"update_music_speed","address":"0x9D17","length":16,"sha256":"261e58567cae23c99d315e0f3b83bfdca8e6e73333124a91ddd74e855188eb14"},
-    {"name":"poll_controller_buttons","address":"0x9D51","length":16,"sha256":"ddc27fa604d25b65918d489e025e5b9199f6428892e74e02124528233c0f1f6d"},
-    {"name":"advance_demo_stream","address":"0x9DE8","length":12,"sha256":"c3aab0f75b693e38e31f562e364ec8f8f7e20f4b5348bda5e95724fd0fd2a971"},
-    {"name":"start_demo","address":"0x9DF6","length":16,"sha256":"87025f57c1c27f91fc2992dd8c828f0711de3b6e9003f89183b098271a9840c5"},
-    {"name":"set_music_track","address":"0x9E07","length":15,"sha256":"ec2b079b8a16da2dc87b97e49c4e77918b172cefed50a36176794ee78cc52c06"},
-    {"name":"check_reset_combo","address":"0x9E16","length":16,"sha256":"2d19f74024257c379db83bd656447aa48cf2cc4ee66d4e21ec3543e6d90a54a9"},
-    {"name":"vblank_then_state2","address":"0x9E27","length":8,"sha256":"079b2e2094d55fef056473ff102ad72d690114439b4641667d41956988a0b33e"},
-    {"name":"unassign_orientation","address":"0x9E2F","length":5,"sha256":"b2fd02a32fac6754cbb753c8f7eb9036c612f0bd656c60067e657334318c7f5d"},
-    {"name":"increment_play_state","address":"0x9E37","length":3,"sha256":"8135cce1b47a64f4eaf6644fc43237d7a1c0c2db91b1a73f8c923f1c7c3349ae"},
-    {"name":"advance_rng_lfsr","address":"0xAB47","length":16,"sha256":"8b51a6e0aad066d8d2cbb13e8ff8a88bdca1fb0ecda5365ea7ae93c8e09f420c"},
-    {"name":"perform_oam_dma","address":"0xAB5E","length":11,"sha256":"5155fb006df3b98f3df17b88834b806414880c5488a139ab53de684e749bfa64"},
-    {"name":"read_controller_ports","address":"0xAB69","length":16,"sha256":"d9db5a969b8af54246925dd9d8905e08b3f4851df1db116c20aebbf88a4b235b"},
-    {"name":"merge_controller_reads","address":"0xAB8B","length":16,"sha256":"762344dbac9e45aa491cae2a305c16294cf776028e6eff615c3c8ddcba1dbd00"},
-    {"name":"reset_entry","address":"0xFF00","length":16,"sha256":"297bca4297a2fb7ce3b522c55702ef62328cc1cad3525871b21f4ab869bc4168"}
+    {
+      "name": "nmi_entry",
+      "address": "0x8005",
+      "length": 16,
+      "sha256": "4cce2eceae8298edf16507dccd61989a71566d641ddef4d70727230dad864017"
+    },
+    {
+      "name": "irq_entry",
+      "address": "0x804A",
+      "length": 1,
+      "sha256": "c3641f8544d7c02f3580b07c0f9887f0c6a27ff5ab1d4a3e29caf197cfc299ae"
+    },
+    {
+      "name": "dispatch_game_mode",
+      "address": "0x8161",
+      "length": 16,
+      "sha256": "9ee7835c351daf10b9615c76500a1f89498134e7cb522c3a57a544c7c1415541"
+    },
+    {
+      "name": "process_player1",
+      "address": "0x8173",
+      "length": 16,
+      "sha256": "a15f490f4293e6771991054dee3b2a822df72482dc28999d908dc214554fa98a"
+    },
+    {
+      "name": "process_player2",
+      "address": "0x8186",
+      "length": 16,
+      "sha256": "118f0f334bd21f9f0e1d03fbfc855cf3dadcb9e133945438d359a513c61e9cfa"
+    },
+    {
+      "name": "dispatch_game_mode_state",
+      "address": "0x819B",
+      "length": 16,
+      "sha256": "bc4b41492b0b13d929872f847584aa0cb002679043f1726b4f6a0cbea75d1cb5"
+    },
+    {
+      "name": "dispatch_player1_play_state",
+      "address": "0x81B2",
+      "length": 16,
+      "sha256": "48781ab58d8183ecc86d7cff21e3b3eacebb4c0ec9b16c58411ab3a8c395a0a0"
+    },
+    {
+      "name": "player1_active_controls",
+      "address": "0x81CF",
+      "length": 10,
+      "sha256": "5007e5229355cbfd4637bf61ac5ce87a8979c71ca50d0ee8b4527f1a38b8c1bd"
+    },
+    {
+      "name": "dispatch_player2_play_state",
+      "address": "0x81D9",
+      "length": 16,
+      "sha256": "edbc4b1d9ba6a36213a1be5b334827b20bce993def91dd8bfc34bffc8fff9f79"
+    },
+    {
+      "name": "player2_active_controls",
+      "address": "0x81F6",
+      "length": 10,
+      "sha256": "5007e5229355cbfd4637bf61ac5ce87a8979c71ca50d0ee8b4527f1a38b8c1bd"
+    },
+    {
+      "name": "game_state_init",
+      "address": "0x86DC",
+      "length": 16,
+      "sha256": "6f40ed84ebbc65d659518a562eb6013e594960c43643fd9dbb26a1ad33220c8a"
+    },
+    {
+      "name": "make_player1_active",
+      "address": "0x8776",
+      "length": 16,
+      "sha256": "a72e872f10e6d3946ba217df7379d7b7712294c616b65f7fd6868cce3ac98c6b"
+    },
+    {
+      "name": "make_player2_active",
+      "address": "0x8792",
+      "length": 16,
+      "sha256": "1cf490b306e4069a06686645702f2c32095ee7bd6a54a212b7a356df76d1e227"
+    },
+    {
+      "name": "save_player1_state",
+      "address": "0x87AE",
+      "length": 16,
+      "sha256": "237ffc6b822d66714db7098dba92005e95a7c3fc948f6d03d1370372d48acd43"
+    },
+    {
+      "name": "save_player2_state",
+      "address": "0x87C8",
+      "length": 16,
+      "sha256": "ecc17e1f895e297026d5bb93ced2c2f66d5025fa5532bf6fe19e1e4d81c770f0"
+    },
+    {
+      "name": "init_type_b_playfield_gate",
+      "address": "0x87DC",
+      "length": 8,
+      "sha256": "d3718bc65e1a75408964b26a66db2b4dac9c17d0119aa83777024a5097e7059b"
+    },
+    {
+      "name": "init_type_b_playfield",
+      "address": "0x87E3",
+      "length": 16,
+      "sha256": "37035175d8f112f1c956b0336f072eb0a885586606f42e4a0d28f4aa56bf123b"
+    },
+    {
+      "name": "fill_type_b_row",
+      "address": "0x87FC",
+      "length": 16,
+      "sha256": "137e3dee27dcb71ff1c5bf7ffac640824bdf084dc169a700052b529794b4b6f5"
+    },
+    {
+      "name": "force_type_b_blank",
+      "address": "0x8824",
+      "length": 16,
+      "sha256": "27d164526bc555ccb5f39fdbaffeb9ddf358a3124b7d5a323885a3c81b258bba"
+    },
+    {
+      "name": "copy_type_b_playfield",
+      "address": "0x884A",
+      "length": 16,
+      "sha256": "122480ab46b0ef7d23a22218424a9dd4548e49cc3616adff0d860845ef18e807"
+    },
+    {
+      "name": "finish_type_b_init",
+      "address": "0x8875",
+      "length": 12,
+      "sha256": "6d6091fb2afb9d513209cdf612c5246766b0535a4b4e1d3adb347df899601d02"
+    },
+    {
+      "name": "rotate_tetrimino",
+      "address": "0x88AB",
+      "length": 16,
+      "sha256": "96444f991b8b1829abb9372d29cc679b7f9c3b4ba71bc028da57d09c5543f69b"
+    },
+    {
+      "name": "drop_tetrimino",
+      "address": "0x8914",
+      "length": 16,
+      "sha256": "347effee7861b8ff5931dd428fa4b868c6d3ae11cf544e4a60048012bcfdcad5"
+    },
+    {
+      "name": "shift_tetrimino",
+      "address": "0x89AE",
+      "length": 16,
+      "sha256": "df9b9eaef93f23356ed42e3e34eeeb38e367c4c2418847d545ef2e310eef66e0"
+    },
+    {
+      "name": "stage_current_piece_sprite",
+      "address": "0x8A0A",
+      "length": 16,
+      "sha256": "5bdb513840e6ba0e95dd998b59b8d0101ad410440ff3d2129ef9c41b0d17f115"
+    },
+    {
+      "name": "check_piece_collision",
+      "address": "0x948B",
+      "length": 16,
+      "sha256": "4056fe8e1dea70c7bc518afcd5455f34fbbb8b2f55d6b758a9f657c3482476f9"
+    },
+    {
+      "name": "animate_line_clear",
+      "address": "0x977F",
+      "length": 16,
+      "sha256": "c2469c0b31f2347592dc97320fcd3603b5606d4c5f6187fb955d888bd8f7c3b1"
+    },
+    {
+      "name": "upload_level_palette",
+      "address": "0x9808",
+      "length": 16,
+      "sha256": "426d4458b481708de964739aaf92f4b3eb2ae1563c2a1f8be80fdf66fecc2127"
+    },
+    {
+      "name": "spawn_next_piece",
+      "address": "0x988E",
+      "length": 16,
+      "sha256": "7cf8dd3590b849da3762e827211ccadf06f14bcbcd50a85fb2a8e43fc0187a2d"
+    },
+    {
+      "name": "select_next_piece",
+      "address": "0x98EB",
+      "length": 16,
+      "sha256": "b53d0231067a566d56f3c7b3667227f43b22a3333afab2ae8d28f677e466c7d3"
+    },
+    {
+      "name": "select_random_piece",
+      "address": "0x9907",
+      "length": 16,
+      "sha256": "e0a5307a6c1ea441bb15014d305f49d96bbb7301ee96a930f06b89267b06923d"
+    },
+    {
+      "name": "increment_piece_stat",
+      "address": "0x9969",
+      "length": 16,
+      "sha256": "57fc7d0589da48faddc2f9470c29a3d5dc6c1604693bf657f49fb43575beb771"
+    },
+    {
+      "name": "lock_tetrimino",
+      "address": "0x99A2",
+      "length": 16,
+      "sha256": "2816c56bfb500c30927598d324adf1192bad814e9cf98f4942f425d6584588b9"
+    },
+    {
+      "name": "update_game_over_curtain",
+      "address": "0x9A11",
+      "length": 16,
+      "sha256": "f0aa26b480cae66dd5d836d8f2e42dc0625cb7baa8e0c70932b8ab6900c9a30c"
+    },
+    {
+      "name": "check_completed_rows",
+      "address": "0x9A6B",
+      "length": 16,
+      "sha256": "df71324591ddcd1db8ed621b719a068a14c90d6223c09d6780a812e758d7b047"
+    },
+    {
+      "name": "receive_garbage",
+      "address": "0x9B03",
+      "length": 16,
+      "sha256": "1b4b0c090abf36a483d2a0c09c14aed08697a5a3ddd674f26a225c483bd1f7ae"
+    },
+    {
+      "name": "update_lines_and_statistics",
+      "address": "0x9B58",
+      "length": 16,
+      "sha256": "42b5a5be39a162775d03191022e2128d8277bbae525ac93996e91da6f50aa8e4"
+    },
+    {
+      "name": "record_lock_height",
+      "address": "0x9CAF",
+      "length": 16,
+      "sha256": "bef076cd23af597e8f2e256f36b74c8411f02876e1a252d2f62a0fc378c68dd6"
+    },
+    {
+      "name": "handle_game_over",
+      "address": "0x9CBF",
+      "length": 16,
+      "sha256": "4636c6f540568c2a926979d176d4d56dae3db5139bd1d44428f985cdb0480e45"
+    },
+    {
+      "name": "update_music_speed",
+      "address": "0x9D17",
+      "length": 16,
+      "sha256": "3c05cc07d9a5668c5a224d21e6405145d624bfe3fbcb49070ee5daa0c7bc3148"
+    },
+    {
+      "name": "poll_controller_buttons",
+      "address": "0x9D51",
+      "length": 16,
+      "sha256": "89ecc51aa877dbaf1e5c969288d2e6c45f153b180a161dd6eb0b90eaca710dd3"
+    },
+    {
+      "name": "advance_demo_stream",
+      "address": "0x9DE8",
+      "length": 12,
+      "sha256": "8c42de084a03877381af27099120efcc1b8f351bc03b5ffe9a14ef25b790da06"
+    },
+    {
+      "name": "start_demo",
+      "address": "0x9DF6",
+      "length": 16,
+      "sha256": "470ec6e2eb8c6f59e593b53fe67431db0d29ab18ac8fa4a7fedfe00c33538bf7"
+    },
+    {
+      "name": "set_music_track",
+      "address": "0x9E07",
+      "length": 15,
+      "sha256": "43162a5f6610d9a557fd7d9cf6d082aa0851bd69893a9d21c4b68d67d9f81d03"
+    },
+    {
+      "name": "check_reset_combo",
+      "address": "0x9E16",
+      "length": 16,
+      "sha256": "c7b1ad61169ea971e19ea96953eca972af01a84bed10eaf784eccebba0da1e9e"
+    },
+    {
+      "name": "vblank_then_state2",
+      "address": "0x9E27",
+      "length": 8,
+      "sha256": "b89d0980908cd436954c8fca7596641f9d8d0d114782112fd5ec0512c707c8af"
+    },
+    {
+      "name": "unassign_orientation",
+      "address": "0x9E2F",
+      "length": 5,
+      "sha256": "ee2e8e51e7fa301086ca79976d096ff882e8f056b9132b4a2ad7ad7550734e62"
+    },
+    {
+      "name": "increment_play_state",
+      "address": "0x9E37",
+      "length": 3,
+      "sha256": "936c8ce842ef007d3a6aab8de6b3ab0be72cad6a5de4852b297d49bb4410128f"
+    },
+    {
+      "name": "advance_rng_lfsr",
+      "address": "0xAB47",
+      "length": 16,
+      "sha256": "a7db569f0120dd08e2d1b43f5a33aa373306d66c927d4c430598d7efef66d150"
+    },
+    {
+      "name": "perform_oam_dma",
+      "address": "0xAB5E",
+      "length": 11,
+      "sha256": "abc2d2870786157e1234d39b5a8ffed23e009e58c40fff15fd51686b60883114"
+    },
+    {
+      "name": "read_controller_ports",
+      "address": "0xAB69",
+      "length": 16,
+      "sha256": "9b0ec6bfbca27302d896689111118d569853a863ecce72b84f63ee89c8b4fb22"
+    },
+    {
+      "name": "merge_controller_reads",
+      "address": "0xAB8B",
+      "length": 16,
+      "sha256": "fa54dd63bc4e06eabffabcde2b78785c9fa29b52b3e3c3826131316f40180c83"
+    },
+    {
+      "name": "reset_entry",
+      "address": "0xFF00",
+      "length": 16,
+      "sha256": "245c233741de13240029b3543f44adaf47562746e1791e3bd3634c113da42190"
+    }
   ],
   "tables": [
-    {"name":"orientation_table","address":"0x8A9C","length":228,"sha256":"c3e8059b0f7730161da374811a1914dfe93b3e3ac9e31c124c7e21031eb87547"},
-    {"name":"ntsc_gravity_table","address":"0x898E","length":30,"sha256":"9f32b78823f67fd989e42f1b19283a0365fc190adca3a0ea2ace15dfd80adf69"},
-    {"name":"line_clear_columns","address":"0x97FE","length":10,"sha256":"69f96800d514deb1e7ca0ac676752fb2330e8a8968550d9e04cd5e11178f022e"},
-    {"name":"level_palette_table","address":"0x984C","length":40,"sha256":"82e786fcf88875a22fd938a0c43475c8aa7be6030d692b6e5076db5098120c32"},
-    {"name":"tetrimino_type_from_orientation","address":"0x993B","length":19,"sha256":"2181cce3c095ae6bf8df0a948f2c6949adcf02c9295a9d42169151c603f74b7a"},
-    {"name":"spawn_table","address":"0x994E","length":8,"sha256":"2a43165d2da3a4474395e6adf8d2aa11a2f99805b8c8f508237c82a781c8ed48"},
-    {"name":"spawn_orientation_from_orientation","address":"0x9956","length":19,"sha256":"56052fcfdfbe9ca7a62aea7ed7b118eff20834f0bf42b538f63ce91962f41d1a"},
-    {"name":"garbage_lines_by_clear_count","address":"0x9B53","length":5,"sha256":"51f92e283132bd85e66843a8f38d5b3be8d8ab7fec2b58b004fb5391e0a6122d"},
-    {"name":"score_values_bcd","address":"0x9CA5","length":10,"sha256":"a356184f20e47bb6f49e6a7229a7f55c73976ef96f7e52be070a83d17a9302f1"}
+    {
+      "name": "orientation_table",
+      "address": "0x8A9C",
+      "length": 228,
+      "sha256": "c3e8059b0f7730161da374811a1914dfe93b3e3ac9e31c124c7e21031eb87547"
+    },
+    {
+      "name": "ntsc_gravity_table",
+      "address": "0x898E",
+      "length": 30,
+      "sha256": "9f32b78823f67fd989e42f1b19283a0365fc190adca3a0ea2ace15dfd80adf69"
+    },
+    {
+      "name": "line_clear_columns",
+      "address": "0x97FE",
+      "length": 10,
+      "sha256": "69f96800d514deb1e7ca0ac676752fb2330e8a8968550d9e04cd5e11178f022e"
+    },
+    {
+      "name": "level_palette_table",
+      "address": "0x984C",
+      "length": 40,
+      "sha256": "82e786fcf88875a22fd938a0c43475c8aa7be6030d692b6e5076db5098120c32"
+    },
+    {
+      "name": "tetrimino_type_from_orientation",
+      "address": "0x993B",
+      "length": 19,
+      "sha256": "2181cce3c095ae6bf8df0a948f2c6949adcf02c9295a9d42169151c603f74b7a"
+    },
+    {
+      "name": "spawn_table",
+      "address": "0x994E",
+      "length": 8,
+      "sha256": "2a43165d2da3a4474395e6adf8d2aa11a2f99805b8c8f508237c82a781c8ed48"
+    },
+    {
+      "name": "spawn_orientation_from_orientation",
+      "address": "0x9956",
+      "length": 19,
+      "sha256": "56052fcfdfbe9ca7a62aea7ed7b118eff20834f0bf42b538f63ce91962f41d1a"
+    },
+    {
+      "name": "garbage_lines_by_clear_count",
+      "address": "0x9B53",
+      "length": 5,
+      "sha256": "51f92e283132bd85e66843a8f38d5b3be8d8ab7fec2b58b004fb5391e0a6122d"
+    },
+    {
+      "name": "score_values_bcd",
+      "address": "0x9CA5",
+      "length": 10,
+      "sha256": "a356184f20e47bb6f49e6a7229a7f55c73976ef96f7e52be070a83d17a9302f1"
+    }
   ],
   "control_flow": [
-    {"source":"0x81CF","opcode":"JSR","target":"0x89AE","meaning":"player 1 horizontal movement"},
-    {"source":"0x81D2","opcode":"JSR","target":"0x88AB","meaning":"player 1 rotation"},
-    {"source":"0x81D5","opcode":"JSR","target":"0x8914","meaning":"player 1 gravity and soft drop"},
-    {"source":"0x81F6","opcode":"JSR","target":"0x89AE","meaning":"player 2 horizontal movement"},
-    {"source":"0x81F9","opcode":"JSR","target":"0x88AB","meaning":"player 2 rotation"},
-    {"source":"0x81FC","opcode":"JSR","target":"0x8914","meaning":"player 2 gravity and soft drop"},
-    {"source":"0x98A6","opcode":"JSR","target":"0x98EB","meaning":"choose piece after spawn"},
-    {"source":"0x9903","opcode":"JSR","target":"0x9907","meaning":"random piece selection"},
-    {"source":"0x99A2","opcode":"JSR","target":"0x948B","meaning":"lock collision test"},
-    {"source":"0x9A08","opcode":"JSR","target":"0x9CAF","meaning":"record dirty playfield row"},
-    {"source":"0x9A0B","opcode":"JSR","target":"0x9D17","meaning":"update allegro after lock"},
-    {"source":"0x9B58","opcode":"JSR","target":"0x9D17","meaning":"update allegro before line accounting"},
-    {"source":"0x9920","opcode":"JSR","target":"0xAB47","meaning":"piece reroll advances RNG"},
-    {"source":"0x802F","opcode":"JSR","target":"0xAB47","meaning":"NMI advances RNG"}
+    {
+      "source": "0x81CF",
+      "opcode": "JSR",
+      "target": "0x89AE",
+      "meaning": "player 1 horizontal movement"
+    },
+    {
+      "source": "0x81D2",
+      "opcode": "JSR",
+      "target": "0x88AB",
+      "meaning": "player 1 rotation"
+    },
+    {
+      "source": "0x81D5",
+      "opcode": "JSR",
+      "target": "0x8914",
+      "meaning": "player 1 gravity and soft drop"
+    },
+    {
+      "source": "0x81F6",
+      "opcode": "JSR",
+      "target": "0x89AE",
+      "meaning": "player 2 horizontal movement"
+    },
+    {
+      "source": "0x81F9",
+      "opcode": "JSR",
+      "target": "0x88AB",
+      "meaning": "player 2 rotation"
+    },
+    {
+      "source": "0x81FC",
+      "opcode": "JSR",
+      "target": "0x8914",
+      "meaning": "player 2 gravity and soft drop"
+    },
+    {
+      "source": "0x98A6",
+      "opcode": "JSR",
+      "target": "0x98EB",
+      "meaning": "choose piece after spawn"
+    },
+    {
+      "source": "0x9903",
+      "opcode": "JSR",
+      "target": "0x9907",
+      "meaning": "random piece selection"
+    },
+    {
+      "source": "0x99A2",
+      "opcode": "JSR",
+      "target": "0x948B",
+      "meaning": "lock collision test"
+    },
+    {
+      "source": "0x9A08",
+      "opcode": "JSR",
+      "target": "0x9CAF",
+      "meaning": "record dirty playfield row"
+    },
+    {
+      "source": "0x9A0B",
+      "opcode": "JSR",
+      "target": "0x9D17",
+      "meaning": "update allegro after lock"
+    },
+    {
+      "source": "0x9B58",
+      "opcode": "JSR",
+      "target": "0x9D17",
+      "meaning": "update allegro before line accounting"
+    },
+    {
+      "source": "0x9920",
+      "opcode": "JSR",
+      "target": "0xAB47",
+      "meaning": "piece reroll advances RNG"
+    },
+    {
+      "source": "0x802F",
+      "opcode": "JSR",
+      "target": "0xAB47",
+      "meaning": "NMI advances RNG"
+    }
   ],
   "functional_checks": {
-    "ntsc_gravity_frames": [48,43,38,33,28,23,18,13,8,6,5,5,5,4,4,4,3,3,3,2,2,2,2,2,2,2,2,2,2,1],
-    "line_clear_columns": [4,3,2,1,0,5,6,7,8,9],
-    "spawn_orientations": [2,7,8,10,11,14,18],
-    "garbage_lines": [0,0,1,2,4],
-    "line_clear_points": [0,40,100,300,1200],
+    "ntsc_gravity_frames": [
+      48,
+      43,
+      38,
+      33,
+      28,
+      23,
+      18,
+      13,
+      8,
+      6,
+      5,
+      5,
+      5,
+      4,
+      4,
+      4,
+      3,
+      3,
+      3,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1
+    ],
+    "line_clear_columns": [
+      4,
+      3,
+      2,
+      1,
+      0,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "spawn_orientations": [
+      2,
+      7,
+      8,
+      10,
+      11,
+      14,
+      18
+    ],
+    "garbage_lines": [
+      0,
+      0,
+      1,
+      2,
+      4
+    ],
+    "line_clear_points": [
+      0,
+      40,
+      100,
+      300,
+      1200
+    ],
     "orientation_count": 19,
     "blocks_per_orientation": 4
   }
