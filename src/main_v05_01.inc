@@ -1,7 +1,7 @@
     begin_game(game, menu);
     game->show_next = settings->show_next;
-    tetris_audio_apply_settings(audio, settings->audio_enabled,
-                                settings->music_track);
+    settings->music_track = tetris_songs_apply(
+        audio, settings->audio_enabled, settings->music_track);
     settings->last_mode = menu->mode;
     settings->last_level = menu->level;
     settings->last_height = menu->height;
@@ -19,7 +19,8 @@ static void start_demo(TetrisGame *game, TetrisDemoController *demo,
     tetris_init_mode(game, 0x19891101u, 0, TETRIS_MODE_A, 0);
     if (!tetris_demo_reset_from_rom(demo, game, rom))
         tetris_demo_reset(demo);
-    tetris_audio_apply_settings(audio, audio->enabled, audio->music_track);
+    audio->music_track = tetris_songs_apply(
+        audio, audio->enabled, audio->music_track);
     *screen = SCREEN_DEMO;
     *demo_started = SDL_GetTicks();
     clear_held(left, right, down);
@@ -40,7 +41,8 @@ static bool start_last_replay(TetrisReplay *playback, TetrisGame *game,
     tetris_init_mode(game, playback->seed, playback->start_level,
                      playback->mode, playback->start_height);
     game->show_next = playback->initial_show_next;
-    tetris_audio_apply_settings(audio, audio->enabled, audio->music_track);
+    audio->music_track = tetris_songs_apply(
+        audio, audio->enabled, audio->music_track);
     *replay_index = 0;
     *replay_done_at = 0;
     snprintf(replay_status, replay_status_size, "PLAYING %" PRIu32 " FRAMES",
@@ -111,9 +113,8 @@ static void apply_options(TetrisSettings *settings, AppOptionsState *options,
             settings->audio_enabled = !settings->audio_enabled;
             break;
         case 1:
-            settings->music_track += direction > 0 ? 1 : -1;
-            if (settings->music_track > 2) settings->music_track = -1;
-            if (settings->music_track < -1) settings->music_track = 2;
+            settings->music_track = tetris_songs_step(
+                settings->music_track, direction);
             break;
         case 2:
             settings->fullscreen = !settings->fullscreen;
@@ -137,8 +138,8 @@ static void apply_options(TetrisSettings *settings, AppOptionsState *options,
         default:
             break;
     }
-    tetris_audio_apply_settings(audio, settings->audio_enabled,
-                                settings->music_track);
+    settings->music_track = tetris_songs_apply(
+        audio, settings->audio_enabled, settings->music_track);
     save_settings_quiet(settings, settings_path);
 }
 
