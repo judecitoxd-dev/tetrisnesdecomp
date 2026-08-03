@@ -17,14 +17,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: v0.22-continuous-apu-sampling
-      - name: Apply source patch
-        run: python tools/run_v022_patch.py
-      - name: Commit patched sources
+      - name: Apply source patch and capture diagnostics
+        shell: bash
+        run: |
+          set +e
+          python tools/run_v022_patch.py > tools/v022-patch.log 2>&1
+          status=$?
+          cat tools/v022-patch.log
+          echo "$status" > tools/v022-patch.status
+          exit 0
+      - name: Commit patched sources or diagnostics
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "v0.22: fix audio continuity and add Android handheld layout"
+          git commit -m "v0.22: apply audio continuity and Android handheld patch"
           git push origin HEAD:v0.22-continuous-apu-sampling
