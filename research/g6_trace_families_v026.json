@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "description": "Deterministic dynamic trace recipes. Addresses are CPU addresses in the legal 32 KiB PRG.",
+  "families": [
+    {"name":"rotation_valid","entry":"0x88AB","subsystem":"rotation"},
+    {"name":"gravity_drop","entry":"0x8914","subsystem":"gravity"},
+    {"name":"das_shift_right","entry":"0x89AE","subsystem":"horizontal input/DAS"},
+    {"name":"collision_blocked","entry":"0x948B","subsystem":"collision"},
+    {"name":"spawn_piece","entry":"0x988E","subsystem":"spawn"},
+    {"name":"select_demo_piece","entry":"0x98EB","subsystem":"demo piece selection"},
+    {"name":"random_piece","entry":"0x9907","subsystem":"piece RNG"},
+    {"name":"piece_statistics","entry":"0x9969","subsystem":"piece statistics"},
+    {"name":"lock_piece","entry":"0x99A2","subsystem":"piece lock"},
+    {"name":"game_over_curtain","entry":"0x9A11","subsystem":"game-over animation"},
+    {"name":"completed_row","entry":"0x9A6B","subsystem":"line detection"},
+    {"name":"garbage_receive","entry":"0x9B03","subsystem":"two-player garbage"},
+    {"name":"score_and_level","entry":"0x9B58","subsystem":"BCD score and level"},
+    {"name":"lock_height","entry":"0x9CAF","subsystem":"playfield upload height"},
+    {"name":"allegro_switch","entry":"0x9D17","subsystem":"music speed state"},
+    {"name":"demo_pointer_advance","entry":"0x9DE8","subsystem":"demo stream"},
+    {"name":"music_track_select","entry":"0x9E07","subsystem":"music track selection"},
+    {"name":"rng_lfsr","entry":"0xAB47","subsystem":"16-bit LFSR"}
+  ]
+}
