@@ -16,6 +16,18 @@ static void test_exact_layout_does_not_erase_board(void) {
     assert(TETRIS_PPU_LEVEL == 0x22ba);
 }
 
+static void test_level_score_table_layout(void) {
+    assert(TETRIS_PPU_RECORD_HEADER_NAME == 0x224a);
+    assert(TETRIS_PPU_RECORD_HEADER_SCORE == 0x2250);
+    assert(TETRIS_PPU_RECORD_HEADER_LEVEL == 0x2257);
+    assert(TETRIS_PPU_RECORD_ROW_1 == 0x2289);
+    assert(TETRIS_PPU_RECORD_ROW_2 == 0x22c9);
+    assert(TETRIS_PPU_RECORD_ROW_3 == 0x2309);
+    assert((TETRIS_PPU_RECORD_HEADER_LEVEL & 31) + 2 <= 32);
+    assert((TETRIS_PPU_RECORD_ROW_1 & 31) +
+           TETRIS_EXACT_RECORD_FIELD_W <= 32);
+}
+
 static void test_saved_level_migration(void) {
     TetrisSettings settings;
     tetris_settings_init(&settings);
@@ -64,6 +76,7 @@ static void test_level_zero_game_timing(void) {
 
 int main(void) {
     test_exact_layout_does_not_erase_board();
+    test_level_score_table_layout();
     test_saved_level_migration();
     test_level_menu_range();
     test_original_music_menu_order();

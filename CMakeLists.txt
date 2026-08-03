@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(tetris_nes_pc_port VERSION 0.20.0 LANGUAGES C)
+project(tetris_nes_pc_port VERSION 0.21.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -33,6 +33,7 @@ add_library(tetris_core STATIC
     src/settings.c
     src/replay.c
     src/cathedral.c
+    src/audio_ring.c
     src/cpu6502_runtime.c
     src/cpu6502_irq.c
     src/nes_apu.c
@@ -78,8 +79,9 @@ if(TETRIS_BUILD_APP)
     endif()
 
     add_executable(tetris_pc
-        src/main.c src/app.c src/audio.c src/audio_device.c src/rom_picker.c
-        src/android_bridge.c src/touch_controls.c src/menu_music_cursor.c
+        src/main.c src/app.c src/audio_v021.c src/audio_device.c
+        src/rom_picker.c src/android_bridge.c src/touch_controls.c
+        src/menu_music_cursor.c src/level_score_table_fix.c
         src/rom_screens.c src/rom_sprites.c src/rom_endings.c
         src/rom_concert_animation.c src/rom_cathedral_sprites.c
         src/rom_type_a.c src/rom_type_a_background.c
@@ -142,7 +144,7 @@ if(TETRIS_BUILD_APP)
             target_link_libraries(tetris_pc PRIVATE PkgConfig::SDL2_MIXER)
             target_compile_definitions(tetris_pc PRIVATE TETRIS_HAVE_SDL_MIXER=1)
         else()
-            message(WARNING "SDL2_mixer was not found; OGG audio-pack support is disabled.")
+            message(WARNING "SDL2_mixer was not found; OGG audio-cache support is disabled.")
         endif()
     endif()
     if(WIN32)
@@ -162,10 +164,12 @@ if(TETRIS_BUILD_TESTS)
     add_executable(tetris_call_frame_tests tests/call_frame_regression_tests.c)
     add_executable(tetris_highscores_tests tests/highscores_tests.c)
     add_executable(tetris_playability_tests tests/playability_regression_tests.c)
+    add_executable(tetris_audio_ring_tests tests/audio_ring_tests.c)
     foreach(target IN ITEMS
             tetris_game_tests tetris_demo_tests tetris_cathedral_tests
             tetris_apu_tests tetris_irq_timing_tests tetris_call_frame_tests
-            tetris_highscores_tests tetris_playability_tests)
+            tetris_highscores_tests tetris_playability_tests
+            tetris_audio_ring_tests)
         target_link_libraries(${target} PRIVATE tetris_core)
         tetris_strict_c(${target})
     endforeach()
@@ -177,6 +181,7 @@ if(TETRIS_BUILD_TESTS)
     add_test(NAME call_frame COMMAND tetris_call_frame_tests)
     add_test(NAME highscores COMMAND tetris_highscores_tests)
     add_test(NAME playability_regressions COMMAND tetris_playability_tests)
+    add_test(NAME audio_ring COMMAND tetris_audio_ring_tests)
     add_test(NAME apu_render_self_test COMMAND tetris_apu_render --self-test)
     add_test(NAME apu_scenario_self_test COMMAND tetris_apu_scenario --self-test)
     find_package(Python3 COMPONENTS Interpreter QUIET)
