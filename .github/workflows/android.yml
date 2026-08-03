@@ -16,6 +16,7 @@ jobs:
       - name: Self-test PRG, ROM, audio and Android layout tools
         run: |
           python tools/prg_verify.py --self-test
+          python tools/prg_verify_v024.py --self-test
           python tools/rom_assets_verify.py --self-test
           python tools/type_a_ending_verify.py --self-test
           python tools/cathedral_verify.py --self-test
