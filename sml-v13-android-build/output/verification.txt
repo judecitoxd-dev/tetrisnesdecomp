@@ -1,0 +1,65 @@
+ZIP TEST
+Archive:  app/build/outputs/apk/debug/app-debug.apk
+    testing: META-INF/com/android/build/gradle/app-metadata.properties   OK
+    testing: META-INF/version-control-info.textproto   OK
+    testing: classes.dex              OK
+    testing: lib/arm64-v8a/libmain.so   OK
+    testing: AndroidManifest.xml      OK
+    testing: res/r2.xml               OK
+    testing: resources.arsc           OK
+    testing: META-INF/CERT.SF         OK
+    testing: META-INF/CERT.RSA        OK
+    testing: META-INF/MANIFEST.MF     OK
+No errors detected in compressed data of app/build/outputs/apk/debug/app-debug.apk.
+
+REQUIRED ENTRIES
+       56  1981-01-01 01:01   META-INF/com/android/build/gradle/app-metadata.properties
+       46  1981-01-01 01:01   META-INF/version-control-info.textproto
+   108080  1981-01-01 01:01   lib/arm64-v8a/libmain.so
+     4048  1981-01-01 01:01   AndroidManifest.xml
+     1036  1981-01-01 01:01   resources.arsc
+      834  1981-01-01 01:01   META-INF/CERT.SF
+     1167  1981-01-01 01:01   META-INF/CERT.RSA
+      760  1981-01-01 01:01   META-INF/MANIFEST.MF
+
+SIGNATURE
+Verifies
+Verified using v1 scheme (JAR signing): true
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: C=US, O=Android, CN=Android Debug
+Signer #1 certificate SHA-256 digest: 5dfe80cb3d2976444690000e89438d52b1e24f44234b6a3a57c3d0b141e96e4d
+Signer #1 certificate SHA-1 digest: 0c84ea8dc19ee403e1d697552713876bc3b4d653
+Signer #1 certificate MD5 digest: 39b934d9f40a806d1c323e22bd24fe2e
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: b66b4558022901172588a654ad9e081eb68d54aeba657a195110818821d36039
+Signer #1 public key SHA-1 digest: 915d94e74f4460db04774cb2f0d37a89ac58f8db
+Signer #1 public key MD5 digest: f3c0a37da572993e2fb7a4fc7ad21cdb
+WARNING: META-INF/com/android/build/gradle/app-metadata.properties not protected by signature. Unauthorized modifications to this JAR entry will not be detected. Delete or move the entry outside of META-INF/.
+WARNING: META-INF/version-control-info.textproto not protected by signature. Unauthorized modifications to this JAR entry will not be detected. Delete or move the entry outside of META-INF/.
+
+BADGING
+package: name='com.ylports.smlnative.v13' versionCode='13' versionName='13.0' platformBuildVersionName='15' platformBuildVersionCode='35' compileSdkVersion='35' compileSdkVersionCodename='15'
+minSdkVersion:'23'
+targetSdkVersion:'35'
+uses-permission: name='android.permission.READ_EXTERNAL_STORAGE' maxSdkVersion='32'
+application-label:'Super Mario Land Native'
+application-icon-160:'res/r2.xml'
+application: label='Super Mario Land Native' icon='res/r2.xml'
+launchable-activity: name='android.app.NativeActivity'  label='' icon=''
+feature-group: label=''
+  uses-feature: name='android.hardware.faketouch'
+  uses-implied-feature: name='android.hardware.faketouch' reason='default feature for all apps'
+  uses-feature: name='android.hardware.screen.landscape'
+  uses-implied-feature: name='android.hardware.screen.landscape' reason='one or more activities have specified a landscape orientation'
+main
+supports-screens: 'small' 'normal' 'large' 'xlarge'
+supports-any-density: 'true'
+locales: '--_--'
+densities: '160'
+native-code: 'arm64-v8a'
