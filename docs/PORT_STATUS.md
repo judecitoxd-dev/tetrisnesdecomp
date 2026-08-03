@@ -31,11 +31,11 @@ consola portátil debajo.
 | Pantallas y animaciones originales/equivalentes | 97% |
 | Audio original interactivo | 97% |
 | Renderizado automático del APU original | 95% |
-| Decompilación etiquetada/verificada del PRG 6502 | 52% |
-| **Correspondencia reproducible con la ROM** | **50%** |
+| Decompilación etiquetada/verificada del PRG 6502 | 60% |
+| **Correspondencia reproducible con la ROM** | **56%** |
 
-La cifra central es **Correspondencia reproducible con la ROM**: 50% terminado
-y aproximadamente 50% pendiente para identidad funcional, audiovisual y de
+La cifra central es **Correspondencia reproducible con la ROM**: 56% terminado
+y aproximadamente 44% pendiente para identidad funcional, audiovisual y de
 timing. Los porcentajes son estimaciones de ingeniería, no cobertura automática
 ni una afirmación de identidad binaria.
 
@@ -170,3 +170,34 @@ verificación de fuente adicional:
 
 Las cifras suben solo por evidencia reproducible. Todavía falta traducir y
 comparar más estados del bucle principal, menús, PPU, puntuación BCD y finales.
+
+## Evidencia añadida en v0.24 (solo análisis, runtime intacto)
+
+Esta fase no modifica ningún archivo de `src/`, la jugabilidad, el audio, el
+renderizador, los controles ni la aplicación Android. El ejecutable jugable
+permanece en v0.23 mientras la etiqueta v0.24 identifica únicamente la capa de
+análisis y verificación.
+
+El verificador suplementario combina la evidencia de v0.23 con nuevas firmas y
+tablas obtenidas de la misma ROM legal compatible. El resultado esperado contra
+la revisión CRC32 `D16EA396` es:
+
+- 76 rangos de rutinas etiquetados y verificados;
+- 38 tablas verificadas;
+- 14 aristas de control directas conservadas;
+- 32 comprobaciones semánticas;
+- 3,749 bytes PRG únicos cubiertos por rangos o tablas, sin doble conteo;
+- cero archivos del runtime modificados.
+
+Las nuevas áreas incluyen rutinas completas de rotación, caída, DAS, aparición,
+selección pseudoaleatoria, estadísticas, bloqueo, cortina, filas, basura, score
+BCD, game over, allegro, mando/demo, RNG, OAM y lectura de puertos. También se
+verifican tablas de menús, récords, direcciones PPU, efectos, envolventes,
+periodos de notas, duraciones NTSC y cabeceras de las diez pistas.
+
+La cifra de 60% no significa que el 60% de los bytes ya pueda recompilarse de
+forma idéntica. Mide la porción de la arquitectura PRG que ya está nombrada y
+respaldada por firmas, tablas y relaciones semánticas reproducibles. El 56% de
+correspondencia tampoco afirma identidad audiovisual: aún faltan trazas reales
+de ejecución, comparación de RAM/PPU/APU por frame y una recompilación 6502
+binariamente idéntica.
