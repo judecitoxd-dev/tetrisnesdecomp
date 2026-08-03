@@ -1,0 +1,41 @@
+# label	semantic_name	kind	subsystem	evidence
+L830B	game_type_menu_frame_loop	routine_entry	menus	main.asm:683; starts the per-frame OAM clear and A/B/music input loop.
+L8B9D	unused_orientation_sprite_staging_loop	loop_entry	sprites	main.asm:1802; four-mino loop in the explicitly unused sprite staging routine.
+L992A	random_piece_index_modulo_seven_loop	loop_entry	piece_rng	main.asm:2993; repeatedly subtracts seven from the candidate index.
+L9934	random_piece_spawn_table_lookup	basic_block	piece_rng	main.asm:2999; converts the reduced index through spawnTable.
+L9996	commit_piece_stat_bcd_and_mark_dirty	basic_block	statistics	main.asm:3055; stores the BCD statistic and sets RENDER_STATS.
+L9BC7	check_level_transition_after_line_increment	basic_block	scoring	main.asm:3395; tests the updated BCD line count before level progression.
+L9BD0	compute_level_threshold_from_total_lines	basic_block	scoring	main.asm:3406; divides packed line count by sixteen and compares with levelNumber.
+L9BFB	advance_completed_line_iteration	loop_tail	scoring	main.asm:3429; decrements the completed-line loop counter.
+L9C18	normalize_hold_down_score_low_byte	basic_block	scoring	main.asm:3449; propagates BCD carry from the low score byte.
+L9C27	mark_score_dirty_after_hold_down_points	basic_block	scoring	main.asm:3457; sets RENDER_SCORE.
+L9C37	add_line_clear_points_for_one_level_multiplier	loop_entry	scoring	main.asm:3466; adds the selected pointsTable value once per level multiplier.
+L9C4E	add_line_clear_points_high_bcd_byte	basic_block	scoring	main.asm:3479; adds and normalizes the second BCD score byte.
+L9C64	normalize_score_middle_byte_carry	basic_block	scoring	main.asm:3491; propagates carry into score+2.
+L9C75	normalize_score_high_byte_low_nibble	basic_block	scoring	main.asm:3500; performs BCD correction on score+2 low nibble.
+L9C84	clamp_score_to_999999_on_overflow	basic_block	scoring	main.asm:3508; writes $99 to all score bytes when the top nibble overflows.
+L9C94	finish_or_repeat_line_score_multiplier	loop_tail	scoring	main.asm:3516; repeats the level multiplier loop or commits the scoring state.
+L9F76	normalize_ending_bonus_middle_byte_carry	basic_block	ending_score	main.asm:3957; BCD carry from totalScore+1 to totalScore+2.
+L9F85	normalize_ending_bonus_high_byte	basic_block	ending_score	main.asm:3965; BCD correction on totalScore+2.
+L9F94	return_from_add_100_points	return_block	ending_score	main.asm:3973; terminates add100Points.
+L9FE9	reset_ending_scroll_and_return	basic_block	ending_render	main.asm:4010; shared ending renderer tail writes zero to PPUSCROLL twice.
+LA6BC	cathedral_dome_countdown_update_start	routine_entry	type_b_ending	main.asm:4992; initializes the four-dome countdown update.
+LA6BE	cathedral_dome_countdown_loop	loop_entry	type_b_ending	main.asm:4993; checks activation thresholds and decrements active countdowns.
+LA6D0	cathedral_advance_countdown_index	loop_tail	type_b_ending	main.asm:5002; advances through four dome countdown slots.
+LA6D9	cathedral_dome_sprite_loop	loop_entry	type_b_ending	main.asm:5007; stages each active dome and optional secondary sprite.
+LA6F7	cathedral_stage_active_dome	basic_block	type_b_ending	main.asm:5021; stores Y, loads X/sprite tables and stages the dome.
+LA72C	cathedral_advance_sprite_index	loop_tail	type_b_ending	main.asm:5046; iterates four dome sprites and returns.
+LA735	cathedral_dome_activation_threshold_table	table	type_b_ending	main.asm:5052; four threshold values compared with ending_customVars.
+LA73D	cathedral_dome_target_y_0	table_element	type_b_ending	main.asm:5055; target Y byte used for dome 0.
+LA73E	cathedral_dome_target_y_1	table_element	type_b_ending	main.asm:5056; target Y byte used for dome 1.
+LA73F	cathedral_dome_target_y_2	table_element	type_b_ending	main.asm:5057; target Y byte used for dome 2.
+LA740	cathedral_dome_target_y_3	table_element	type_b_ending	main.asm:5058; target Y byte used for dome 3.
+LA745	cathedral_secondary_sprite_x_adjust_table	table	type_b_ending	main.asm:5061; per-dome X adjustment for the secondary animation sprite.
+LA75D	cathedral_next_sprite_start_x_by_level	table	type_b_ending	main.asm:5070 and 4940s; seeds the next sprite X when one reaches its target.
+LA767	cathedral_inactive_sprite_x_by_level	table	type_b_ending	main.asm:5072 and 4900s; sentinel X used to skip inactive sprites by level.
+LA9FC	type_a_rocket_apply_thrust	basic_block	type_a_ending	main.asm:5272; starts rocket sound and decrements rocket Y, with faster ascent below $80.
+LAA0B	type_a_rocket_motion_finish	basic_block	type_a_ending	main.asm:5279; joins the rocket movement branches.
+LAA0E	type_a_increment_jet_animation_counter	basic_block	type_a_ending	main.asm:5281; increments ending_customVars+1.
+LAA10	return_from_type_a_rocket_update	return_block	type_a_ending	main.asm:5282; shared return.
+LAA2A	rocket_y_offset_table	table	type_a_ending	main.asm:5293; five initial Y offsets paired with rocketToXOffsetTable.
+LAA82	clear_ppu_page_to_ff	routine_entry	ppu	main.asm:5351; calls memset_ppu_page_and_more with fill $FF and attribute fill $00.
