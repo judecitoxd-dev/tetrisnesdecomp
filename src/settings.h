@@ -8,6 +8,7 @@
 
 #define TETRIS_SETTINGS_PATH_LENGTH 1023
 #define TETRIS_TOUCH_SETTING_COUNT 11
+#define TETRIS_SETTINGS_MUSIC_MAX 66
 
 typedef struct TetrisSettings {
     bool audio_enabled;

@@ -1,11 +1,14 @@
                     save_settings_quiet(&settings, settings_path);
                 } else if (key == SDLK_m) {
-                    tetris_audio_toggle(&audio);
-                    settings.audio_enabled = audio.enabled;
+                    settings.audio_enabled = !settings.audio_enabled;
+                    settings.music_track = tetris_songs_apply(
+                        &audio, settings.audio_enabled, settings.music_track);
                     save_settings_quiet(&settings, settings_path);
                 } else if (key == SDLK_n) {
-                    tetris_audio_cycle_music(&audio);
-                    settings.music_track = audio.music_track;
+                    settings.music_track = tetris_songs_step(
+                        settings.music_track, 1);
+                    settings.music_track = tetris_songs_apply(
+                        &audio, settings.audio_enabled, settings.music_track);
                     save_settings_quiet(&settings, settings_path);
                 } else if (screen == SCREEN_TITLE) {
                     if (key == SDLK_RETURN || key == SDLK_SPACE) {
@@ -19,6 +22,10 @@
                         (void)choose_and_load_rom(renderer, &rom, &font,
                                                   &settings, settings_path);
                         attach_original_audio(&audio, &rom);
+                        tetris_songs_set_rom(&rom);
+                        settings.music_track = tetris_songs_apply(
+                            &audio, settings.audio_enabled,
+                            settings.music_track);
                     } else if (key == SDLK_F8) {
                         (void)start_last_replay(&playback, &game, &audio,
                                                 last_replay_path, &screen,

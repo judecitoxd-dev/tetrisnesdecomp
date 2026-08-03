@@ -57,8 +57,9 @@
     }
     attach_original_audio(&audio, &rom);
     load_optional_audio_pack(&audio, cli_audio_pack_path);
-    tetris_audio_apply_settings(&audio, settings.audio_enabled,
-                                settings.music_track);
+    (void)tetris_songs_init(&audio, &rom);
+    settings.music_track = tetris_songs_apply(
+        &audio, settings.audio_enabled, settings.music_track);
     fprintf(stdout, "Audio backend: %s\n",
             tetris_audio_backend_label(&audio));
 
@@ -174,6 +175,9 @@
                     clear_held(&left, &right, &down);
                 }
                 attach_original_audio(&audio, &rom);
+                tetris_songs_set_rom(&rom);
+                settings.music_track = tetris_songs_apply(
+                    &audio, settings.audio_enabled, settings.music_track);
                 SDL_free(event.drop.file);
             }
 

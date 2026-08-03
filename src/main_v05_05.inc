@@ -93,6 +93,7 @@
                     tetris_tick(&game, &input);
                     tetris_audio_update_game(&audio, &game,
                                              tetris_consume_events(&game));
+                    tetris_songs_update(&audio);
                     if (input.toggle_next_pressed) {
                         settings.show_next = game.show_next;
                         save_settings_quiet(&settings, settings_path);
@@ -114,6 +115,7 @@
                     tetris_tick(&game, &demo_input);
                     tetris_audio_update_game(&audio, &game,
                                              tetris_consume_events(&game));
+                    tetris_songs_update(&audio);
                     if (game.phase == TETRIS_PHASE_GAME_OVER ||
                         tetris_demo_is_finished(&demo) ||
                         (Uint32)(SDL_GetTicks() - demo_started) >=

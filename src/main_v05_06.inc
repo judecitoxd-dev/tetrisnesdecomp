@@ -1,6 +1,7 @@
                         tetris_tick(&game, &replay_input);
                         tetris_audio_update_game(&audio, &game,
                                                  tetris_consume_events(&game));
+                        tetris_songs_update(&audio);
                         if (replay_index == playback.frame_count) {
                             const uint64_t actual = tetris_state_hash(&game);
                             snprintf(replay_status, sizeof(replay_status),
@@ -30,7 +31,7 @@
                &audio, &rom, &scores);
         render_level_score_table_fix(renderer, font, screen, &menu, &scores);
         tetris_touch_render(renderer, font, &touch, controller != NULL);
-        render_type_music_cursor_overlay(renderer, screen, &settings);
+        render_type_music_cursor_overlay(renderer, font, screen, &settings);
         SDL_RenderPresent(renderer);
         SDL_Delay(1);
     }
@@ -49,6 +50,7 @@
     tetris_replay_free(&recording);
     tetris_replay_free(&playback);
     if (controller) SDL_GameControllerClose(controller);
+    tetris_songs_shutdown(&audio);
     tetris_audio_shutdown(&audio);
     free_rom_graphics();
     SDL_DestroyTexture(font);
