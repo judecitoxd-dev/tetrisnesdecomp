@@ -10,6 +10,7 @@
 #define SOUND_EFFECT_SLOT0_ADDR 0x06F0u
 #define NTSC_FRAME_RATE 60.0988
 #define NTSC_CPU_CLOCK 1789773.0
+#define NTSC_CPU_CLOCK_INTEGER UINT64_C(1789773)
 #define CALL_INSTRUCTION_LIMIT 200000u
 #define FNV_OFFSET UINT64_C(1469598103934665603)
 #define FNV_PRIME UINT64_C(1099511628211)
@@ -67,26 +68,70 @@ static void mapped_write(void *userdata, uint16_t address, uint8_t value) {
     }
 }
 
-static void clock_one_cpu_cycle(TetrisRomAudio *audio) {
-    uint32_t stalls;
+/*
+ * Advance one physical 2A03 CPU/APU cycle and, when the 48 kHz sample clock
+ * crosses its threshold, capture the current mixed APU output during that
+ * same cycle. This keeps driver instructions, idle time and DMC stalls on one
+ * continuous timeline instead of bunching all samples after updateAudio.
+ */
+static void advance_apu_cycle(TetrisRomAudio *audio) {
+    float sample;
+    bool emit_sample = false;
+
     nes_apu_clock_frame_counter_delay(&audio->apu);
-    nes_apu_advance_cycles(&audio->apu, 1u);
+    if (audio->capture_active) {
+        audio->sample_clock_accumulator += TETRIS_ROM_AUDIO_SAMPLE_RATE;
+        if (audio->sample_clock_accumulator >= NTSC_CPU_CLOCK_INTEGER) {
+            audio->sample_clock_accumulator -= NTSC_CPU_CLOCK_INTEGER;
+            emit_sample = true;
+        }
+    }
+
+    if (emit_sample) {
+        nes_apu_render_cycles(&audio->apu, &sample, 1u, 1u);
+        if (audio->capture_written < audio->capture_capacity) {
+            audio->capture_samples[audio->capture_written++] = sample;
+        } else {
+            audio->capture_overflow = true;
+        }
+    } else {
+        nes_apu_advance_cycles(&audio->apu, 1u);
+    }
+
     if (nes_apu_irq_pending(&audio->apu))
         cpu6502_request_irq(&audio->cpu);
     else
         cpu6502_clear_irq(&audio->cpu);
+}
+
+static void clock_one_cpu_cycle(TetrisRomAudio *audio) {
+    uint32_t stalls;
+    advance_apu_cycle(audio);
     do {
         stalls = nes_apu_consume_stall_cycles(&audio->apu);
         if (stalls) {
             uint32_t index;
             audio->last_stall_cycles += stalls;
             audio->cpu.cycles += stalls;
-            for (index = 0; index < stalls; ++index) {
-                nes_apu_clock_frame_counter_delay(&audio->apu);
-                nes_apu_advance_cycles(&audio->apu, 1u);
-            }
+            for (index = 0; index < stalls; ++index)
+                advance_apu_cycle(audio);
         }
     } while (stalls != 0);
+}
+
+static void clock_idle_cycles(TetrisRomAudio *audio, uint32_t cycles) {
+    uint32_t index;
+    for (index = 0; index < cycles; ++index) {
+        uint32_t ignored_stalls;
+        advance_apu_cycle(audio);
+        /*
+         * During the frame's idle budget, DMC steals no additional wall-clock
+         * time: the fetch occupies CPU availability inside the same fixed
+         * NTSC frame. Clear the request while keeping the APU event itself.
+         */
+        ignored_stalls = nes_apu_consume_stall_cycles(&audio->apu);
+        audio->last_stall_cycles += ignored_stalls;
+    }
 }
 
 static void mapped_cycles(void *userdata, unsigned cycles) {
@@ -188,48 +233,55 @@ bool tetris_rom_audio_run_frame(TetrisRomAudio *audio,
                                 float *samples, size_t capacity,
                                 size_t *written,
                                 char *error, size_t error_size) {
-    const double exact_samples =
-        (double)TETRIS_ROM_AUDIO_SAMPLE_RATE / NTSC_FRAME_RATE;
     const double exact_cycles = NTSC_CPU_CLOCK / NTSC_FRAME_RATE;
     const uint64_t before_cycles = audio ? audio->cpu.cycles : 0;
     uint32_t frame_cycles;
     uint32_t driver_cycles;
     uint32_t idle_cycles;
-    size_t count;
+
     if (written) *written = 0;
-    if (!audio || !audio->initialized || !samples) {
+    if (!audio || !audio->initialized || !samples || capacity == 0u) {
         set_error(error, error_size, "invalid ROM audio frame arguments");
         return false;
     }
+
     audio->frame_write_count = 0;
     audio->frame_writes_overflow = false;
     audio->last_stall_cycles = 0;
+    audio->capture_samples = samples;
+    audio->capture_capacity = capacity;
+    audio->capture_written = 0;
+    audio->capture_overflow = false;
+    audio->capture_active = true;
+
     if (!cpu6502_call(&audio->cpu, UPDATE_AUDIO_ENTRY,
                       CALL_INSTRUCTION_LIMIT, error,
                       (unsigned)error_size)) {
+        audio->capture_active = false;
+        audio->capture_samples = NULL;
         return false;
     }
+
     driver_cycles = (uint32_t)(audio->cpu.cycles - before_cycles);
     audio->cycle_fraction += exact_cycles;
     frame_cycles = (uint32_t)audio->cycle_fraction;
     audio->cycle_fraction -= (double)frame_cycles;
     if (frame_cycles < driver_cycles) frame_cycles = driver_cycles;
     idle_cycles = frame_cycles - driver_cycles;
+    clock_idle_cycles(audio, idle_cycles);
 
-    audio->sample_fraction += exact_samples;
-    count = (size_t)audio->sample_fraction;
-    audio->sample_fraction -= (double)count;
-    if (count > capacity) {
+    audio->capture_active = false;
+    audio->capture_samples = NULL;
+    if (audio->capture_overflow) {
         set_error(error, error_size, "audio frame buffer is too small");
         return false;
     }
-    nes_apu_render_cycles(&audio->apu, samples, count, idle_cycles);
-    (void)nes_apu_consume_stall_cycles(&audio->apu);
+
     audio->last_frame_cpu_cycles = frame_cycles;
     audio->last_driver_cycles = driver_cycles;
     audio->rendered_cpu_cycles += frame_cycles;
     ++audio->rendered_frames;
-    if (written) *written = count;
+    if (written) *written = audio->capture_written;
     if (error && error_size) error[0] = '\0';
     return true;
 }
