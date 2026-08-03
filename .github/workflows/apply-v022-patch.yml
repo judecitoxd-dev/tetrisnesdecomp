@@ -4,7 +4,7 @@ on:
   push:
     branches: [v0.22-continuous-apu-sampling]
     paths:
-      - tools/apply_v022_layout_audio_patch.py
+      - tools/run_v022_patch.py
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
         with:
           ref: v0.22-continuous-apu-sampling
       - name: Apply source patch
-        run: python tools/apply_v022_layout_audio_patch.py
+        run: python tools/run_v022_patch.py
       - name: Commit patched sources
         shell: bash
         run: |
