@@ -48,6 +48,7 @@ typedef struct TetrisRomAudio {
     uint32_t last_frame_cpu_cycles;
     uint32_t last_driver_cycles;
     uint32_t last_stall_cycles;
+    uint32_t last_driver_samples;
     TetrisApuWrite frame_writes[TETRIS_ROM_AUDIO_MAX_FRAME_WRITES];
     size_t frame_write_count;
     bool frame_writes_overflow;
