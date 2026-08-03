@@ -104,8 +104,27 @@
                         case SDLK_UP:
                         case SDLK_x: pending.rotate_cw = true; break;
                         case SDLK_z: pending.rotate_ccw = true; break;
+                        case SDLK_RETURN:
+                            if (game.phase == TETRIS_PHASE_GAME_OVER ||
+                                game.phase == TETRIS_PHASE_COMPLETE) {
+                                finish_replay_recording(&recording, &game,
+                                                        last_replay_path,
+                                                        &recording_active);
+                                screen = SCREEN_LEVEL_SELECT;
+                                clear_held(&left, &right, &down);
+                            }
+                            break;
                         case SDLK_SPACE:
-                            if (settings.hard_drop_enabled) pending.hard_drop = true;
+                            if (game.phase == TETRIS_PHASE_GAME_OVER ||
+                                game.phase == TETRIS_PHASE_COMPLETE) {
+                                finish_replay_recording(&recording, &game,
+                                                        last_replay_path,
+                                                        &recording_active);
+                                screen = SCREEN_LEVEL_SELECT;
+                                clear_held(&left, &right, &down);
+                            } else if (settings.hard_drop_enabled) {
+                                pending.hard_drop = true;
+                            }
                             break;
                         case SDLK_p: pending.pause = true; break;
                         case SDLK_r:
