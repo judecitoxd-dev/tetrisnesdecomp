@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "runtime_frozen": true,
+  "runtime_version": "v0.23",
+  "research_phase": "v0.25",
+  "target_prg": {
+    "size": 32768,
+    "crc32": "943DFBBE",
+    "sha256": "a2de35dfa7333b0458762a1485fb612b6bdc9b5a15269f0fcf5a6be67c0d89de"
+  },
+  "external_source": {
+    "repository": "CelestialAmber/TetrisNESDisasm",
+    "revision": "94581c0306fa0009fe11fde48222875549d15b8b"
+  },
+  "gates": {
+    "G1_binary_prg_reconstruction": {
+      "percent": 0,
+      "status": "pending_ci",
+      "pass_condition": "rebuilt PRG SHA-256 equals target PRG SHA-256"
+    },
+    "G2_complete_prg_partition": {
+      "percent": 0,
+      "status": "pending_ld65_report",
+      "pass_condition": "all 32768 PRG bytes classified and source-mapped"
+    },
+    "G3_semantic_symbols": {
+      "percent": 60,
+      "status": "in_progress",
+      "pass_condition": "all routines and data blocks have functional names"
+    },
+    "G4_control_flow": {
+      "percent": 35,
+      "status": "in_progress",
+      "pass_condition": "all direct and indirect control-flow edges classified"
+    },
+    "G5_state_contracts": {
+      "percent": 25,
+      "status": "in_progress",
+      "pass_condition": "RAM/PPU/APU inputs and outputs documented per subsystem"
+    },
+    "G6_dynamic_trace_families": {
+      "percent": 0,
+      "completed": 0,
+      "total": 18,
+      "status": "pending_reference_captures"
+    },
+    "G7_reproducible_toolchain": {
+      "percent": 50,
+      "status": "in_progress",
+      "pass_condition": "all source revisions, tools and outputs are pinned and repeatable"
+    }
+  },
+  "runtime_correspondence_percent": 50,
+  "note": "Runtime correspondence remains frozen until every research gate reaches 100%."
+}
