@@ -14,18 +14,19 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact: tetris-pc-v0.22-windows-x64
+            artifact: tetris-pc-v0.23-windows-x64
           - os: ubuntu-latest
-            artifact: tetris-pc-v0.22-linux-x64
+            artifact: tetris-pc-v0.23-linux-x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Install SDL2 headers on Linux
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
-      - name: Self-test decompilation, ROM, audio and layout tools
+      - name: Self-test decompilation, PRG, ROM, audio and layout tools
         run: |
           python tools/disassemble_prg.py --self-test
+          python tools/prg_verify.py --self-test
           python tools/rom_assets_verify.py --self-test
           python tools/type_a_ending_verify.py --self-test
           python tools/cathedral_verify.py --self-test
@@ -35,9 +36,9 @@ jobs:
           python tools/test_v022_layout_audio.py
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/stage -DTETRIS_FETCH_SDL2=${{ runner.os == 'Windows' }} -DTETRIS_FETCH_SDL2_MIXER=ON
-      - name: Build continuous audio and renderer
+      - name: Build verified PRG timing port
         run: cmake --build build --config Release --parallel
-      - name: Test playability, score table, continuous APU and OGG cache
+      - name: Test playability, NES timings, APU and PRG verification
         run: ctest --test-dir build -C Release --output-on-failure
       - name: Install package tree
         run: cmake --install build --config Release
@@ -58,7 +59,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp build/tetris-nes-pc-port-v0.22.0-* dist/ || true
+          cp build/tetris-nes-pc-port-v0.23.0-* dist/ || true
           cp -R stage/* dist/
       - uses: actions/upload-artifact@v4
         with:
