@@ -26,7 +26,20 @@ typedef struct TetrisRomAudio {
     size_t prg_size;
     Cpu6502 cpu;
     NesApu apu;
-    double sample_fraction;
+
+    /*
+     * Continuous sample clock. The old renderer generated all samples after
+     * updateAudio returned, which bunched the musical waveform into the idle
+     * part of each frame. v0.22 emits samples while every CPU/APU cycle is
+     * executed, including driver instructions and DMC stalls.
+     */
+    uint64_t sample_clock_accumulator;
+    float *capture_samples;
+    size_t capture_capacity;
+    size_t capture_written;
+    bool capture_active;
+    bool capture_overflow;
+
     double cycle_fraction;
     uint64_t rendered_frames;
     uint64_t rendered_cpu_cycles;
