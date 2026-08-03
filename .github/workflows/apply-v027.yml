@@ -1,0 +1,42 @@
+name: Apply v0.27 timing pipeline
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Apply controlled source migration
+        run: python tools/apply_v027.py
+      - name: Configure test-only build
+        run: cmake -S . -B build-v027 -DCMAKE_BUILD_TYPE=Release -DTETRIS_BUILD_APP=OFF -DTETRIS_BUILD_TESTS=ON
+      - name: Build and test timing pipeline
+        run: |
+          cmake --build build-v027 --config Release --parallel
+          ctest --test-dir build-v027 -C Release --output-on-failure
+      - name: Commit validated migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "Patch already committed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt android/app/build.gradle src/game.c src/game.h \
+                  src/main_v05_02.inc tests/game_tests_v05_00.inc \
+                  tests/timing_fidelity_tests.c docs/PORT_STATUS.md \
+                  .v027-rule-timing-applied
+          git commit -m "v0.27: match NES lock and row-check timing pipeline"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
