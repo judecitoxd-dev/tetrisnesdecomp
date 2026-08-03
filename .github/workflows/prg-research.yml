@@ -23,6 +23,7 @@ jobs:
           python tools/ld65_research_report.py --self-test
           python tools/prg_control_flow_audit.py --self-test
           python tools/prg_symbol_context.py --self-test
+          python tools/prg_semantic_audit.py --self-test
           python tools/prg_verify.py --self-test
           python tools/prg_verify_v024.py --self-test
 
@@ -76,6 +77,13 @@ jobs:
             --control-flow research-report/control-flow-audit.json \
             --source-revision "$DISASM_REVISION" \
             --report research-report/generic-symbol-context.json
+          python tools/prg_semantic_audit.py \
+            research-report/generic-symbol-context.json \
+            research/semantic_symbols_v025/01_gameplay_endings.tsv \
+            research/semantic_symbols_v025/02_ppu_controller_audio.tsv \
+            research/semantic_symbols_v025/03_envelopes_unused.tsv \
+            --source-revision "$DISASM_REVISION" \
+            --report research-report/semantic-symbol-audit.json
           git -C external-disassembly rev-parse HEAD > research-report/external-source-revision.txt
           sha256sum external-disassembly/main.asm \
                     external-disassembly/tetris.asm \
