@@ -61,6 +61,24 @@ int tetris_settings_step_music(int current, int direction) {
     return current;
 }
 
+void tetris_settings_fit_window_4_3(int *width, int *height) {
+    int unit_w;
+    int unit_h;
+    int unit;
+    if (!width || !height) return;
+    if (*width < 640) *width = 640;
+    if (*height < 480) *height = 480;
+    if (*width > 7680) *width = 7680;
+    if (*height > 4320) *height = 4320;
+    unit_w = *width / 4;
+    unit_h = *height / 3;
+    unit = unit_w < unit_h ? unit_w : unit_h;
+    if (unit < 160) unit = 160;
+    if (unit > 1440) unit = 1440;
+    *width = unit * 4;
+    *height = unit * 3;
+}
+
 void tetris_settings_init(TetrisSettings *settings) {
     int index;
     if (!settings) return;
@@ -95,6 +113,10 @@ void tetris_settings_sanitize(TetrisSettings *settings) {
     if (settings->window_width > 7680) settings->window_width = 7680;
     if (settings->window_height < 480) settings->window_height = 480;
     if (settings->window_height > 4320) settings->window_height = 4320;
+#ifndef __ANDROID__
+    tetris_settings_fit_window_4_3(&settings->window_width,
+                                    &settings->window_height);
+#endif
     if (settings->touch_opacity < 20) settings->touch_opacity = 20;
     if (settings->touch_opacity > 100) settings->touch_opacity = 100;
     if (settings->touch_scale < 60) settings->touch_scale = 60;

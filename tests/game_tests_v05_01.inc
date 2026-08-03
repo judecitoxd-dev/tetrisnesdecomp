@@ -126,7 +126,8 @@ static void test_settings_round_trip_and_sanitize(void) {
     assert(!loaded.show_next && loaded.last_mode == TETRIS_MODE_B);
     /* Hidden v0.18 level 18 is migrated to the visible NES digit 8. */
     assert(loaded.last_level == 8 && loaded.last_height == 5);
-    assert(loaded.window_width == 1234 && loaded.window_height == 777);
+    assert(loaded.window_width == 1036 && loaded.window_height == 777);
+    assert(loaded.window_width * 3 == loaded.window_height * 4);
     assert(strcmp(loaded.rom_path, "/tmp/Tetris Test.nes ignored") == 0);
     loaded.music_track = 99;
     loaded.last_level = -20;

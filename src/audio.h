@@ -20,7 +20,7 @@
 #define TETRIS_AUDIO_SFX_COUNT 8
 #define TETRIS_AUDIO_ROM_FRAME_CAPACITY 1024u
 #define TETRIS_AUDIO_RING_CAPACITY 32768u
-#define TETRIS_AUDIO_RING_TARGET_DEFAULT 8192u
+#define TETRIS_AUDIO_RING_TARGET_DEFAULT 4096u
 
 /*
  * The SDL callback must only copy ready samples. The original 6502/APU driver

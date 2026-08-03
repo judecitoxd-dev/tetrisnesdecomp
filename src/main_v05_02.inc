@@ -11,7 +11,7 @@
 
     window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
     if (settings.fullscreen) window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.20",
+    SDL_Window *window = SDL_CreateWindow("Tetris NES PC Port v0.22",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         settings.window_width, settings.window_height, window_flags);
     if (!window) {
@@ -29,9 +29,13 @@
         SDL_Quit();
         return 1;
     }
-    SDL_RenderSetLogicalSize(renderer, LOGICAL_W, LOGICAL_H);
+    SDL_RenderSetLogicalSize(renderer, LOGICAL_W, DISPLAY_LOGICAL_H);
+#ifdef __ANDROID__
+    SDL_RenderSetIntegerScale(renderer, SDL_FALSE);
+#else
     SDL_RenderSetIntegerScale(renderer,
         settings.integer_scale ? SDL_TRUE : SDL_FALSE);
+#endif
 
     NesRom rom = {0};
     SDL_Texture *font = NULL;
@@ -128,8 +132,18 @@
             if (event.type == SDL_WINDOWEVENT &&
                 event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED &&
                 !settings.fullscreen) {
-                settings.window_width = event.window.data1;
-                settings.window_height = event.window.data2;
+                int adjusted_width = event.window.data1;
+                int adjusted_height = event.window.data2;
+#ifndef __ANDROID__
+                tetris_settings_fit_window_4_3(&adjusted_width,
+                                                &adjusted_height);
+                if (adjusted_width != event.window.data1 ||
+                    adjusted_height != event.window.data2)
+                    SDL_SetWindowSize(window, adjusted_width,
+                                      adjusted_height);
+#endif
+                settings.window_width = adjusted_width;
+                settings.window_height = adjusted_height;
             }
             if (event.type == SDL_KEYDOWN ||
                 event.type == SDL_CONTROLLERBUTTONDOWN ||
