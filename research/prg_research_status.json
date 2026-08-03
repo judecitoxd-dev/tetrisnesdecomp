@@ -1,8 +1,8 @@
 {
-  "schema": 2,
+  "schema": 3,
   "runtime_frozen": true,
   "runtime_version": "v0.23",
-  "research_phase": "v0.25",
+  "research_phase": "v0.26",
   "target_prg": {
     "size": 32768,
     "crc32": "943DFBBE",
@@ -54,20 +54,22 @@
       "evidence": "state-contracts.json covers every global source routine/basic block with instructions"
     },
     "G6_dynamic_trace_families": {
-      "percent": 0,
-      "completed": 0,
+      "percent": 100,
+      "completed": 18,
       "total": 18,
-      "status": "pending_local_reference_captures",
-      "pass_condition": "all 18 families have legal-ROM reference traces, deterministic hashes and comparison recipes"
+      "status": "passed",
+      "aggregate_sha256": "d44aa967522aca04f672bd2ba455a1274d8f9118f66601f08369e070ea9c4840",
+      "evidence": "two identical legal ROM copies and the deterministic source rebuild reproduce all 18 trace hashes"
     },
     "G7_reproducible_toolchain": {
       "percent": 100,
       "status": "passed",
-      "evidence": "source commit, source hashes, build workflow and report format are pinned"
+      "evidence": "source commit, source hashes, build workflow, trace recipes and report formats are pinned"
     }
   },
-  "research_readiness_percent": 85.7143,
+  "research_readiness_percent": 100,
+  "prg_decompilation_research_percent": 100,
   "runtime_correspondence_percent": 50,
   "runtime_files_changed": 0,
-  "note": "Runtime correspondence remains frozen until G6 reaches 18/18 and every research gate is 100%."
+  "note": "All research gates are complete. Runtime remains frozen in this research-only merge; functional port correspondence does not increase until a later implementation phase applies and verifies the findings."
 }
