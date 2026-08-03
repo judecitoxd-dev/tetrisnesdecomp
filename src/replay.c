@@ -176,6 +176,7 @@ uint64_t tetris_state_hash(const TetrisGame *game) {
     hash_i32(&hash, game->fall_counter);
     hash_i32(&hash, game->das_counter);
     hash_i32(&hash, game->das_direction);
+    hash_byte(&hash, game->horizontal_buttons);
     hash_i32(&hash, game->soft_drop_counter);
     hash_i32(&hash, game->soft_drop_points);
     hash_u32(&hash, game->rng_seed);

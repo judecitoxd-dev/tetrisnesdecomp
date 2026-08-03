@@ -27,15 +27,15 @@ consola portátil debajo.
 | Modo B | 95% |
 | Integración y empaquetado | 99% |
 | Carga legal de recursos desde ROM | 99% |
-| Fidelidad de reglas y timings principales | 89% |
+| Fidelidad de reglas y timings principales | 92% |
 | Pantallas y animaciones originales/equivalentes | 97% |
 | Audio original interactivo | 97% |
 | Renderizado automático del APU original | 95% |
-| Decompilación etiquetada/verificada del PRG 6502 | 45% |
-| **Correspondencia reproducible con la ROM** | **46%** |
+| Decompilación etiquetada/verificada del PRG 6502 | 52% |
+| **Correspondencia reproducible con la ROM** | **50%** |
 
-La cifra central es **Correspondencia reproducible con la ROM**: 46% terminado
-y aproximadamente 54% pendiente para identidad funcional, audiovisual y de
+La cifra central es **Correspondencia reproducible con la ROM**: 50% terminado
+y aproximadamente 50% pendiente para identidad funcional, audiovisual y de
 timing. Los porcentajes son estimaciones de ingeniería, no cobertura automática
 ni una afirmación de identidad binaria.
 
@@ -159,3 +159,14 @@ verificación de fuente adicional:
 4. Sustituir más lógica C por rutinas etiquetadas del PRG.
 5. Ampliar las pruebas visuales a capturas comparadas píxel por píxel.
 6. Preparar una construcción 6502 enlazable y perseguir identidad binaria.
+
+## Evidencia añadida en v0.23
+
+- 53 firmas de rutinas enlazadas a nombres semánticos.
+- 9 tablas completas y 14 llamadas directas verificadas.
+- 1,136 bytes comprobados por firmas o hashes de tablas.
+- Hash exacto del PRG completo, sin contabilizarlo falsamente como decompilado.
+- Regresiones de DAS, prioridad simultánea, pared, ARE, línea y cortina.
+
+Las cifras suben solo por evidencia reproducible. Todavía falta traducir y
+comparar más estados del bucle principal, menús, PPU, puntuación BCD y finales.
