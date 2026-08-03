@@ -56,6 +56,7 @@ jobs:
         run: |
           set +e
           rm -rf output/*
+          echo "$GITHUB_RUN_ID" > output/run-id.txt
           gradle --no-daemon --stacktrace :app:assembleDebug > output/build.log 2>&1
           BUILD_RC=$?
           echo "$BUILD_RC" > output/build-exit-code.txt
@@ -89,7 +90,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f sml-v13-android-build/output
-          git commit -m "SML v13 Android official build result" || exit 0
+          git commit -m "SML v13 Android official build result run ${GITHUB_RUN_ID}" || exit 0
           git push origin sml-native-v13-build
 
       - name: Require successful verified APK
