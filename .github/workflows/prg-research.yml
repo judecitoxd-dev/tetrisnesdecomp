@@ -22,6 +22,7 @@ jobs:
           python tools/external_prg_equivalence.py --self-test
           python tools/ld65_research_report.py --self-test
           python tools/prg_control_flow_audit.py --self-test
+          python tools/prg_symbol_context.py --self-test
           python tools/prg_verify.py --self-test
           python tools/prg_verify_v024.py --self-test
 
@@ -67,6 +68,14 @@ jobs:
             --computed-jumps research/prg_computed_jumps.json \
             --source-revision "$DISASM_REVISION" \
             --report research-report/control-flow-audit.json
+          python tools/prg_symbol_context.py \
+            external-disassembly/tetris.lbl \
+            external-disassembly/main.asm \
+            external-disassembly/tetris.asm \
+            external-disassembly/tetris-ram.asm \
+            --control-flow research-report/control-flow-audit.json \
+            --source-revision "$DISASM_REVISION" \
+            --report research-report/generic-symbol-context.json
           git -C external-disassembly rev-parse HEAD > research-report/external-source-revision.txt
           sha256sum external-disassembly/main.asm \
                     external-disassembly/tetris.asm \
