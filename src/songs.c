@@ -70,9 +70,25 @@ static bool text_ends_with(const char *text, const char *suffix) {
     return text_compare(text + text_length - suffix_length, suffix) == 0;
 }
 
+static bool mode_is_regular(int mode) {
+#ifdef _WIN32
+    return (mode & _S_IFMT) == _S_IFREG;
+#else
+    return S_ISREG(mode);
+#endif
+}
+
+static bool mode_is_directory(int mode) {
+#ifdef _WIN32
+    return (mode & _S_IFMT) == _S_IFDIR;
+#else
+    return S_ISDIR(mode);
+#endif
+}
+
 static bool file_exists(const char *path) {
     struct stat info;
-    return path && stat(path, &info) == 0 && (info.st_mode & S_IFREG) != 0;
+    return path && stat(path, &info) == 0 && mode_is_regular(info.st_mode);
 }
 
 static void join_path(char *destination, size_t destination_size,
@@ -88,7 +104,7 @@ static void join_path(char *destination, size_t destination_size,
 static bool ensure_directory(const char *path) {
     struct stat info;
     if (!path || !*path) return false;
-    if (stat(path, &info) == 0) return (info.st_mode & S_IFDIR) != 0;
+    if (stat(path, &info) == 0) return mode_is_directory(info.st_mode);
 #ifdef _WIN32
     return CreateDirectoryA(path, NULL) != 0 ||
            GetLastError() == ERROR_ALREADY_EXISTS;
