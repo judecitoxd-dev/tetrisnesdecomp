@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "validation_date": "2026-08-03",
+  "rom_copies_checked": 2,
+  "rom_sha256": "ddb876c302cfd4ee19fabff8e3ede0b6801ded70c49980d1682a32d352953082",
+  "full_trace_sha256": "e3063fb2975379f2a094807f9a4cde486696ae88a758143866b5bb01ffdd41cc",
+  "summary_sha256": "ec78805ee3a426bee845681ce5964030b197053f87b9ff169d7a1752902f981f",
+  "aggregate_trace_sha256": "d44aa967522aca04f672bd2ba455a1274d8f9118f66601f08369e070ea9c4840",
+  "families_completed": 18,
+  "families_total": 18,
+  "identical_across_copies": true,
+  "runtime_files_changed": 0,
+  "note": "Only hashes and counts are stored. ROM and full traces remain local."
+}
