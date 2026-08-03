@@ -1,75 +1,65 @@
 # Investigación PRG v0.25
 
-Esta fase mantiene congelado el runtime v0.23 y trabaja únicamente sobre la
-reconstrucción y comprensión del PRG 6502.
+Esta fase mantiene congelado el runtime v0.23. No modifica `src/`, audio, render, controles, PC ni Android.
 
-## Fuente externa fijada
+## Fuente y objetivo fijados
 
-- Repositorio: `CelestialAmber/TetrisNESDisasm`
+- Fuente pública: `CelestialAmber/TetrisNESDisasm`
 - Commit: `94581c0306fa0009fe11fde48222875549d15b8b`
-- Salida: PRG de 32 KiB
-- PRG objetivo SHA-256:
-  `a2de35dfa7333b0458762a1485fb612b6bdc9b5a15269f0fcf5a6be67c0d89de`
+- PRG objetivo SHA-256: `a2de35dfa7333b0458762a1485fb612b6bdc9b5a15269f0fcf5a6be67c0d89de`
+- CHR objetivo SHA-256: `23789834e66947081aa5d34efe092beb69a91273abc62089a8bb7c00f67ff751`
 
-El workflow recompila la fuente en Linux y compara hashes. La imagen generada se
-elimina antes de publicar artefactos.
+La reconstrucción produjo PRG y CHR idénticos. La imagen NES completa difiere únicamente en su cabecera iNES de 16 bytes.
 
-## Resultado verificado
+## Puertas completadas
 
-La reconstrucción produjo:
+### G1. Reconstrucción binaria: 100%
 
-```text
-PRG SHA-256: a2de35dfa7333b0458762a1485fb612b6bdc9b5a15269f0fcf5a6be67c0d89de
-CHR SHA-256: 23789834e66947081aa5d34efe092beb69a91273abc62089a8bb7c00f67ff751
-```
+El PRG recompilado de 32 KiB coincide byte por byte mediante SHA-256.
 
-Ambos coinciden exactamente con la revisión legal usada por el port. La imagen
-completa tiene un hash distinto únicamente porque su cabecera iNES de 16 bytes
-no es igual; los 32 KiB de PRG y los 16 KiB de CHR sí son idénticos.
+### G2. Partición completa: 100%
 
-Por ello:
+ld65 relaciona los 32.768 bytes del PRG con spans de fuente. El informe registra 30 archivos fuente, 8.304 registros de línea y 1.464 registros de símbolos.
 
-- **G1, reconstrucción binaria del PRG: 100%**.
-- **G2, partición completa del PRG: 100%**.
+### G3. Símbolos semánticos: 100%
 
-## Mapa ld65
+Además de las 1.071 etiquetas ya semánticas, se clasificaron las 114 etiquetas genéricas detectadas por la regla ampliada. Todas tienen alias único, tipo, subsistema y evidencia. No quedan etiquetas omitidas, duplicadas o inválidas en el inventario fijado.
 
-El informe de depuración demuestra:
+### G4. Grafo estático de control: 100%
 
-- 32,768 bytes de segmentos PRG;
-- 32,768 bytes asociados a spans de fuente;
-- 30 archivos fuente;
-- 8,304 registros de línea;
-- 1,464 registros de símbolos;
-- 1,169 etiquetas únicas;
-- 1,071 etiquetas consideradas semánticas;
-- 98 etiquetas todavía genéricas;
-- proporción de nombres semánticos: 91.6168%.
+- 1.028/1.028 ramas, JSR y JMP directos resueltos.
+- 368/368 referencias de tablas `.addr` resueltas.
+- 2/2 saltos calculados clasificados: dispatcher por tabla de retorno y dispatcher de métodos de efectos de sonido.
 
-La partición completa no significa que cada nombre haya sido auditado. G3 sigue
-abierto hasta reemplazar o clasificar las 98 etiquetas genéricas y revisar el
-significado funcional de las demás.
+### G5. Contratos de estado: 100%
 
-## Informes producidos
+Se generaron 302 contratos para las 302 rutinas o bloques globales con instrucciones. Clasifican 4.963 instrucciones, lecturas y escrituras RAM, accesos PPU/APU, memoria indirecta, llamadas, saltos terminales, pila y retornos.
 
-- `external-prg-equivalence.json`: equivalencia completa, PRG y CHR.
-- `ld65-source-map.json`: segmentos, spans, etiquetas y cobertura de fuente.
-- `external-source-revision.txt`: commit exacto usado.
-- `external-source-files.sha256`: hashes de los archivos fuente principales.
-- `research/prg_research_v025_result.json`: resumen permanente sin datos de ROM.
+### G7. Toolchain reproducible: 100%
 
-## Estado después de v0.25
+La revisión de fuente, hashes, workflow, formatos de informe y comprobaciones están fijados.
+
+## Puerta pendiente
+
+### G6. Familias de trazas dinámicas: 0% — 0/18
+
+Falta capturar y verificar localmente con la ROM legal las 18 familias de ejecución. Cada familia deberá incluir receta reproducible, columnas de estado, cantidad de frames, hash del archivo y resultado de comparación. Las trazas propietarias no se publicarán; GitHub recibirá solamente hashes y metadatos.
+
+## Estado actual
 
 | Puerta | Estado |
 |---|---:|
 | G1. Reconstrucción binaria | 100% |
 | G2. Partición completa | 100% |
-| G3. Símbolos semánticos | 91.6168% |
-| G4. Grafo de control | 35% |
-| G5. Contratos de estado | 25% |
-| G6. Familias de trazas | 0% |
+| G3. Símbolos semánticos | 100% |
+| G4. Grafo de control | 100% |
+| G5. Contratos de estado | 100% |
+| G6. Trazas dinámicas | 0% — 0/18 |
 | G7. Toolchain reproducible | 100% |
-| Preparación total, promedio de puertas | 64.5167% |
+| **Preparación total** | **85,7143%** |
 
-La correspondencia funcional del ejecutable continúa congelada en 50%. No se
-volverá a tocar el runtime hasta que G1–G7 estén al 100%.
+La correspondencia funcional del ejecutable continúa congelada en 50%. El runtime no se descongelará hasta completar G6 y alcanzar 100% en las siete puertas.
+
+## Informes
+
+El artefacto de investigación contiene únicamente JSON y hashes: equivalencia PRG/CHR, mapa ld65, grafo de control, contexto y auditoría semántica, contratos de estado y revisión de fuente. No contiene ROM, PRG, CHR, audio ni trazas propietarias.
