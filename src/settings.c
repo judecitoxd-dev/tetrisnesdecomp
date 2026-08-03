@@ -104,8 +104,9 @@ void tetris_settings_sanitize(TetrisSettings *settings) {
     int index;
     if (!settings) return;
     if (settings->music_track < -1) settings->music_track = -1;
+    /* Values 3..66 are valid custom-song slots; anything larger is corrupt. */
     if (settings->music_track > TETRIS_SETTINGS_MUSIC_MAX)
-        settings->music_track = TETRIS_SETTINGS_MUSIC_MAX;
+        settings->music_track = 2;
     if (settings->last_mode != TETRIS_MODE_B) settings->last_mode = TETRIS_MODE_A;
     settings->last_level = normalize_menu_level(settings->last_level);
     if (settings->last_height < 0) settings->last_height = 0;
