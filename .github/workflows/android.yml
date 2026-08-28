@@ -1,8 +1,8 @@
-name: Build Tetris DS Stage23 APK
+name: Build Tetris DS Stage28 APK
 
 on:
   push:
-    branches: [tds-stage23-apk-build]
+    branches: [tds-stage28-apk-build]
   workflow_dispatch:
 
 jobs:
@@ -11,60 +11,66 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Reconstruct buildable Stage23 source from uploaded payload
+      - name: Reconstruct Stage23 base and apply Stage28 overlay
         shell: bash
         run: |
           set -euo pipefail
-          cat .tds-build/part{00..09} > /tmp/tds-stage23.b64
-          base64 -d /tmp/tds-stage23.b64 > /tmp/tds-stage23.partial.zip
+          mkdir -p /tmp/tds23 /tmp/tds28
+          cat .tds-build/part* | base64 -d > /tmp/stage23-partial.zip || true
           python3 - <<'PY'
-          from pathlib import Path
-          import struct, zlib
-          data=Path('/tmp/tds-stage23.partial.zip').read_bytes()
-          out=Path('tds-stage23-src')
-          pos=0; extracted=0
-          while pos+30 <= len(data):
-              if data[pos:pos+4] != b'PK\x03\x04':
-                  nxt=data.find(b'PK\x03\x04', pos+1)
-                  if nxt < 0: break
-                  pos=nxt
-                  continue
-              sig,ver,flag,method,mtime,mdate,crc,csize,usize,nlen,xlen=struct.unpack_from('<IHHHHHIIIHH',data,pos)
-              name=data[pos+30:pos+30+nlen].decode('utf-8','replace')
-              dstart=pos+30+nlen+xlen
-              dend=dstart+csize
-              if dend > len(data): break
-              comp=data[dstart:dend]
-              if method == 0: raw=comp
-              elif method == 8: raw=zlib.decompress(comp,-15)
-              else:
-                  pos=dend
-                  continue
-              p=out/name
-              if name.endswith('/'):
-                  p.mkdir(parents=True,exist_ok=True)
-              else:
-                  p.parent.mkdir(parents=True,exist_ok=True)
-                  p.write_bytes(raw)
-              extracted += 1
-              pos=dend
-          print('Extracted entries:', extracted)
-          root=out/'TetrisDS-native-stage23-rom-fidelity'
-          required=[
-              root/'android/build.gradle',
-              root/'android/settings.gradle',
-              root/'android/app/build.gradle',
-              root/'android/app/src/main/AndroidManifest.xml',
-              root/'android/app/src/main/cpp/native_bridge.cpp',
-              root/'android/app/src/main/cpp/CMakeLists.txt',
-              root/'src/core/NativeSession.cpp',
-              root/'src/core/StandardGame.cpp',
-              root/'src/core/StandardRenderer.cpp',
-          ]
-          missing=[str(p) for p in required if not p.is_file()]
-          if missing:
-              raise SystemExit('Missing build files: '+', '.join(missing))
+          import os, struct, zlib
+          data=open('/tmp/stage23-partial.zip','rb').read(); out='/tmp/tds23'; i=0
+          while True:
+              j=data.find(b'PK\x03\x04', i)
+              if j < 0: break
+              try:
+                  sig,ver,flag,method,mt,md,crc,cs,us,nl,el=struct.unpack_from('<IHHHHHIIIHH',data,j)
+                  name=data[j+30:j+30+nl].decode('utf-8','replace'); ds=j+30+nl+el; comp=data[ds:ds+cs]
+                  if len(comp)!=cs: break
+                  rel=name.split('/',1)[1] if '/' in name else name
+                  dest=os.path.join(out,rel)
+                  if name.endswith('/'):
+                      os.makedirs(dest,exist_ok=True)
+                  else:
+                      raw=comp if method==0 else zlib.decompress(comp,-15)
+                      os.makedirs(os.path.dirname(dest),exist_ok=True)
+                      open(dest,'wb').write(raw)
+                  i=ds+cs
+              except Exception:
+                  i=j+4
           PY
+          cp -a /tmp/tds23/. /tmp/tds28/
+          cat .tds-stage28/part* | base64 -d > /tmp/stage28-overlay.tar.gz
+          echo '9ee52774f3267049b14f5d79a7e73003832b715e9468f2e9fa86f770a236271a  /tmp/stage28-overlay.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/stage28-overlay.tar.gz -C /tmp/tds28
+          cat > /tmp/tds28/android/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '9.3.0' apply false
+          }
+          EOF
+          cat > /tmp/tds28/android/app/build.gradle <<'EOF'
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'dev.jude.tdsnative'
+              compileSdk 36
+              defaultConfig {
+                  applicationId 'dev.jude.tdsnative'
+                  minSdk 26
+                  targetSdk 36
+                  versionCode 28
+                  versionName '0.28-stage28-block9-retail'
+                  externalNativeBuild { cmake { cppFlags '-std=c++20' } }
+                  ndk { abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64' }
+              }
+              externalNativeBuild { cmake { path file('src/main/cpp/CMakeLists.txt'); version '3.22.1' } }
+              buildTypes {
+                  debug { debuggable true }
+                  release { minifyEnabled false }
+              }
+          }
+          EOF
+          test -f /tmp/tds28/src/core/RecordsScene.cpp
+          test -f /tmp/tds28/android/app/src/main/cpp/CMakeLists.txt
 
       - uses: actions/setup-java@v4
         with:
@@ -79,31 +85,28 @@ jobs:
         shell: bash
         run: |
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager \
-            "platforms;android-36" \
-            "build-tools;36.0.0" \
-            "ndk;28.2.13676358" \
-            "cmake;3.22.1"
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;3.22.1"
 
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
 
-      - name: Build Stage23 debug APK
-        working-directory: tds-stage23-src/TetrisDS-native-stage23-rom-fidelity/android
+      - name: Build Stage28 debug APK
+        working-directory: /tmp/tds28/android
         run: gradle --no-daemon :app:assembleDebug --stacktrace
 
       - name: Prepare APK
         shell: bash
         run: |
           set -euo pipefail
-          APK=tds-stage23-src/TetrisDS-native-stage23-rom-fidelity/android/app/build/outputs/apk/debug/app-debug.apk
+          APK=/tmp/tds28/android/app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK"
-          cp "$APK" TetrisDS-native-stage23-rom-fidelity-debug.apk
-          sha256sum TetrisDS-native-stage23-rom-fidelity-debug.apk
+          cp "$APK" TetrisDS-native-stage28-block9-retail-debug.apk
+          sha256sum TetrisDS-native-stage28-block9-retail-debug.apk
+          unzip -t TetrisDS-native-stage28-block9-retail-debug.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TetrisDS-native-stage23-rom-fidelity-apk
-          path: TetrisDS-native-stage23-rom-fidelity-debug.apk
+          name: TetrisDS-native-stage28-block9-retail-apk
+          path: TetrisDS-native-stage28-block9-retail-debug.apk
           if-no-files-found: error
